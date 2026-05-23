@@ -53,3 +53,19 @@ Keep it Lean: If a problem can be solved without adding a new dependency, do it.
 No Boilerplate: Provide functional, production-ready code snippets. Skip generating dummy data unless explicitly asked.
 
 Observability: Since the indexer runs as a detached, ephemeral Kube Job, implement clear, structured logging to stdout for fast debugging.
+
+## 5. Current Status
+### Current Timeline & Target
+- Phase: Local PoC / Infrastructure Design
+- Current Focus: Selection of Vector DB and contract definitions.
+
+### Accepted ADRs
+- [ADR-0001: System Boundaries] Status: ACCEPTED. (Event-driven Ingestion via SQS/KEDA, Query via Go API, Cilium Isolation).
+
+### Current Tech Stack
+- Frontend: Single HTML (Vanilla JS) served by Go.
+- Ingestion: S3 -> SQS -> KEDA -> K8s Job (Python/Haystack).
+- App: Go API.
+
+### Current Blockers / Tasks to Discuss
+- VectorDB Selection: We need to finalize our choice of Vector Database. Options include Pinecone, Weaviate, and Redis Enterprise Cloud. Each has trade-offs in terms of cost, performance, and ease of integration.
