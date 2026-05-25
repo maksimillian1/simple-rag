@@ -48,11 +48,11 @@ Write clean, modular, and reusable code.
 Every AWS resource must be explicitly tagged with Project = "simple-rag".
 
 ## 4. AI Assistant Directives
-Keep it Lean: If a problem can be solved without adding a new dependency, do it. Code execution translates directly to our Spot billing limit.
+Keep it Lean: If an engineering problem can be solved natively without adding a new third-party dependency, do it. Extra dependencies translate directly to larger Docker images and higher Spot billing limits.
 
-No Boilerplate: Provide functional, production-ready code snippets. Skip generating dummy data unless explicitly asked.
+Production-Ready Code: Skip placeholders, // TODO comments, or dummy mock data unless explicitly requested. Provide complete, valid, and lint-clean code snippets.
 
-Observability: Since the indexer runs as a detached, ephemeral Kube Job, implement clear, structured logging to stdout for fast debugging.
+Observability: Since the indexer runs as a detached, ephemeral Kube Job, implement clear, structured logging to stdout (JSON format preferred) for fast CloudWatch debugging.
 
 ## 5. Current Status
 ### Current Timeline & Target
@@ -60,7 +60,7 @@ Observability: Since the indexer runs as a detached, ephemeral Kube Job, impleme
 - Current Focus: Selection of Vector DB and contract definitions.
 
 ### Accepted ADRs
-- [ADR-0001: System Boundaries] Status: ACCEPTED. (Event-driven Ingestion via SQS/KEDA, Query via Go API, Cilium Isolation).
+- [ADR-0002: Vector Storage Selection for RAG Pipeline] Status: ACCEPTED. (Event-driven Ingestion via SQS/KEDA, Query via Go API, Cilium Isolation).
 
 ### Current Tech Stack
 - Frontend: Single HTML (Vanilla JS) served by Go.
@@ -68,4 +68,4 @@ Observability: Since the indexer runs as a detached, ephemeral Kube Job, impleme
 - App: Go API.
 
 ### Current Blockers / Tasks to Discuss
-- VectorDB Selection: We need to finalize our choice of Vector Database. Options include Pinecone, Weaviate, and Redis Enterprise Cloud. Each has trade-offs in terms of cost, performance, and ease of integration.
+- VectorDB local setup, embedding model selection, and contract definitions for the indexer and API.
