@@ -7,19 +7,7 @@ Core Mission: Build a rigid, decoupled, and business-sensible two-stage ingestio
 ## 1. Directory Structure
 
 You must strictly adhere to this monorepo structure. Do not invent new root folders.
-
-```text
-simple-rag/
-├── apps/
-│   ├── api/          # Go-based API (lightweight, minimal RAM, fast cold start for queries)
-│   ├── chunker/      # Python + Haystack (Stage 1: Ephemeral Kube Job for parsing & chunking)
-│   └── indexer/      # Python + Haystack (Stage 2: Ephemeral Kube Job for embeddings & DB upsert)
-├── deploy/
-│   └── k8s/          # Kubernetes manifests & KEDA ScaledJob configurations
-└── terraform/
-    ├── envs/prod/    # Environment entry point (invokes modules)
-    └── modules/      # Reusable infrastructure (vpc, eks, iam_irsa, s3, sqs)
-```
+Look [Directory Structure](./docs/architecture.md#directory-structure)
 
 ## 2. Infrastructure & Workflow Rules
 Execution Flow:

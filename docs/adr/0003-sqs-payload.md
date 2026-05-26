@@ -1,6 +1,6 @@
-# 4. Using SQS Payload to Transfer Document Chunks
+# 3. Using SQS Payload to Transfer Document Chunks
 
-Date: 2026-05-25
+Date: 2026-05-26
 
 ## Status
 
