@@ -1,15 +1,84 @@
 version: '3.8'
 
 services:
+  # ---------------------------------------------------------------------------
+  # Vector DB Layer
+  # ---------------------------------------------------------------------------
   qdrant:
-    image: qdrant/qdrant:latest
-    container_name: qdrant_local
+    image: qdrant/qdrant:v1.9.2
+    container_name: simple-rag-qdrant
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "6333:6333" # HTTP REST API / Dashboard
+      - "6334:6334" # gRPC (Our Go API and Indexer target)
     volumes:
-      - qdrant_storage:/qdrant/storage
-    restart: always
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__TELEMETRY_DISABLED=true
+
+  # ---------------------------------------------------------------------------
+  # Shared AI Inference Layer (Rust-based TEI)
+  # ---------------------------------------------------------------------------
+  tei-embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-arm64-sha-5bc4d88-grpc
+    container_name: simple-rag-tei
+    ports:
+      - "8081:80"
+    volumes:
+      - tei_cache:/data
+    command: --model-id BAAI/bge-small-en-v1.5 --revision main
+
+  # ---------------------------------------------------------------------------
+  # Message Queue Layer (Mocking AWS SQS locally via ElasticMQ)
+  # ---------------------------------------------------------------------------
+  sqs-local:
+    image: softwaremill/elasticmq-native:1.6.0
+    container_name: simple-rag-sqs
+    ports:
+      - "9324:9324" # SQS REST API
+      - "9325:9325" # SQS UI Dashboard
+    volumes:
+      - ./deploy/local/elasticmq.conf:/opt/elasticmq.conf
+
+  # ---------------------------------------------------------------------------
+  # Ephemeral Application Mocking (For manual POC execution trigger)
+  # ---------------------------------------------------------------------------
+  chunker:
+    build:
+      context: ./apps/chunker
+      dockerfile: Dockerfile
+    container_name: simple-rag-chunker
+    environment:
+      - AWS_SQS_STAGE_1_URL=http://sqs-local:9324/000000000000/stage-1-parsing
+      - AWS_SQS_STAGE_2_URL=http://sqs-local:9324/000000000000/stage-2-indexing
+      - AWS_ENDPOINT_URL=http://sqs-local:9324
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=mock
+      - AWS_SECRET_ACCESS_KEY=mock
+      - CONTINUOUS_POLL=true
+    volumes:
+      - /Users/maksimsnitcuk/Applications/personal/simple-rag:/Users/maksimsnitcuk/Applications/personal/simple-rag
+      - ./apps/chunker:/app
+
+  indexer:
+    build:
+      context: ./apps/indexer
+      dockerfile: Dockerfile
+    container_name: simple-rag-indexer
+    environment:
+      - AWS_SQS_STAGE_2_URL=http://sqs-local:9324/000000000000/stage-2-indexing
+      - AWS_ENDPOINT_URL=http://sqs-local:9324
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=mock
+      - AWS_SECRET_ACCESS_KEY=mock
+      - TEI_ENDPOINT=http://tei-embeddings:80
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6334
+      - CONTINUOUS_POLL=true
+    volumes:
+      - ./apps/indexer:/app
 
 volumes:
-  qdrant_storage:
+  qdrant_data:
+  tei_cache:
+
+
