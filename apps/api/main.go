@@ -91,8 +91,8 @@ func main() {
 		})
 	})
 
-	// 3. Modular Search Endpoint
-	mux.HandleFunc("/search", searchService.Handler)
+	// 3. New Production Query Endpoint
+	mux.HandleFunc("/api/v1/query", searchService.QueryHandler)
 
 	// 4. Modular Debug Seeder Endpoint
 	mux.HandleFunc("/seed", debugService.SeedHandler)

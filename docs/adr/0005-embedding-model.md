@@ -1,4 +1,4 @@
-# 4: Embedding Model Selection for Local Inference
+# 5: Embedding Model Selection for Local Inference
 
 Date: 2026-05-26
 

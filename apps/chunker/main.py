@@ -6,6 +6,8 @@ import tempfile
 import signal
 import logging
 import boto3
+import hashlib
+import math
 from urllib.parse import unquote_plus
 from haystack.components.preprocessors import DocumentSplitter
 
@@ -21,6 +23,16 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger("chunker")
+
+def calculate_sha256(file_path: str) -> str:
+    """
+    Calculate SHA256 hex checksum of a local file.
+    """
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
 
 # Signal handling for AWS Spot instance eviction
 graceful_exit = False
@@ -41,28 +53,28 @@ def get_boto_clients():
     s3_endpoint = os.getenv("AWS_S3_ENDPOINT_URL")
     region = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 
-    # Fallback to local mock credentials if endpoints are defined to prevent NoCredentialsError
+    # Use environment variables if explicitly set, otherwise let boto3 resolve credentials natively.
     aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
     aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
 
-    if (sqs_endpoint or s3_endpoint) and not aws_access_key:
-        aws_access_key = "mock"
-        aws_secret_key = "mock"
+    kwargs = {}
+    if aws_access_key:
+        kwargs["aws_access_key_id"] = aws_access_key
+    if aws_secret_key:
+        kwargs["aws_secret_access_key"] = aws_secret_key
 
     sqs_client = boto3.client(
         "sqs",
         region_name=region,
         endpoint_url=sqs_endpoint,
-        aws_access_key_id=aws_access_key,
-        aws_secret_access_key=aws_secret_key
+        **kwargs
     )
 
     s3_client = boto3.client(
         "s3",
         region_name=region,
         endpoint_url=s3_endpoint,
-        aws_access_key_id=aws_access_key,
-        aws_secret_access_key=aws_secret_key
+        **kwargs
     )
 
     return sqs_client, s3_client
@@ -226,27 +238,47 @@ def main():
                     # Retrying via visibility timeout
                     continue
 
+                # Calculate document checksum and file_id for the deterministic contract
+                try:
+                    checksum = calculate_sha256(temp_file_path)
+                    file_id = f"doc_{checksum[:8]}"
+                    logger.info(f"Generated file_id: {file_id} with checksum: {checksum}")
+                except Exception as e:
+                    logger.error(f"Failed to calculate checksum for {file_name}: {e}")
+                    continue
+
                 # Prepare the chunks payload and push in batches of up to 40 chunks
                 # This ensures the message payload fits comfortably inside SQS 256KB limits
                 success = True
                 batch_size = 40
                 total_chunks = len(chunks)
+                total_parts = math.ceil(total_chunks / batch_size)
 
                 for i in range(0, total_chunks, batch_size):
                     batch_chunks = chunks[i:i + batch_size]
+                    part_index = i // batch_size
                     
-                    # Build structured Stage 2 Payload message
+                    # Build structured Stage 2 Payload message matching contracts.md
                     payload_chunks = []
                     for idx, chunk in enumerate(batch_chunks):
                         global_index = i + idx
                         payload_chunks.append({
                             "chunk_index": global_index,
-                            "text": chunk.content
+                            "page_number": chunk.meta.get("page_number", 1),
+                            "content": chunk.content
                         })
 
                     stage_2_message = {
-                        "file_name": file_name,
-                        "metadata": doc_metadata,
+                        "trace_id": str(uuid.uuid4()),
+                        "document": {
+                            "file_id": file_id,
+                            "file_name": file_name,
+                            "checksum": checksum
+                        },
+                        "boundaries": {
+                            "part_index": part_index,
+                            "total_parts": total_parts
+                        },
                         "chunks": payload_chunks
                     }
 

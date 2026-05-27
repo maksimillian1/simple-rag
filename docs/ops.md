@@ -54,44 +54,64 @@ To prevent cluster thrashing, we scale via `ScaledJob` instead of `ScaledObject`
 apiVersion: keda.sh/v1alpha1
 kind: ScaledJob
 metadata:
-  name: haystack-indexer-scaler
-  namespace: simple-rag
+   name: haystack-indexer-scaler
+   namespace: simple-rag
 spec:
-  jobTargetRef:
-    parallelism: 1
-    completions: 1
-    activeDeadlineSeconds: 600
-    template:
-      spec:
-        serviceAccountName: indexer-irsa-sa
-        restartPolicy: OnFailure
-        containers:
-        - name: indexer
-          image: <aws_account_id>[.dkr.ecr.eu-west-1.amazonaws.com/simple-rag/indexer:latest](https://.dkr.ecr.eu-west-1.amazonaws.com/simple-rag/indexer:latest)
-          resources:
-            limits:
-              cpu: "1"
-              memory: 2Gi
-            requests:
-              cpu: "500m"
-              memory: 1Gi
-  minReplicaCount: 0
-  maxReplicaCount: 20
-  pollingInterval: 15
-  successfulJobsHistoryLimit: 5
-  failedJobsHistoryLimit: 5
-  triggers:
-  - type: aws-sqs
-    metadata:
-      queueURL: [https://sqs.eu-west-1.amazonaws.com/](https://sqs.eu-west-1.amazonaws.com/)<aws_account_id>/stage-2-indexing
-      queueLength: "10" # Target: 1 parallel job per 10 messages in queue
-      awsRegion: eu-west-1
-      identityOwner: operator
+   jobTargetRef:
+      parallelism: 1
+      completions: 1
+      activeDeadlineSeconds: 600
+      template:
+         spec:
+            serviceAccountName: indexer-irsa-sa
+            restartPolicy: OnFailure
+            containers:
+               - name: indexer
+                 image: <aws_account_id>[.dkr.ecr.eu-west-1.amazonaws.com/simple-rag/indexer:latest](https://.dkr.ecr.eu-west-1.amazonaws.com/simple-rag/indexer:latest)
+                 resources:
+                    limits:
+                       cpu: "1"
+                       memory: 2Gi
+                    requests:
+                       cpu: "500m"
+                       memory: 1Gi
+   minReplicaCount: 0
+   maxReplicaCount: 20
+   pollingInterval: 15
+   successfulJobsHistoryLimit: 5
+   failedJobsHistoryLimit: 5
+   triggers:
+      - type: aws-sqs
+        metadata:
+           queueURL: [https://sqs.eu-west-1.amazonaws.com/](https://sqs.eu-west-1.amazonaws.com/)<aws_account_id>/stage-2-indexing
+           queueLength: "10" # Target: 1 parallel job per 10 messages in queue
+           awsRegion: eu-west-1
+           identityOwner: operator
 ```
 
 ---
 
-## 3. FinOps and Cost-Efficiency Monitoring
+## 3. Ingestion Assumptions & Scope Boundaries (PoC Guardrails)
+
+For the current PoC deployment, the ingest pattern bypasses consumer-facing gateways to minimize architectural overhead during local validation.
+
+### Operational Constraints
+1. **Trusted Ingress Enclosure:** Documents are dropped directly into the S3 bucket (`prod-raw-documents-eu-west-1`) via trusted channels (AWS Console or AWS CLI). The ingestion entry point assumes files have undergone basic structural optimization prior to landing.
+2. **Compute-Layer Fail-Safe:** Despite ingress trust assumptions, the system preserves localized protection. `apps/chunker` checks file metadata size limits programmatically before pulling objects over the network:
+   ```python
+   # Enforce strict 100MB limit inside Stage 1 to protect Pod memory constraints
+   MAX_ALLOWED_SIZE_BYTES = 104857600
+   object_size = message['Records'][0]['s3']['object']['size']
+   
+   if object_size > MAX_ALLOWED_SIZE_BYTES:
+       logger.error(f"File too large ({object_size} bytes). Aborting download path.")
+       return # Drop execution, proceed to clean SQS deletion
+   ```
+3. **Production Migration Path:** Moving this architecture to production requires an upstream API/Gateway layer that executes `Content-Length` filtering and structural linting *before* signing S3 Presigned URLs, keeping heavy data validation completely outside the asynchronous processing perimeter.
+
+---
+
+## 4. FinOps and Cost-Efficiency Monitoring
 
 To prove the architectural ROI to executive stakeholders, track the **Cost-Per-Document-Indexed (CPDI)** metric.
 
@@ -113,7 +133,7 @@ Target ROI Metrics for this architecture:
 
 ---
 
-## 4. Troubleshooting and Dead-Letter Queue (DLQ) Runbook
+## 5. Troubleshooting and Dead-Letter Queue (DLQ) Runbook
 
 If a document payload contains malformed binary components or causes an OOM crash in the embedded embedding model, it is shunted to the DLQ after **3 retries** (configured via SQS Redrive Policy).
 

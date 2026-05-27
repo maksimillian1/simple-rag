@@ -1,4 +1,4 @@
-# 5: AI Pipeline Framework Selection and Embedded Inference Model
+# 4: AI Pipeline Framework Selection and Embedded Inference Model
 
 Date: 2026-05-26
 

@@ -28,6 +28,10 @@ def handle_signal(signum, frame):
 signal.signal(signal.SIGTERM, handle_signal)
 signal.signal(signal.SIGINT, handle_signal)
 
+import time
+
+NAMESPACE_RAG = uuid.UUID('6ba7b810-9dad-11d1-80b4-00c04fd430c8')
+
 def get_sqs_client():
     """
     Construct SQS client using environment configurations.
@@ -35,31 +39,30 @@ def get_sqs_client():
     sqs_endpoint = os.getenv("AWS_ENDPOINT_URL")
     region = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 
-    # Fallback to local mock credentials if endpoints are defined
+    # Use environment variables if explicitly set, otherwise let boto3 resolve credentials natively.
     aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
     aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
 
-    if sqs_endpoint and not aws_access_key:
-        aws_access_key = "mock"
-        aws_secret_key = "mock"
+    kwargs = {}
+    if aws_access_key:
+        kwargs["aws_access_key_id"] = aws_access_key
+    if aws_secret_key:
+        kwargs["aws_secret_access_key"] = aws_secret_key
 
     return boto3.client(
         "sqs",
         region_name=region,
         endpoint_url=sqs_endpoint,
-        aws_access_key_id=aws_access_key,
-        aws_secret_access_key=aws_secret_key
+        **kwargs
     )
 
-def generate_uuid5(file_name: str, chunk_index: int) -> str:
+def generate_point_id(file_id: str, chunk_index: int) -> str:
     """
     Generates a completely deterministic UUIDv5 Point ID for Qdrant.
     This guarantees that Spot evictions and retries are idempotent.
     """
-    namespace = uuid.uuid5(uuid.NAMESPACE_DNS, "simple-rag.example.com")
-    # Using format file_name_index
-    unique_key = f"{file_name}_{chunk_index}"
-    return str(uuid.uuid5(namespace, unique_key))
+    composite_key = f"{file_id}:{chunk_index}"
+    return str(uuid.uuid5(NAMESPACE_RAG, composite_key))
 
 def main():
     global graceful_exit
@@ -130,8 +133,11 @@ def main():
                 sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
                 continue
 
-            file_name = body.get("file_name")
-            metadata = body.get("metadata", {})
+            # Support both new contracts.md structure and manual debug seeder format
+            doc_block = body.get("document", {})
+            file_id = doc_block.get("file_id")
+            file_name = doc_block.get("file_name") or body.get("file_name")
+            checksum = doc_block.get("checksum")
             chunks = body.get("chunks", [])
 
             if not file_name or not chunks:
@@ -139,11 +145,18 @@ def main():
                 sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
                 continue
 
-            logger.info(f"Batch Vectorizing {len(chunks)} chunks for: {file_name}")
+            # If manual debug seeder format, generate a fallback file_id
+            if not file_id:
+                file_id = f"doc_manual_{hash(file_name) & 0xffffffff:08x}"
+
+            logger.info(f"Batch Vectorizing {len(chunks)} chunks for file_id: {file_id} ({file_name})")
 
             # Call TEI container to generate embeddings in one batch
             tei_url = f"{tei_endpoint}/embed"
-            chunk_texts = [chunk["text"] for chunk in chunks]
+            chunk_texts = []
+            for chunk in chunks:
+                text = chunk.get("content") or chunk.get("text", "")
+                chunk_texts.append(text)
 
             try:
                 logger.info(f"Calling TEI at {tei_url} for batch embedding generation...")
@@ -189,17 +202,20 @@ def main():
             points = []
             for i, chunk in enumerate(chunks):
                 chunk_index = chunk["chunk_index"]
-                text = chunk["text"]
+                page_number = chunk.get("page_number", 1)
+                text = chunk_texts[i]
                 vector = embeddings[i]
 
-                point_id = generate_uuid5(file_name, chunk_index)
+                point_id = generate_point_id(file_id, chunk_index)
 
-                # Merge chunk text and parent metadata into Qdrant payload
+                # Rework payload format strictly matching Section 4 of contracts.md
                 payload = {
-                    "text": text,
-                    "chunk_index": chunk_index,
+                    "file_id": file_id,
                     "file_name": file_name,
-                    **metadata
+                    "chunk_index": chunk_index,
+                    "page_number": page_number,
+                    "text": text,
+                    "indexed_at": int(time.time())
                 }
 
                 points.append(PointStruct(
