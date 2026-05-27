@@ -65,5 +65,6 @@ Observability: Since the indexer runs as a detached, ephemeral Kube Job, impleme
 - Query Layer: Go API (Read-Only access to Qdrant).
 
 ### Current Blockers / Tasks to Discuss
-- Embedding model selection (e.g., Text Embeddings Inference configuration), and strict JSON schema definition for the SQS Stage 2 chunk payload.
-- Decide about AI framework Haystack vs LangChain for the chunker and indexer. Haystack is currently favored for its out-of-the-box document parsing and embedding pipeline capabilities, but LangChain could offer more flexibility if we need to implement custom logic later on.
+- Testing local setup
+- Rework usage of s3 with cli aws configure for API and chunker
+- Based on updated contracts.md rework chunker and indexer and API to fit new contract definitions
