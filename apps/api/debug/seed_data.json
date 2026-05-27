@@ -1,0 +1,502 @@
+[
+  {
+    "text": "AWS S3 serves as our primary document ingestion window where external systems upload documents.",
+    "source": "s3_ingestion",
+    "category": "infrastructure"
+  },
+  {
+    "text": "Qdrant was selected as our vector storage due to its excellent performance-to-efficiency ratio and low latency.",
+    "source": "vector_storage_adr",
+    "category": "database"
+  },
+  {
+    "text": "The indexer is deployed as a short-lived Kubernetes job managed by KEDA to minimize continuous compute costs.",
+    "source": "indexer_keda",
+    "category": "deployment"
+  },
+  {
+    "text": "Sourdough bread relies on wild yeast and lactobacilli present in the environment instead of commercial baker's yeast, yielding a complex, tangy flavor.",
+    "source": "culinary_guide",
+    "category": "cooking"
+  },
+  {
+    "text": "The Maillard reaction is a chemical reaction between amino acids and reducing sugars that gives browned food its desirable flavor.",
+    "source": "food_science_101",
+    "category": "cooking"
+  },
+  {
+    "text": "Sous-vide cooking involves vacuum-sealing food in a bag and cooking it in a precisely regulated water bath to guarantee uniform doneness.",
+    "source": "culinary_guide",
+    "category": "cooking"
+  },
+  {
+    "text": "Espresso extraction requires forcing hot water under high pressure through finely-ground coffee beans to produce a concentrated shot with rich crema.",
+    "source": "barista_handbook",
+    "category": "cooking"
+  },
+  {
+    "text": "Fermentation preserves food by converting carbohydrates to alcohols or organic acids using microorganisms like yeasts or bacteria under anaerobic conditions.",
+    "source": "food_science_101",
+    "category": "cooking"
+  },
+  {
+    "text": "Quantum computing utilizes qubits that can exist in a state of superposition, enabling exponential processing power compared to classical binary bits.",
+    "source": "quantum_physics",
+    "category": "science"
+  },
+  {
+    "text": "Nuclear fusion in stars involves fusing hydrogen isotopes into helium under extreme temperature and pressure, releasing vast amounts of energy.",
+    "source": "astrophysics_intro",
+    "category": "science"
+  },
+  {
+    "text": "Astrophysicists study exoplanets in the habitable zone, often called the Goldilocks zone, where liquid water could theoretically exist on the surface.",
+    "source": "space_exploration",
+    "category": "science"
+  },
+  {
+    "text": "Photosynthesis is the process used by plants to convert light energy into chemical energy, storing it as sugars for fuel while releasing oxygen.",
+    "source": "biology_basics",
+    "category": "science"
+  },
+  {
+    "text": "The second law of thermodynamics states that the total entropy of an isolated system always increases over time, explaining the arrow of time.",
+    "source": "physics_handbook",
+    "category": "science"
+  },
+  {
+    "text": "Deep ocean trenches, like the Mariana Trench, host unique extremophile organisms that thrive under immense pressure and complete absence of sunlight.",
+    "source": "marine_biology",
+    "category": "travel_and_nature"
+  },
+  {
+    "text": "The Aurora Borealis is caused by charged particles from the solar wind colliding with gaseous particles in Earth's magnetic atmosphere.",
+    "source": "geophysics_weekly",
+    "category": "travel_and_nature"
+  },
+  {
+    "text": "The ancient city of Petra in Jordan was carved directly into vibrant red-pink sandstone cliffs by the Nabataeans over two thousand years ago.",
+    "source": "archaeology_today",
+    "category": "history"
+  },
+  {
+    "text": "High-speed rail networks, such as Japan's Shinkansen, use aerodynamic bullet designs and magnetic levitation to achieve speeds over 300 km/h safely.",
+    "source": "transportation_tech",
+    "category": "travel_and_nature"
+  },
+  {
+    "text": "The invention of the movable-type printing press by Johannes Gutenberg in the 15th century democratized knowledge and accelerated the Renaissance.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The historic Silk Road was a network of Eurasian trade routes active from the Han dynasty that facilitated economic, cultural, and political interactions.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "During the mid-20th century Space Race, the Apollo program successfully landed humans on the Moon, demonstrating peak engineering and scientific collaboration.",
+    "source": "space_exploration",
+    "category": "history"
+  },
+  {
+    "text": "Large Language Models use the transformer architecture, utilizing self-attention mechanisms to weigh the significance of different words in a sentence.",
+    "source": "ai_research",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "Retrieval-Augmented Generation (RAG) combines dense vector search with generative models to ground responses in external verified knowledge bases.",
+    "source": "rag_design_patterns",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "Continuous Integration and Continuous Deployment (CI/CD) pipelines automate the building, testing, and deployment of software to ensure reliable delivery.",
+    "source": "devops_best_practices",
+    "category": "software_engineering"
+  },
+  {
+    "text": "Docker containers package an application and its entire runtime dependency tree, ensuring that it runs identically across different host systems.",
+    "source": "docker_handbook",
+    "category": "infrastructure"
+  },
+  {
+    "text": "Kubernetes automates container orchestration, offering automated self-healing, scaling, rolling updates, and service discovery for distributed systems.",
+    "source": "k8s_internals",
+    "category": "infrastructure"
+  },
+  {
+    "text": "Terraform is an open-source infrastructure-as-code software tool created by HashiCorp that allows users to define cloud infrastructure using HCL.",
+    "source": "devops_best_practices",
+    "category": "infrastructure"
+  },
+  {
+    "text": "Prometheus is an open-source monitoring system that collects multi-dimensional time-series metrics from targets using a pull-based HTTP model.",
+    "source": "observability_guide",
+    "category": "infrastructure"
+  },
+  {
+    "text": "PostgreSQL is a powerful, open-source object-relational database system that supports advanced indexing, concurrency control, and acid compliance.",
+    "source": "postgres_deep_dive",
+    "category": "database"
+  },
+  {
+    "text": "Redis is an in-memory data structure store used as a distributed cache, message broker, and database, offering sub-millisecond read/write latencies.",
+    "source": "redis_docs",
+    "category": "database"
+  },
+  {
+    "text": "Event-driven architecture promotes loose coupling between microservices by allowing them to communicate asynchronously via events published to brokers like Kafka.",
+    "source": "system_design_fundamentals",
+    "category": "software_engineering"
+  },
+  {
+    "text": "API Gateways act as a single entry point for microservices, handling authentication, rate limiting, request routing, and telemetry logging.",
+    "source": "system_design_fundamentals",
+    "category": "software_engineering"
+  },
+  {
+    "text": "OAuth 2.0 is an authorization framework that enables third-party applications to obtain limited access to user accounts via access tokens.",
+    "source": "security_standards",
+    "category": "software_engineering"
+  },
+  {
+    "text": "gRPC is a modern, high-performance, open-source remote procedure call framework developed by Google that runs over HTTP/2 using Protocol Buffers.",
+    "source": "grpc_specification",
+    "category": "software_engineering"
+  },
+  {
+    "text": "The Rosetta Stone, discovered in 1799, was key to deciphering Egyptian hieroglyphs because it presented the same text in three ancient scripts.",
+    "source": "archaeology_today",
+    "category": "history"
+  },
+  {
+    "text": "Enigma was a cipher machine used extensively by Germany during World War II, eventually cracked by cryptanalysts at Bletchley Park led by Alan Turing.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "Exoplanet detection techniques include the transit method, which observes the dip in a star's brightness as a planet passes in front of it.",
+    "source": "space_exploration",
+    "category": "science"
+  },
+  {
+    "text": "Photosynthetic cyanobacteria are believed to have triggered the Great Oxidation Event, dramatically increasing oxygen levels in Earth's early atmosphere.",
+    "source": "biology_basics",
+    "category": "science"
+  },
+  {
+    "text": "Valkey is a high-performance key-value store created as a fully open-source fork of Redis after Redis transitioned to restrictive licensing.",
+    "source": "open_source_news",
+    "category": "database"
+  },
+  {
+    "text": "Sharding divides a database into smaller, faster, and more easily managed parts called data shards, which are distributed across multiple servers.",
+    "source": "postgres_deep_dive",
+    "category": "database"
+  },
+  {
+    "text": "Write-Ahead Logging (WAL) ensures database durability by writing transaction changes to a persistent log file before applying them to actual data pages.",
+    "source": "postgres_deep_dive",
+    "category": "database"
+  },
+  {
+    "text": "Connection pooling caches database connections to reuse them, preventing the significant overhead of opening and closing connections repeatedly.",
+    "source": "system_design_fundamentals",
+    "category": "software_engineering"
+  },
+  {
+    "text": "Fine-tuning updates the weights of a pre-trained language model on a smaller, domain-specific dataset to adapt its behavior for specialized tasks.",
+    "source": "ai_research",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "PyTorch is an open-source machine learning library based on Torch, widely used for deep learning research and high-performance production workloads.",
+    "source": "ai_research",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "Agentic workflows design autonomous AI agents capable of planning, using tools, and reflecting on outcomes to accomplish complex multi-step tasks.",
+    "source": "ai_research",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "Neural networks learn representations through layers of nodes, mimicking the biological structure of the brain to solve classification and regression tasks.",
+    "source": "ai_research",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "Reinforcement Learning from Human Feedback (RLHF) aligns LLMs with human preferences by training a reward model to guide model optimization.",
+    "source": "ai_research",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "A sourdough starter is a culture of flour and water that captures wild yeasts and beneficial bacteria from the flour and the surrounding air.",
+    "source": "culinary_guide",
+    "category": "cooking"
+  },
+  {
+    "text": "Temperatures for baking sourdough bread typically range between 230 to 250 degrees Celsius, often using a Dutch oven to trap steam for a blistered crust.",
+    "source": "culinary_guide",
+    "category": "cooking"
+  },
+  {
+    "text": "The fermentation time of sourdough dough depends heavily on temperature; warmer environments speed up yeast activity while cool environments slow it.",
+    "source": "culinary_guide",
+    "category": "cooking"
+  },
+  {
+    "text": "Kombucha is a fermented, slightly effervescent tea beverage produced by fermenting sugared tea using a symbiotic culture of bacteria and yeast (SCOBY).",
+    "source": "food_science_101",
+    "category": "cooking"
+  },
+  {
+    "text": "Kimchi is a traditional Korean side dish made of salted, fermented vegetables, most commonly napa cabbage and radishes, with chili powder and garlic.",
+    "source": "food_science_101",
+    "category": "cooking"
+  },
+  {
+    "text": "Kefir is a fermented milk drink made with kefir grains, which are combinations of yeasts and bacteria in a matrix of proteins and sugars.",
+    "source": "food_science_101",
+    "category": "cooking"
+  },
+  {
+    "text": "Dark energy is a hypothetical form of energy that exerts a negative, repulsive pressure, behaving like the opposite of gravity to accelerate cosmic expansion.",
+    "source": "astrophysics_intro",
+    "category": "science"
+  },
+  {
+    "text": "Dark matter is an invisible form of matter that does not emit or interact with electromagnetic radiation, inferred solely through its gravitational pull.",
+    "source": "astrophysics_intro",
+    "category": "science"
+  },
+  {
+    "text": "Supermassive black holes reside at the centers of most galaxies, including our own Milky Way, anchoring galactic orbits through immense mass.",
+    "source": "astrophysics_intro",
+    "category": "science"
+  },
+  {
+    "text": "The Big Bang theory is the prevailing cosmological model explaining the origin of the universe, suggesting it expanded from an extremely hot, dense point.",
+    "source": "astrophysics_intro",
+    "category": "science"
+  },
+  {
+    "text": "The Galapagos Islands, situated in the Pacific Ocean, are famous for their unique wildlife, which inspired Charles Darwin's theory of natural selection.",
+    "source": "travel_and_nature",
+    "category": "travel_and_nature"
+  },
+  {
+    "text": "The Great Barrier Reef, stretching along the coast of Australia, is the world's largest coral reef system, visible from outer space.",
+    "source": "travel_and_nature",
+    "category": "travel_and_nature"
+  },
+  {
+    "text": "Machu Picchu is a 15th-century Incan citadel situated on a mountain ridge in Peru, showcasing advanced engineering and dry-stone masonry.",
+    "source": "archaeology_today",
+    "category": "history"
+  },
+  {
+    "text": "The Roman Colosseum was built of travertine limestone, tuff, and brick-faced concrete, holding up to 80,000 spectators for ancient public spectacles.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Code of Hammurabi, created around 1750 BCE in ancient Babylon, is one of the earliest and most complete written legal codes in history.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Great Sphinx of Giza is a limestone statue of a reclining sphinx, a mythical creature with the body of a lion and the head of a human.",
+    "source": "archaeology_today",
+    "category": "history"
+  },
+  {
+    "text": "Deep learning models scale remarkably well, with performance improving consistently as they are trained on larger quantities of data and compute.",
+    "source": "ai_research",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "Vector embeddings represent text as dense, high-dimensional vectors, placing semantically similar concepts close to each other in the vector space.",
+    "source": "rag_design_patterns",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "Cosine similarity measures the cosine of the angle between two multi-dimensional vectors, evaluating their directional alignment rather than magnitude.",
+    "source": "rag_design_patterns",
+    "category": "artificial_intelligence"
+  },
+  {
+    "text": "An HSL color palette uses hue, saturation, and lightness coordinates to define colors intuitively, making dynamic UI theme generation easy.",
+    "source": "web_design_trends",
+    "category": "design"
+  },
+  {
+    "text": "Glassmorphism is a UI design trend characterized by frosted glass-like panels, translucent overlays, and subtle backdrop filter blurs.",
+    "source": "web_design_trends",
+    "category": "design"
+  },
+  {
+    "text": "CSS variables, or custom properties, allow web developers to store values in a central place and reuse them across stylesheets for dynamic themes.",
+    "source": "web_design_trends",
+    "category": "design"
+  },
+  {
+    "text": "Micro-animations enhance user experience by providing tiny visual cues and satisfying hover transitions, making the interface feel responsive.",
+    "source": "web_design_trends",
+    "category": "design"
+  },
+  {
+    "text": "Responsive web design utilizes CSS media queries to adapt the layout fluidly across smartphones, tablets, laptops, and desktop screens.",
+    "source": "web_design_trends",
+    "category": "design"
+  },
+  {
+    "text": "The event loop in JavaScript allows non-blocking asynchronous operations by offloading tasks to the browser while executing callbacks in a single thread.",
+    "source": "js_internals",
+    "category": "software_engineering"
+  },
+  {
+    "text": "TypeScript extends JavaScript by adding static type definitions, allowing IDEs to catch errors early during development and refactoring.",
+    "source": "ts_handbook",
+    "category": "software_engineering"
+  },
+  {
+    "text": "Server-Side Rendering (SSR) generates the full HTML on the server before sending it to the client, improving page load speeds and SEO.",
+    "source": "web_design_trends",
+    "category": "software_engineering"
+  },
+  {
+    "text": "Stateless microservices store all session data in external high-performance key-value databases, facilitating seamless horizontal scaling.",
+    "source": "system_design_fundamentals",
+    "category": "software_engineering"
+  },
+  {
+    "text": "Load balancers distribute incoming network traffic across a cluster of servers to prevent single points of failure and maximize availability.",
+    "source": "system_design_fundamentals",
+    "category": "software_engineering"
+  },
+  {
+    "text": "Rate limiting restricts the number of incoming requests a user can make to an API within a specific timeframe, preventing resource exhaustion.",
+    "source": "security_standards",
+    "category": "software_engineering"
+  },
+  {
+    "text": "SQL injection is a critical security vulnerability where an attacker manipulates SQL queries by inserting malicious input into input fields.",
+    "source": "security_standards",
+    "category": "software_engineering"
+  },
+  {
+    "text": "Cross-Site Scripting (XSS) occurs when a web application processes untrusted user input and renders it inside pages without proper sanitization.",
+    "source": "security_standards",
+    "category": "software_engineering"
+  },
+  {
+    "text": "HTTPS encrypts communications between clients and servers using TLS certificates, safeguarding data integrity and user privacy.",
+    "source": "security_standards",
+    "category": "software_engineering"
+  },
+  {
+    "text": "The Amazon rainforest is the largest tropical rainforest on Earth, containing unparalleled biodiversity and playing a critical role in global oxygen production.",
+    "source": "travel_and_nature",
+    "category": "travel_and_nature"
+  },
+  {
+    "text": "Mount Everest, part of the Himalayan mountain range, is Earth's highest mountain above sea level, attracting elite climbers from around the globe.",
+    "source": "travel_and_nature",
+    "category": "travel_and_nature"
+  },
+  {
+    "text": "The Grand Canyon in Arizona was carved over millions of years by the Colorado River, exposing spectacular layers of geological history.",
+    "source": "travel_and_nature",
+    "category": "travel_and_nature"
+  },
+  {
+    "text": "Yosemite National Park in California is globally renowned for its towering granite cliffs, spectacular waterfalls, and ancient giant sequoia trees.",
+    "source": "travel_and_nature",
+    "category": "travel_and_nature"
+  },
+  {
+    "text": "The Eiffel Tower in Paris, constructed of iron in 1889, was originally built as the temporary entrance arch for the World's Fair.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Statue of Liberty was a gift of friendship from the people of France to the United States, symbolizing freedom and democracy globally.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Taj Mahal in India is an ivory-white marble mausoleum built by Mughal emperor Shah Jahan to house the tomb of his favorite wife.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Great Wall of China is a series of fortifications built across the historical northern borders of ancient China to protect against invasions.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "Machu Picchu's structures were built using the ashlar technique, where stones are cut to fit together tightly without any mortar.",
+    "source": "archaeology_today",
+    "category": "history"
+  },
+  {
+    "text": "The Mayan civilization developed highly sophisticated hieroglyphic writing, astronomical calendars, mathematics, and monumental architecture.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Industrial Revolution in the 18th century transformed agrarian societies into industrialized urban centers, leveraging steam power and coal.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Rosetta Stone was crucial because it contained a single decree in Hieroglyphic Egyptian, Demotic Egyptian, and Ancient Greek.",
+    "source": "archaeology_today",
+    "category": "history"
+  },
+  {
+    "text": "Alan Turing's design of the Bombe machine drastically reduced the time required to decrypt complex German military Enigma messages.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Manhattan Project was a research and development undertaking during World War II that produced the first nuclear weapons.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Treaty of Versailles, signed in 1919, officially ended World War I and imposed strict economic and military reparations on Germany.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Renaissance was a fervent period of European cultural, artistic, political, and scientific rebirth following the Middle Ages.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The Magna Carta, issued in 1215 in England, established the principle that everyone, including the king, is subject to the law.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The fall of the Western Roman Empire in 476 CE marked the beginning of the Middle Ages in Europe, characterized by decentralized rule.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The library of Alexandria in ancient Egypt was one of the largest and most significant libraries of the ancient world, housing countless scrolls.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The French Revolution of 1789 overthrew the absolute monarchy, giving rise to ideas of liberty, equality, and democratic representation.",
+    "source": "history_lessons",
+    "category": "history"
+  },
+  {
+    "text": "The concept of zero was independently developed by several ancient cultures, including the Maya, Babylonians, and Indian mathematicians like Brahmagupta.",
+    "source": "history_lessons",
+    "category": "history"
+  }
+]

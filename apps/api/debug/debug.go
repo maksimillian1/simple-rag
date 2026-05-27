@@ -2,28 +2,53 @@ package debug
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
+
+//go:embed seed_data.json
+var seedDataJSON []byte
 
 type Service struct {
 	Environment string
 	SQSQueueURL string
+	QdrantURL   string
+	TeiURL      string
+	Collection  string
 }
 
-func NewService(environment, sqsQueueURL string) *Service {
+func NewService(environment, sqsQueueURL, qdrantURL, teiURL, collection string) *Service {
 	return &Service{
 		Environment: environment,
 		SQSQueueURL: sqsQueueURL,
+		QdrantURL:   qdrantURL,
+		TeiURL:      teiURL,
+		Collection:  collection,
 	}
+}
+
+type SeedItem struct {
+	Text     string `json:"text"`
+	Source   string `json:"source"`
+	Category string `json:"category"`
+}
+
+type QdrantPoint struct {
+	ID      int                    `json:"id"`
+	Vector  []float32              `json:"vector"`
+	Payload map[string]interface{} `json:"payload"`
+}
+
+type QdrantUpsertRequest struct {
+	Points []QdrantPoint `json:"points"`
 }
 
 func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
@@ -36,67 +61,222 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("[INFO] [debug] Seeding database via seed.sh...")
+	log.Println("[INFO] [debug] Starting native Go-based database seeder...")
 
-	// Find seed.sh path dynamically
-	dir, err := os.Getwd()
+	// 1. Parse embedded JSON items
+	var items []SeedItem
+	if err := json.Unmarshal(seedDataJSON, &items); err != nil {
+		log.Printf("[ERROR] [debug] Failed to parse embedded seed_data.json: %v", err)
+		http.Error(w, "Failed to parse seed data: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("[INFO] [debug] Loaded %d items from seed_data.json", len(items))
+
+	client := http.Client{Timeout: 10 * time.Second}
+
+	// 2. Delete collection if exists (idempotency)
+	reqDel, _ := http.NewRequest(http.MethodDelete, s.QdrantURL+"/collections/"+s.Collection, nil)
+	respDel, err := client.Do(reqDel)
+	if err == nil {
+		respDel.Body.Close()
+		log.Printf("[INFO] [debug] Cleaned up existing collection '%s'", s.Collection)
+	}
+
+	// 3. Create collection with vector dimensions=384 and Cosine distance
+	createPayload := map[string]interface{}{
+		"vectors": map[string]interface{}{
+			"size":     384,
+			"distance": "Cosine",
+		},
+	}
+	createBytes, _ := json.Marshal(createPayload)
+	reqCreate, err := http.NewRequest(http.MethodPut, s.QdrantURL+"/collections/"+s.Collection, bytes.NewBuffer(createBytes))
 	if err != nil {
-		http.Error(w, "Internal Server Error: "+err.Error(), http.StatusInternalServerError)
+		log.Printf("[ERROR] [debug] Failed to create collection request: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	var seedPath string
-	for {
-		target := filepath.Join(dir, "apps", "api", "seed.sh")
-		if _, err := os.Stat(target); err == nil {
-			seedPath = target
-			break
-		}
-		targetInDir := filepath.Join(dir, "seed.sh")
-		if _, err := os.Stat(targetInDir); err == nil {
-			seedPath = targetInDir
-			break
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-
-	if seedPath == "" {
-		http.Error(w, "seed.sh not found", http.StatusNotFound)
-		return
-	}
-
-	log.Printf("[INFO] [debug] Running seed script at: %s", seedPath)
-	cmd := exec.Command("bash", seedPath)
-	cmd.Dir = filepath.Dir(seedPath)
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-
-	err = cmd.Run()
-	outputStr := out.String()
+	reqCreate.Header.Set("Content-Type", "application/json")
+	respCreate, err := client.Do(reqCreate)
 	if err != nil {
-		log.Printf("[ERROR] [debug] Seeding failed: %v, output: %s", err, outputStr)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "error",
-			"output": outputStr,
-			"error":  err.Error(),
-		})
+		log.Printf("[ERROR] [debug] Failed to connect to Qdrant to create collection: %v", err)
+		http.Error(w, "Failed to connect to Qdrant: "+err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	defer respCreate.Body.Close()
+	if respCreate.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(respCreate.Body)
+		log.Printf("[ERROR] [debug] Qdrant collection creation failed with status %d: %s", respCreate.StatusCode, string(body))
+		http.Error(w, "Failed to create Qdrant collection: "+string(body), http.StatusInternalServerError)
+		return
+	}
+	log.Printf("[INFO] [debug] Successfully created collection '%s'", s.Collection)
+
+	// 4. Generate embeddings from TEI concurrently using a worker pool
+	log.Println("[INFO] [debug] Generating embeddings from TEI concurrently...")
+	type job struct {
+		id   int
+		item SeedItem
+	}
+	type result struct {
+		point QdrantPoint
+		err   error
+	}
+
+	numJobs := len(items)
+	jobs := make(chan job, numJobs)
+	results := make(chan result, numJobs)
+
+	// Start 5 concurrent embedding workers
+	var wg sync.WaitGroup
+	numWorkers := 5
+	for w := 1; w <= numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range jobs {
+				vector, err := s.getEmbedding(j.item.Text)
+				if err != nil {
+					results <- result{err: fmt.Errorf("item %d failed: %w", j.id, err)}
+					continue
+				}
+				results <- result{
+					point: QdrantPoint{
+						ID:     j.id,
+						Vector: vector,
+						Payload: map[string]interface{}{
+							"text":     j.item.Text,
+							"source":   j.item.Source,
+							"category": j.item.Category,
+						},
+					},
+				}
+			}
+		}()
+	}
+
+	// Enqueue all items as jobs
+	for i, item := range items {
+		jobs <- job{id: i + 1, item: item}
+	}
+	close(jobs)
+
+	// Wait for workers to finish and close results
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect points and verify no errors
+	var points []QdrantPoint
+	var firstErr error
+	for res := range results {
+		if res.err != nil {
+			if firstErr == nil {
+				firstErr = res.err
+			}
+			log.Printf("[ERROR] [debug] Embedding worker error: %v", res.err)
+		} else {
+			points = append(points, res.point)
+		}
+	}
+
+	if firstErr != nil {
+		log.Printf("[ERROR] [debug] Seeding aborted because one or more embeddings failed: %v", firstErr)
+		http.Error(w, "Seeding failed during embedding generation: "+firstErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	log.Println("[INFO] [debug] Seeding completed successfully!")
+	log.Printf("[INFO] [debug] Generated embeddings for %d points. Upserting to Qdrant...", len(points))
+
+	// 5. Batch upsert points to Qdrant
+	upsertPayload := QdrantUpsertRequest{Points: points}
+	upsertBytes, err := json.Marshal(upsertPayload)
+	if err != nil {
+		log.Printf("[ERROR] [debug] Failed to marshal upsert payload: %v", err)
+		http.Error(w, "Failed to build Qdrant upsert payload", http.StatusInternalServerError)
+		return
+	}
+
+	reqUpsert, err := http.NewRequest(http.MethodPut, s.QdrantURL+"/collections/"+s.Collection+"/points?wait=true", bytes.NewBuffer(upsertBytes))
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	reqUpsert.Header.Set("Content-Type", "application/json")
+	respUpsert, err := client.Do(reqUpsert)
+	if err != nil {
+		log.Printf("[ERROR] [debug] Failed to connect to Qdrant for upsert: %v", err)
+		http.Error(w, "Failed to upsert points: "+err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	defer respUpsert.Body.Close()
+
+	if respUpsert.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(respUpsert.Body)
+		log.Printf("[ERROR] [debug] Qdrant points upsert failed with status %d: %s", respUpsert.StatusCode, string(body))
+		http.Error(w, "Failed to upsert points into Qdrant collection", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("[INFO] [debug] Database seeding completed successfully! Inserted %d points.", len(points))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": "ok",
-		"output": outputStr,
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "ok",
+		"message": fmt.Sprintf("Successfully seeded %d items into Qdrant collection '%s' using TEI embeddings.", len(points), s.Collection),
 	})
+}
+
+func (s *Service) getEmbedding(text string) ([]float32, error) {
+	teiPayload, err := json.Marshal(map[string]string{"inputs": text})
+	if err != nil {
+		return nil, err
+	}
+
+	client := http.Client{Timeout: 10 * time.Second}
+	teiResp, err := client.Post(s.TeiURL+"/embed", "application/json", bytes.NewBuffer(teiPayload))
+	if err != nil {
+		return nil, err
+	}
+	defer teiResp.Body.Close()
+
+	if teiResp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(teiResp.Body)
+		return nil, fmt.Errorf("TEI returned status %d: %s", teiResp.StatusCode, string(bodyBytes))
+	}
+
+	var embedRes interface{}
+	if err := json.NewDecoder(teiResp.Body).Decode(&embedRes); err != nil {
+		return nil, err
+	}
+
+	var vector []float32
+	switch val := embedRes.(type) {
+	case []interface{}:
+		if len(val) > 0 {
+			if first, ok := val[0].([]interface{}); ok {
+				vector = make([]float32, len(first))
+				for i, v := range first {
+					f, _ := v.(float64)
+					vector[i] = float32(f)
+				}
+			} else {
+				vector = make([]float32, len(val))
+				for i, v := range val {
+					f, _ := v.(float64)
+					vector[i] = float32(f)
+				}
+			}
+		}
+	}
+
+	if len(vector) == 0 {
+		return nil, fmt.Errorf("failed to parse vector from TEI response: %+v", embedRes)
+	}
+
+	return vector, nil
 }
 
 func (s *Service) IndexHandler(w http.ResponseWriter, r *http.Request) {

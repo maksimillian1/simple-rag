@@ -31,7 +31,7 @@ func main() {
 
 	// Initialize modular services
 	searchService := search.NewService(cfg.QdrantURL, cfg.Collection, cfg.TeiURL)
-	debugService := debug.NewService(cfg.Environment, cfg.SQSQueueURL)
+	debugService := debug.NewService(cfg.Environment, cfg.SQSQueueURL, cfg.QdrantURL, cfg.TeiURL, cfg.Collection)
 
 	mux := http.NewServeMux()
 
