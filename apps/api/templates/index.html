@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple-RAG Diagnostic & Query Center</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0b0f19;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+        }
+        .glass {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col items-center p-4 md:p-8">
+
+    <!-- Container -->
+    <div class="w-full max-w-5xl space-y-6">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 border-b border-white/5">
+            <div>
+                <h1 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    Simple-RAG Portal
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">Local Testing, Ingestion & Query Center</p>
+            </div>
+            
+            <!-- Connection statuses -->
+            <div class="flex items-center gap-4 flex-wrap">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs">
+                    <span class="text-slate-400 font-medium">Env:</span>
+                    <span id="env-badge" class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 uppercase font-semibold text-[10px]">{{.Environment}}</span>
+                </div>
+
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs">
+                    <span class="text-slate-400 font-medium">Qdrant:</span>
+                    <span id="qdrant-status" class="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+                </div>
+
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs">
+                    <span class="text-slate-400 font-medium">TEI (Embed):</span>
+                    <span id="tei-status" class="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- DEV CONTROL PANEL (conditionally displayed if env == dev) -->
+        <div id="dev-panel" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Card 1: Seed DB -->
+            <div class="glass rounded-2xl p-6 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold">Seed Collection</h2>
+                            <p class="text-xs text-slate-400">Initialize and seed '{{.Collection}}' via seed.sh</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Term Logs -->
+                    <div id="seed-logs-container" class="hidden mt-4">
+                        <label class="text-[10px] text-purple-400 font-semibold uppercase tracking-wider block mb-1">Terminal Output</label>
+                        <pre id="seed-logs" class="bg-black/40 border border-white/5 rounded-xl p-3 font-mono text-xs text-green-400/90 max-h-40 overflow-y-auto whitespace-pre-wrap"></pre>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button id="btn-seed" onclick="triggerSeed()" class="w-full py-2.5 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 font-medium text-sm rounded-xl transition-all shadow-lg hover:shadow-purple-500/20 flex items-center justify-center gap-2">
+                        <span>Run Seeder Script</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card 2: Manual Ingest SQS Chunk -->
+            <div class="glass rounded-2xl p-6 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-xl bg-pink-500/10 text-pink-400 border border-pink-500/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 11-3-3V3m3 0V3M9 20h6" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold">Manual Chunk Ingestion</h2>
+                            <p class="text-xs text-slate-400">Index custom text chunk instantly via AWS SQS -> Indexer</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <textarea id="chunk-text" rows="3" placeholder="Enter custom context text chunk to index (e.g. 'Simple-RAG can handle high throughput using ElasticMQ...')" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-slate-500 text-slate-100"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex items-center gap-3">
+                    <button id="btn-index" onclick="triggerIndex()" class="w-full py-2.5 px-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 font-medium text-sm rounded-xl transition-all shadow-lg hover:shadow-rose-500/20 flex items-center justify-center gap-2">
+                        <span>Publish to SQS</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- SEARCH SECTION -->
+        <main class="space-y-6">
+            
+            <!-- Query Input Bar -->
+            <div class="glass rounded-3xl p-6 shadow-xl">
+                <div class="flex flex-col gap-4">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input id="search-input" type="text" onkeydown="handleSearchKey(event)" placeholder="Search the vector database (e.g., 'What is Qdrant?', 'S3 ingestion')" class="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400 text-slate-100 transition-all">
+                        <div class="absolute right-3.5 top-3.5 hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                            <span>Press</span><kbd class="bg-slate-800 text-slate-200 px-1 rounded">Enter</kbd>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between text-xs flex-wrap gap-3">
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <label for="search-limit" class="text-slate-400">Limit results:</label>
+                                <select id="search-limit" class="bg-slate-900 border border-white/10 rounded px-2 py-1 text-slate-300">
+                                    <option value="3" selected>3</option>
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button onclick="performSearch()" class="py-2 px-5 bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm rounded-xl transition-all shadow-md shadow-indigo-600/10">
+                            Execute Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEARCH RESULTS CONTAINER -->
+            <div id="results-section" class="hidden space-y-4">
+                <div class="flex items-center justify-between px-2">
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Matched Chunks</h3>
+                    <span id="results-count" class="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-semibold">0 matches</span>
+                </div>
+                
+                <div id="results-grid" class="grid grid-cols-1 gap-4">
+                    <!-- Cards will be populated dynamically -->
+                </div>
+            </div>
+
+            <!-- EMPTY/INITIAL STATE -->
+            <div id="initial-state" class="glass rounded-3xl p-12 text-center space-y-4">
+                <div class="mx-auto w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold">Query Sandbox Ready</h3>
+                    <p class="text-sm text-slate-400 max-w-md mx-auto mt-1">Submit a semantic search query above to fetch context chunks with real-time similarity scores from Qdrant.</p>
+                </div>
+            </div>
+
+        </main>
+        
+        <footer class="text-center py-10 text-xs text-slate-500">
+            Powered by Go API, HuggingFace TEI (BAAI/bge-small-en-v1.5) & Qdrant
+        </footer>
+
+    </div>
+
+    <!-- Alert banner -->
+    <div id="alert-banner" class="fixed bottom-5 right-5 transform translate-y-24 opacity-0 transition-all duration-300 glass rounded-2xl p-4 shadow-2xl max-w-sm flex items-start gap-3 border-l-4 border-l-indigo-500">
+        <div id="alert-icon" class="text-indigo-400 mt-0.5"></div>
+        <div>
+            <h4 id="alert-title" class="text-sm font-bold text-slate-100">Notification</h4>
+            <p id="alert-desc" class="text-xs text-slate-400 mt-0.5"></p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "";
+
+        // Check health of infrastructure components
+        async function checkHealth() {
+            try {
+                const res = await fetch(API_BASE + "/health");
+                const data = await res.json();
+                
+                // Qdrant Badge
+                const qdrantDot = document.getElementById("qdrant-status");
+                if (data.qdrant_status === "connected") {
+                    qdrantDot.className = "flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50";
+                } else {
+                    qdrantDot.className = "flex h-2.5 w-2.5 rounded-full bg-rose-500 shadow-lg shadow-rose-500/50";
+                }
+                
+                // TEI Badge
+                const teiDot = document.getElementById("tei-status");
+                if (data.tei_status === "connected") {
+                    teiDot.className = "flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50";
+                } else {
+                    teiDot.className = "flex h-2.5 w-2.5 rounded-full bg-rose-500 shadow-lg shadow-rose-500/50";
+                }
+
+                // Render dev controls if environment is dev
+                if (data.environment === "dev") {
+                    document.getElementById("dev-panel").classList.remove("hidden");
+                }
+                
+                // Update badge if any
+                document.getElementById("env-badge").innerText = data.environment;
+            } catch (err) {
+                console.error("Health check call failed:", err);
+                document.getElementById("qdrant-status").className = "flex h-2.5 w-2.5 rounded-full bg-rose-500 shadow-lg shadow-rose-500/50";
+                document.getElementById("tei-status").className = "flex h-2.5 w-2.5 rounded-full bg-rose-500 shadow-lg shadow-rose-500/50";
+            }
+        }
+
+        function showAlert(title, desc, type) {
+            type = type || "info";
+            const banner = document.getElementById("alert-banner");
+            const alertTitle = document.getElementById("alert-title");
+            const alertDesc = document.getElementById("alert-desc");
+            const iconContainer = document.getElementById("alert-icon");
+
+            let borderClass = "border-l-indigo-500";
+            if (type === "success") borderClass = "border-l-emerald-500";
+            if (type === "error") borderClass = "border-l-rose-500";
+
+            banner.className = "fixed bottom-5 right-5 z-50 transform transition-all duration-300 glass rounded-2xl p-4 shadow-2xl max-w-sm flex items-start gap-3 border-l-4 " + borderClass;
+            
+            iconContainer.innerHTML = type === "error" 
+                ? '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+                : '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            
+            alertTitle.innerText = title;
+            alertDesc.innerText = desc;
+            
+            // Slide in
+            banner.classList.remove("translate-y-24", "opacity-0");
+            
+            setTimeout(function() {
+                banner.classList.add("translate-y-24", "opacity-0");
+            }, 4500);
+        }
+
+        async function triggerSeed() {
+            const btn = document.getElementById("btn-seed");
+            const container = document.getElementById("seed-logs-container");
+            const output = document.getElementById("seed-logs");
+            
+            btn.disabled = true;
+            btn.innerText = "Executing Seeder Script...";
+            container.classList.remove("hidden");
+            output.innerText = "Running 'seed.sh' on host...\nWaiting for response...";
+
+            try {
+                const res = await fetch(API_BASE + "/seed", { method: "POST" });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    output.innerText = data.output || "Execution completed with empty logs.";
+                    showAlert("Seed Successful", "Collection was recreated and populated with vectors.", "success");
+                    await checkHealth();
+                } else {
+                    output.innerText = "Error: " + (data.error || "Internal Server Error") + "\n\nLogs:\n" + (data.output || "");
+                    showAlert("Seed Failed", data.error || "Check terminal logs", "error");
+                }
+            } catch (err) {
+                output.innerText = "Fetch Error: " + err.message;
+                showAlert("Request Error", err.message, "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Run Seeder Script";
+            }
+        }
+
+        async function triggerIndex() {
+            const btn = document.getElementById("btn-index");
+            const textEl = document.getElementById("chunk-text");
+            const text = textEl.value.trim();
+
+            if (!text) {
+                showAlert("Input Required", "Please enter some text in the text area.", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Sending Message...";
+
+            try {
+                const res = await fetch(API_BASE + "/index", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: text })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showAlert("Queued Successfully", "Message is sent to SQS queue! Continuous worker will index it shortly.", "success");
+                    textEl.value = "";
+                } else {
+                    showAlert("Failed to Queue", data.message || "An error occurred", "error");
+                }
+            } catch (err) {
+                showAlert("Request Error", err.message, "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Publish to SQS";
+            }
+        }
+
+        function handleSearchKey(e) {
+            if (e.key === "Enter") {
+                performSearch();
+            }
+        }
+
+        async function performSearch() {
+            const query = document.getElementById("search-input").value.trim();
+            const limit = parseInt(document.getElementById("search-limit").value) || 3;
+
+            if (!query) {
+                showAlert("Query Required", "Please type something in the search bar", "error");
+                return;
+            }
+
+            const initial = document.getElementById("initial-state");
+            const section = document.getElementById("results-section");
+            const grid = document.getElementById("results-grid");
+            const countBadge = document.getElementById("results-count");
+
+            initial.className = "hidden";
+            section.classList.remove("hidden");
+            grid.innerHTML = [
+                '<div class="col-span-full py-12 flex flex-col items-center justify-center space-y-2">',
+                '    <svg class="animate-spin h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24">',
+                '        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>',
+                '        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>',
+                '    </svg>',
+                '    <span class="text-sm text-slate-400">Performing semantic retrieval...</span>',
+                '</div>'
+            ].join('\n');
+
+            try {
+                const res = await fetch(API_BASE + "/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query: query, limit: limit })
+                });
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(errText || "Search failed");
+                }
+
+                const data = await res.json();
+                countBadge.innerText = data.count + " matches";
+
+                if (!data.results || data.results.length === 0) {
+                    grid.innerHTML = [
+                        '<div class="col-span-full text-center glass rounded-2xl py-12 space-y-2">',
+                        '    <p class="font-bold">No results found</p>',
+                        '    <p class="text-xs text-slate-400">Try modifying your query or run seeding if database is empty.</p>',
+                        '</div>'
+                    ].join('\n');
+                    return;
+                }
+
+                grid.innerHTML = "";
+                data.results.forEach(function(item) {
+                    const confidence = (item.score * 100).toFixed(1);
+                    
+                    // Format metadata tags
+                    let tagsHTML = "";
+                    if (item.metadata) {
+                        Object.entries(item.metadata).forEach(function(pair) {
+                            const k = pair[0];
+                            const v = pair[1];
+                            tagsHTML += [
+                                '<div class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-slate-400 font-medium">',
+                                '    <span class="text-slate-500 font-bold uppercase mr-1">' + k + ':</span>' + v,
+                                '</div>'
+                            ].join('\n');
+                        });
+                    }
+
+                    const card = document.createElement("div");
+                    card.className = "glass rounded-2xl p-5 hover:border-indigo-500/30 transition-all duration-300 shadow-sm flex flex-col justify-between gap-4";
+                    card.innerHTML = [
+                        '<div class="space-y-2">',
+                        '    <p class="text-slate-100 text-sm md:text-base leading-relaxed font-normal">' + (item.text || "No content") + '</p>',
+                        '</div>',
+                        '<div class="flex items-center justify-between gap-4 flex-wrap border-t border-white/5 pt-4">',
+                        '    <!-- Metadata tags -->',
+                        '    <div class="flex items-center gap-2 flex-wrap max-w-full">',
+                        '        <div class="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-[10px] text-indigo-300 font-bold uppercase">',
+                        '            ID: ' + item.ID,
+                        '        </div>',
+                        tagsHTML,
+                        '    </div>',
+                        '    <!-- Confidence badge and bar -->',
+                        '    <div class="flex items-center gap-2">',
+                        '        <div class="text-[11px] font-bold text-indigo-400 tracking-wider">Similarity:</div>',
+                        '        <div class="flex items-center gap-1.5 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">',
+                        '            <span class="text-xs font-extrabold text-indigo-300">' + confidence + '%</span>',
+                        '        </div>',
+                        '    </div>',
+                        '</div>'
+                    ].join('\n');
+                    grid.appendChild(card);
+                });
+
+            } catch (err) {
+                showAlert("Retrieval Failed", err.message, "error");
+                grid.innerHTML = '<div class="col-span-full text-center py-12 text-rose-400 font-medium text-sm">Error calling /search: ' + err.message + '</div>';
+            }
+        }
+
+        // Initialize Center
+        checkHealth();
+        // Regular health polls every 10 seconds
+        setInterval(checkHealth, 10000);
+    </script>
+</body>
+</html>

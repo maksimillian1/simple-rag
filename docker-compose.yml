@@ -19,7 +19,7 @@ services:
   # Shared AI Inference Layer (Rust-based TEI)
   # ---------------------------------------------------------------------------
   tei-embeddings:
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-arm64-sha-5bc4d88-grpc
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-arm64-sha-5bc4d88
     container_name: simple-rag-tei
     ports:
       - "8081:80"
