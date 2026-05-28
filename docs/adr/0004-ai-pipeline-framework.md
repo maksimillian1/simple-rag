@@ -20,13 +20,13 @@ We adopt **Haystack 2.0** as the pipeline orchestration framework and enforce an
 
 To guarantee execution predictability and mitigate Python/Model startup latency on AWS Spot infrastructure, we enforce the following engineering constraints:
 
-### 1. Hardcoded Local Model Baking (CI/CD Mandate)
+### 1. Embedding Model Locality
 * **Anti-Pattern:** Downloading the embedding model at runtime from HuggingFace Hub or mounting it via AWS EFS is strictly prohibited.
-* **Implementation:** The `all-MiniLM-L6-v2` model weights must be downloaded during the Docker image build phase and baked directly into the container storage layer. The Haystack `SentenceTransformersTextEmbedder` must be configured with a local path to eliminate external network calls during Job initialization.
+* **Implementation:** The `bge-small-en-v1.5` model offloaded to colocated TEI sidecar container via localhost. The Haystack `SentenceTransformersTextEmbedder` must be configured with a local path to eliminate external network calls during Job initialization.
 
 ### 2. Strict Resource Allocation Profiles
 * **Memory Limits:** Individual `indexer` ScaledJobs must be bound to a hard Kubernetes resource limit of **2GB RAM**.
-* **Execution Predictability:** By baking the 90MB model directly into the image, container startup (Cold Start) is decoupled from network speed. Throughput (`chunks/job/sec`) becomes a direct, predictable function of the allocated K8s CPU shares.
+* **Execution Predictability:** By offloaded to colocated TEI sidecar container. Throughput (`chunks/job/sec`) becomes a direct, predictable function of the allocated K8s CPU shares.
 
 ### 3. Pipeline Lifecycle Management
 * **Explicit Teardown:** Upon completing the SQS payload processing loop, the Python script must explicitly invoke `gc.collect()` and clear the embedding pipeline cache from memory before the K8s Job container exits with code 0.
