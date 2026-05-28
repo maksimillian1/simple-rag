@@ -28,5 +28,5 @@ All implementation details, data routing, and infrastructure limitations are gov
 
 ## 4. Current Phase & Engineering Tasks
 * **Phase:** Local PoC / Ingestion Integration.
-* **Local Ingestion Testing Strategy:** Use **LocalStack** to simulate AWS S3 and SQS locally. Application code must use the standard `AWS_ENDPOINT_URL` environment variable to redirect requests to LocalStack without altering production auth logic.
-* **Data Contracts Compliance:** Review contracts.md file and fix differences. Every schema validation, SQS JSON payload, and HTTP request/response structure must perfectly map to the explicit formats defined in `docs/contracts.md`.
+* **Local Ingestion Testing Strategy (AWS Native):** Run code locally by targeting real AWS S3 and SQS test infrastructure. To enforce security boundaries without code changes, applications must pod-mount or host-read standard AWS shared configuration profiles (`~/.aws/credentials`). The app code must rely strictly on standard AWS SDK environment variables (`AWS_PROFILE`, `AWS_REGION`). Do not implement mock endpoints, local state emulators, or alternative local cloud provider software.
+* **Data Contracts Compliance:** Every schema validation, SQS JSON payload, and HTTP request/response structure must perfectly map to the explicit formats and tokenization/indexing guardrails defined in `docs/contracts.md`.
