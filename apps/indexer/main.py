@@ -6,8 +6,12 @@ import signal
 import logging
 import requests
 import boto3
+import re
+import zlib
+import math
+from collections import Counter
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, Distance, VectorParams
+from qdrant_client.models import PointStruct, Distance, VectorParams, SparseVectorParams, SparseIndexParams, SparseVector
 
 # Setup structured logging
 logging.basicConfig(
@@ -56,13 +60,43 @@ def get_sqs_client():
         **kwargs
     )
 
-def generate_point_id(file_id: str, chunk_index: int) -> str:
+def generate_point_id(file_name: str, chunk_index: int) -> str:
     """
     Generates a completely deterministic UUIDv5 Point ID for Qdrant.
     This guarantees that Spot evictions and retries are idempotent.
     """
-    composite_key = f"{file_id}:{chunk_index}"
+    composite_key = f"{file_name}:{chunk_index}"
     return str(uuid.uuid5(NAMESPACE_RAG, composite_key))
+
+def compute_sparse_vector(text: str):
+    """
+    Compute a deterministic sparse vector representation of the text.
+    Word tokens are mapped to positive 32-bit integers using zlib.adler32,
+    and weights are calculated using normalized term frequencies.
+    """
+    words = re.findall(r'\b[a-zA-Z0-9]{2,}\b', text.lower())
+    if not words:
+        return {"indices": [], "values": []}
+    
+    counts = Counter(words)
+    total_words = len(words)
+    
+    sparse_data = []
+    for word, count in counts.items():
+        word_index = zlib.adler32(word.encode('utf-8')) & 0x7fffffff
+        weight = float(count) / total_words
+        sparse_data.append((word_index, weight))
+    
+    # Sort by index ascending (Qdrant requirement)
+    sparse_data.sort(key=lambda x: x[0])
+    
+    indices = [item[0] for item in sparse_data]
+    values = [round(item[1], 4) for item in sparse_data]
+    
+    return {
+        "indices": indices,
+        "values": values
+    }
 
 def main():
     global graceful_exit
@@ -85,12 +119,13 @@ def main():
         logger.error(f"Failed to initialize SQS client: {e}")
         sys.exit(1)
 
-    logger.info(f"Connecting to Qdrant via gRPC at {qdrant_host}:{qdrant_port}...")
+    use_grpc = (qdrant_port == 6334)
+    logger.info(f"Connecting to Qdrant at {qdrant_host}:{qdrant_port} (grpc={use_grpc})...")
     try:
         qdrant_client = QdrantClient(
             host=qdrant_host,
             port=qdrant_port,
-            prefer_grpc=True
+            prefer_grpc=use_grpc
         )
     except Exception as e:
         logger.error(f"Failed to initialize Qdrant client: {e}")
@@ -186,13 +221,22 @@ def main():
             # Ensure Qdrant Collection exists before upserting
             try:
                 if not qdrant_client.collection_exists(collection_name):
-                    logger.info(f"Collection '{collection_name}' not found. Creating collection with dimension 384 and Cosine distance...")
+                    logger.info(f"Collection '{collection_name}' not found. Creating collection with named dense/sparse vector configuration...")
                     qdrant_client.create_collection(
                         collection_name=collection_name,
-                        vectors_config=VectorParams(
-                            size=384,  # bge-small-en-v1.5 output dimension
-                            distance=Distance.COSINE
-                        )
+                        vectors_config={
+                            "dense": VectorParams(
+                                size=384,  # bge-small-en-v1.5 output dimension
+                                distance=Distance.COSINE
+                            )
+                        },
+                        sparse_vectors_config={
+                            "sparse": SparseVectorParams(
+                                index=SparseIndexParams(
+                                    on_disk=True
+                                )
+                            )
+                        }
                     )
             except Exception as e:
                 logger.error(f"Failed to verify/create Qdrant collection: {e}")
@@ -205,8 +249,9 @@ def main():
                 page_number = chunk.get("page_number", 1)
                 text = chunk_texts[i]
                 vector = embeddings[i]
+                sparse_vector = compute_sparse_vector(text)
 
-                point_id = generate_point_id(file_id, chunk_index)
+                point_id = generate_point_id(file_name, chunk_index)
 
                 # Rework payload format strictly matching Section 4 of contracts.md
                 payload = {
@@ -220,7 +265,13 @@ def main():
 
                 points.append(PointStruct(
                     id=point_id,
-                    vector=vector,
+                    vector={
+                        "dense": vector,
+                        "sparse": SparseVector(
+                            indices=sparse_vector["indices"],
+                            values=sparse_vector["values"]
+                        )
+                    },
                     payload=payload
                 ))
 

@@ -112,5 +112,6 @@ simple-rag/
 │   └── ops.md           # Day-2 runbooks, cost metrics, and infrastructure scaling operations
 └── terraform/
     ├── envs/prod/    # Environment entry point (invokes modules)
-    └── modules/      # Reusable infrastructure blocks (vpc, eks, iam_irsa, s3, sqs)
+    ├── modules/      # Reusable infrastructure blocks (vpc, eks, iam_irsa, s3, sqs)
+    └── test_local/   # Standalone S3/SQS deployment for local ingestion testing (AWS Native)
 ```

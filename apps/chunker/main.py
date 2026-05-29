@@ -165,9 +165,16 @@ def main():
                 sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
                 continue
 
+            # Gracefully ignore and delete S3 test events to avoid error logging noise
+            if body.get("Event") == "s3:TestEvent":
+                logger.info(f"Received Amazon S3 TestEvent notification for bucket '{body.get('Bucket')}'. Safely deleting message and continuing.")
+                sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+                continue
+
             # Support both S3 Notification Envelope (Records) and developer-friendly direct events {"bucket": "...", "key": "..."}
             bucket_name = None
             object_key = None
+            object_size = None
 
             if "Records" in body:
                 try:
@@ -175,14 +182,30 @@ def main():
                     bucket_name = record["s3"]["bucket"]["name"]
                     # S3 event keys are URL-encoded, we must decode them to avoid download failures
                     object_key = unquote_plus(record["s3"]["object"]["key"])
+                    object_size = record["s3"]["object"].get("size")
                 except (KeyError, IndexError) as e:
                     logger.error(f"Malformed S3 Notification event structure: {e}")
             elif "bucket" in body and "key" in body:
                 bucket_name = body["bucket"]
                 object_key = body["key"]
+                object_size = body.get("size")
 
             if not bucket_name or not object_key:
                 logger.error(f"Could not extract bucket name or object key from message body: {body_str}")
+                sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+                continue
+
+            # Enforce 100MB size limit guard to prevent OOM
+            MAX_ALLOWED_SIZE_BYTES = 104857600  # 100MB
+            if bucket_name == "local":
+                try:
+                    if os.path.exists(object_key):
+                        object_size = os.path.getsize(object_key)
+                except Exception as e:
+                    logger.warning(f"Failed to resolve file size for local path {object_key}: {e}")
+
+            if object_size is not None and object_size > MAX_ALLOWED_SIZE_BYTES:
+                logger.warning(f"File too large ({object_size} bytes). Aborting download path. Limit is {MAX_ALLOWED_SIZE_BYTES} bytes.")
                 sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
                 continue
 

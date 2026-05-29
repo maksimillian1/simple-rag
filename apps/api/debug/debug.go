@@ -5,10 +5,13 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"hash/adler32"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -41,9 +44,54 @@ type SeedItem struct {
 	Category string `json:"category"`
 }
 
+type SparseVector struct {
+	Indices []uint32  `json:"indices"`
+	Values  []float64 `json:"values"`
+}
+
+func computeSparseVector(text string) SparseVector {
+	re := regexp.MustCompile(`\b[a-zA-Z0-9]{2,}\b`)
+	words := re.FindAllString(strings.ToLower(text), -1)
+	if len(words) == 0 {
+		return SparseVector{Indices: []uint32{}, Values: []float64{}}
+	}
+
+	counts := make(map[string]int)
+	for _, w := range words {
+		counts[w]++
+	}
+
+	type item struct {
+		index uint32
+		value float64
+	}
+	var items []item
+	totalWords := float64(len(words))
+
+	for w, count := range counts {
+		h := adler32.Checksum([]byte(w))
+		index := h & 0x7fffffff
+		value := float64(count) / totalWords
+		items = append(items, item{index: index, value: value})
+	}
+
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].index < items[j].index
+	})
+
+	indices := make([]uint32, len(items))
+	values := make([]float64, len(items))
+	for i, it := range items {
+		indices[i] = it.index
+		values[i] = it.value
+	}
+
+	return SparseVector{Indices: indices, Values: values}
+}
+
 type QdrantPoint struct {
-	ID      int                    `json:"id"`
-	Vector  []float32              `json:"vector"`
+	ID      interface{}            `json:"id"`
+	Vector  map[string]interface{} `json:"vector"`
 	Payload map[string]interface{} `json:"payload"`
 }
 
@@ -86,8 +134,13 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 	// 3. Create collection with vector dimensions=384 and Cosine distance
 	createPayload := map[string]interface{}{
 		"vectors": map[string]interface{}{
-			"size":     384,
-			"distance": "Cosine",
+			"dense": map[string]interface{}{
+				"size":     384,
+				"distance": "Cosine",
+			},
+		},
+		"sparse_vectors": map[string]interface{}{
+			"sparse": map[string]interface{}{},
 		},
 	}
 	createBytes, _ := json.Marshal(createPayload)
@@ -141,10 +194,14 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 					results <- result{err: fmt.Errorf("item %d failed: %w", j.id, err)}
 					continue
 				}
+				sparseVec := computeSparseVector(j.item.Text)
 				results <- result{
 					point: QdrantPoint{
 						ID:     j.id,
-						Vector: vector,
+						Vector: map[string]interface{}{
+							"dense":  vector,
+							"sparse": sparseVec,
+						},
 						Payload: map[string]interface{}{
 							"text":     j.item.Text,
 							"source":   j.item.Source,
@@ -305,17 +362,22 @@ func (s *Service) IndexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Prepare standard payload that Indexer app expects in Stage 2 indexing
+	// Prepare standard payload that Indexer app expects in Stage 2 indexing matching contracts.md
 	payload := map[string]interface{}{
-		"file_name": "manual_web_input",
-		"metadata": map[string]interface{}{
-			"source":    "control_panel_manual_input",
-			"timestamp": time.Now().Format(time.RFC3339),
+		"trace_id": "manual-debug-trace-id",
+		"document": map[string]interface{}{
+			"file_id":   "doc_manual_web",
+			"file_name": "manual_web_input",
+		},
+		"boundaries": map[string]interface{}{
+			"part_index":  0,
+			"total_parts": 1,
 		},
 		"chunks": []map[string]interface{}{
 			{
-				"text":  reqText,
-				"index": 0,
+				"chunk_index": 0,
+				"page_number": 1,
+				"content":     reqText,
 			},
 		},
 	}
