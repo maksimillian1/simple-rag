@@ -48,16 +48,25 @@ services:
       dockerfile: Dockerfile
     container_name: simple-rag-chunker
     environment:
-      - AWS_SQS_STAGE_1_URL=http://sqs-local:9324/000000000000/stage-1-parsing
-      - AWS_SQS_STAGE_2_URL=http://sqs-local:9324/000000000000/stage-2-indexing
-      - AWS_ENDPOINT_URL=http://sqs-local:9324
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=mock
-      - AWS_SECRET_ACCESS_KEY=mock
+      # --- Local Mock Setup (comment out when testing AWS Native) ---
+      # - AWS_SQS_STAGE_1_URL=http://sqs-local:9324/000000000000/stage-1-parsing
+      # - AWS_SQS_STAGE_2_URL=http://sqs-local:9324/000000000000/stage-2-indexing
+      # - AWS_ENDPOINT_URL=http://sqs-local:9324
+      # - AWS_ACCESS_KEY_ID=mock
+      # - AWS_SECRET_ACCESS_KEY=mock
+      
+      # --- AWS Native Setup (uncomment and configure when testing real S3/SQS) ---
+      - AWS_SQS_STAGE_1_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-1-parsing
+      - AWS_SQS_STAGE_2_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-2-indexing
+      - AWS_PROFILE=developer
+      
+      - AWS_DEFAULT_REGION=eu-central-1
+      - AWS_REGION=eu-central-1
       - CONTINUOUS_POLL=true
     volumes:
       - /Users/maksimsnitcuk/Applications/personal/simple-rag:/Users/maksimsnitcuk/Applications/personal/simple-rag
       - ./apps/chunker:/app
+      - ~/.aws:/root/.aws:ro
 
   indexer:
     build:
@@ -65,17 +74,25 @@ services:
       dockerfile: Dockerfile
     container_name: simple-rag-indexer
     environment:
-      - AWS_SQS_STAGE_2_URL=http://sqs-local:9324/000000000000/stage-2-indexing
-      - AWS_ENDPOINT_URL=http://sqs-local:9324
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=mock
-      - AWS_SECRET_ACCESS_KEY=mock
+      # --- Local Mock Setup (comment out when testing AWS Native) ---
+      # - AWS_SQS_STAGE_2_URL=http://sqs-local:9324/000000000000/stage-2-indexing
+      # - AWS_ENDPOINT_URL=http://sqs-local:9324
+      # - AWS_ACCESS_KEY_ID=mock
+      # - AWS_SECRET_ACCESS_KEY=mock
+      
+      # --- AWS Native Setup (uncomment and configure when testing real S3/SQS) ---
+      - AWS_SQS_STAGE_2_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-2-indexing
+      - AWS_PROFILE=developer
+      
+      - AWS_DEFAULT_REGION=eu-central-1
+      - AWS_REGION=eu-central-1
       - TEI_ENDPOINT=http://tei-embeddings:80
       - QDRANT_HOST=qdrant
-      - QDRANT_PORT=6334
+      - QDRANT_PORT=6333
       - CONTINUOUS_POLL=true
     volumes:
       - ./apps/indexer:/app
+      - ~/.aws:/root/.aws:ro
 
 volumes:
   qdrant_data:
