@@ -28,18 +28,6 @@ services:
     command: --model-id BAAI/bge-small-en-v1.5 --revision main
 
   # ---------------------------------------------------------------------------
-  # Message Queue Layer (Mocking AWS SQS locally via ElasticMQ)
-  # ---------------------------------------------------------------------------
-  sqs-local:
-    image: softwaremill/elasticmq-native:1.6.0
-    container_name: simple-rag-sqs
-    ports:
-      - "9324:9324" # SQS REST API
-      - "9325:9325" # SQS UI Dashboard
-    volumes:
-      - ./deploy/local/elasticmq.conf:/opt/elasticmq.conf
-
-  # ---------------------------------------------------------------------------
   # Ephemeral Application Mocking (For manual POC execution trigger)
   # ---------------------------------------------------------------------------
   chunker:
@@ -48,14 +36,7 @@ services:
       dockerfile: Dockerfile
     container_name: simple-rag-chunker
     environment:
-      # --- Local Mock Setup (comment out when testing AWS Native) ---
-      # - AWS_SQS_STAGE_1_URL=http://sqs-local:9324/000000000000/stage-1-parsing
-      # - AWS_SQS_STAGE_2_URL=http://sqs-local:9324/000000000000/stage-2-indexing
-      # - AWS_ENDPOINT_URL=http://sqs-local:9324
-      # - AWS_ACCESS_KEY_ID=mock
-      # - AWS_SECRET_ACCESS_KEY=mock
-      
-      # --- AWS Native Setup (uncomment and configure when testing real S3/SQS) ---
+      # --- AWS Native Setup (configured for testing real S3/SQS) ---
       - AWS_SQS_STAGE_1_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-1-parsing
       - AWS_SQS_STAGE_2_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-2-indexing
       - AWS_PROFILE=developer
@@ -74,13 +55,7 @@ services:
       dockerfile: Dockerfile
     container_name: simple-rag-indexer
     environment:
-      # --- Local Mock Setup (comment out when testing AWS Native) ---
-      # - AWS_SQS_STAGE_2_URL=http://sqs-local:9324/000000000000/stage-2-indexing
-      # - AWS_ENDPOINT_URL=http://sqs-local:9324
-      # - AWS_ACCESS_KEY_ID=mock
-      # - AWS_SECRET_ACCESS_KEY=mock
-      
-      # --- AWS Native Setup (uncomment and configure when testing real S3/SQS) ---
+      # --- AWS Native Setup (configured for testing real S3/SQS) ---
       - AWS_SQS_STAGE_2_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-2-indexing
       - AWS_PROFILE=developer
       

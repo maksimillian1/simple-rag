@@ -5,16 +5,11 @@ import uuid
 import tempfile
 import signal
 import logging
-import boto3
-import hashlib
 import math
-from urllib.parse import unquote_plus
-from haystack.components.preprocessors import DocumentSplitter
+import boto3
 
-# Import parsing strategies
-from parsers.txt import TXTParser
-from parsers.markdown import MarkdownParser
-from parsers.pdf import PDFParser
+import config
+from utils import calculate_sha256, resolve_parser
 
 # Setup structured logging
 logging.basicConfig(
@@ -23,16 +18,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger("chunker")
-
-def calculate_sha256(file_path: str) -> str:
-    """
-    Calculate SHA256 hex checksum of a local file.
-    """
-    sha256_hash = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for byte_block in iter(lambda: f.read(4096), b""):
-            sha256_hash.update(byte_block)
-    return sha256_hash.hexdigest()
 
 # Signal handling for AWS Spot instance eviction
 graceful_exit = False
@@ -45,17 +30,14 @@ def handle_signal(signum, frame):
 signal.signal(signal.SIGTERM, handle_signal)
 signal.signal(signal.SIGINT, handle_signal)
 
-def get_boto_clients():
+def get_sqs_client():
     """
-    Construct SQS and S3 clients using environment configurations.
+    Construct SQS client using environment configurations.
     """
-    sqs_endpoint = os.getenv("AWS_ENDPOINT_URL")
-    s3_endpoint = os.getenv("AWS_S3_ENDPOINT_URL")
-    region = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
-
-    # Use environment variables if explicitly set, otherwise let boto3 resolve credentials natively.
-    aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    sqs_endpoint = config.AWS_ENDPOINT_URL
+    region = config.AWS_DEFAULT_REGION
+    aws_access_key = config.AWS_ACCESS_KEY_ID
+    aws_secret_key = config.AWS_SECRET_ACCESS_KEY
 
     kwargs = {}
     if aws_access_key:
@@ -63,74 +45,258 @@ def get_boto_clients():
     if aws_secret_key:
         kwargs["aws_secret_access_key"] = aws_secret_key
 
-    sqs_client = boto3.client(
+    return boto3.client(
         "sqs",
         region_name=region,
         endpoint_url=sqs_endpoint,
         **kwargs
     )
 
-    s3_client = boto3.client(
+def get_s3_client():
+    """
+    Construct S3 client using environment configurations.
+    """
+    s3_endpoint = config.AWS_S3_ENDPOINT_URL
+    region = config.AWS_DEFAULT_REGION
+    aws_access_key = config.AWS_ACCESS_KEY_ID
+    aws_secret_key = config.AWS_SECRET_ACCESS_KEY
+
+    kwargs = {}
+    if aws_access_key:
+        kwargs["aws_access_key_id"] = aws_access_key
+    if aws_secret_key:
+        kwargs["aws_secret_access_key"] = aws_secret_key
+
+    return boto3.client(
         "s3",
         region_name=region,
         endpoint_url=s3_endpoint,
         **kwargs
     )
 
-    return sqs_client, s3_client
+def process_message(message: dict, sqs_client, s3_client, queue_url: str, stage_2_queue_url: str, splitter):
+    """
+    Process a single Stage 1 chunking task:
+    1. Parses message to extract S3 bucket and key.
+    2. Lazily initializes S3 Client and DocumentSplitter.
+    3. Downloads S3 object to local temporary file.
+    4. Parses file into document representation using strategy pattern.
+    5. Splits documents into semantic chunks using Haystack.
+    6. Formats Stage 2 message payloads.
+    7. Pushes chunk batches of size 40 to SQS Stage 2 queue.
+    8. Deletes Stage 1 SQS message on success.
+    Returns (splitter, s3_client) to preserve lazy initialized states.
+    """
+    receipt_handle = message["ReceiptHandle"]
+    body_str = message["Body"]
 
-def resolve_parser(file_name: str):
-    """
-    Strategy Pattern Router. Matches file extensions to parsing strategies.
-    """
-    ext = os.path.splitext(file_name.lower())[1]
-    if ext == ".txt":
-        return TXTParser()
-    elif ext == ".md":
-        return MarkdownParser()
-    elif ext in [".pdf"]:
-        return PDFParser()
-    else:
-        raise ValueError(f"Unsupported file format: {ext}")
+    logger.info(f"Processing message ID: {message['MessageId']}")
+
+    # Parse message payload
+    try:
+        body = json.loads(body_str)
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON body from message: {e}")
+        # Delete corrupted message immediately to avoid loop bottlenecks
+        sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+        return splitter, s3_client
+
+    # Gracefully ignore and delete S3 test events to avoid error logging noise
+    if body.get("Event") == "s3:TestEvent":
+        logger.info(f"Received Amazon S3 TestEvent notification for bucket '{body.get('Bucket')}'. Safely deleting message.")
+        sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+        return splitter, s3_client
+
+    # Extract target S3 coordinates (supports standard S3 Notification Envelope and developer direct format)
+    bucket_name = None
+    object_key = None
+    object_size = None
+
+    if "Records" in body:
+        try:
+            record = body["Records"][0]
+            bucket_name = record["s3"]["bucket"]["name"]
+            from urllib.parse import unquote_plus
+            object_key = unquote_plus(record["s3"]["object"]["key"])
+            object_size = record["s3"]["object"].get("size")
+        except (KeyError, IndexError) as e:
+            logger.error(f"Malformed S3 Notification event structure: {e}")
+    elif "bucket" in body and "key" in body:
+        bucket_name = body["bucket"]
+        object_key = body["key"]
+        object_size = body.get("size")
+
+    if not bucket_name or not object_key:
+        logger.error(f"Could not extract bucket name or object key from message body: {body_str}")
+        sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+        return splitter, s3_client
+
+    # Enforce 100MB size limit guard to prevent OOM
+    MAX_ALLOWED_SIZE_BYTES = 104857600  # 100MB
+    if bucket_name == "local":
+        try:
+            if os.path.exists(object_key):
+                object_size = os.path.getsize(object_key)
+        except Exception as e:
+            logger.warning(f"Failed to resolve file size for local path {object_key}: {e}")
+
+    if object_size is not None and object_size > MAX_ALLOWED_SIZE_BYTES:
+        logger.warning(f"File too large ({object_size} bytes). Aborting download path. Limit is {MAX_ALLOWED_SIZE_BYTES} bytes.")
+        sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+        return splitter, s3_client
+
+    # Lazily initialize S3 Client if not local and not initialized yet
+    if bucket_name != "local" and s3_client is None:
+        logger.info("Initializing S3 client (lazy loading)...")
+        try:
+            s3_client = get_s3_client()
+        except Exception as e:
+            logger.error(f"Failed to initialize S3 client: {e}")
+            return splitter, None
+
+    # Lazily initialize Haystack DocumentSplitter
+    if splitter is None:
+        logger.info("Initializing Haystack DocumentSplitter (lazy loading)...")
+        from haystack.components.preprocessors import DocumentSplitter
+        splitter = DocumentSplitter(
+            split_by=config.CHUNK_BY,
+            split_length=config.CHUNK_SIZE,
+            split_overlap=config.CHUNK_OVERLAP,
+            respect_sentence_boundary=config.CHUNK_RESPECT_SENTENCE
+        )
+
+    file_name = os.path.basename(object_key)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_file_path = os.path.join(temp_dir, file_name)
+        
+        try:
+            if bucket_name == "local":
+                temp_file_path = object_key
+            else:
+                logger.info(f"Downloading s3://{bucket_name}/{object_key} to local temporary storage...")
+                s3_client.download_file(bucket_name, object_key, temp_file_path)
+        except Exception as e:
+            logger.error(f"Failed to access/download file: {e}")
+            # Reset visibility timeout so the job can retry on transient failures
+            return splitter, s3_client
+
+        # Parse the file using Strategy Pattern
+        try:
+            logger.info(f"Resolving parser strategy for: {file_name}")
+            parser = resolve_parser(file_name)
+            
+            # Prepare document metadata
+            doc_metadata = {
+                "bucket": bucket_name,
+                "key": object_key,
+                "file_name": file_name
+            }
+            
+            logger.info("Executing text extraction strategy...")
+            documents = parser.parse(temp_file_path, doc_metadata)
+            
+            # Splicing document text into semantic chunks
+            logger.info("Executing Haystack DocumentSplitter...")
+            split_result = splitter.run(documents=documents)
+            chunks = split_result["documents"]
+            logger.info(f"Document split into {len(chunks)} chunks.")
+
+        except ValueError as e:
+            logger.error(f"Unsupported format error: {e}")
+            # Delete immediately to prevent poisoned messages from locking queue
+            sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+            return splitter, s3_client
+        except Exception as e:
+            logger.error(f"Critical error parsing and chunking file {file_name}: {e}")
+            return splitter, s3_client
+
+        # Calculate document checksum and file_id for the deterministic contract
+        try:
+            checksum = calculate_sha256(temp_file_path)
+            file_id = f"doc_{checksum[:8]}"
+            logger.info(f"Generated file_id: {file_id} with checksum: {checksum}")
+        except Exception as e:
+            logger.error(f"Failed to calculate checksum for {file_name}: {e}")
+            return splitter, s3_client
+
+        # Prepare the chunks payload and push in batches of up to 40 chunks
+        success = True
+        batch_size = 40
+        total_chunks = len(chunks)
+        total_parts = math.ceil(total_chunks / batch_size)
+
+        for i in range(0, total_chunks, batch_size):
+            batch_chunks = chunks[i:i + batch_size]
+            part_index = i // batch_size
+            
+            payload_chunks = []
+            for idx, chunk in enumerate(batch_chunks):
+                global_index = i + idx
+                payload_chunks.append({
+                    "chunk_index": global_index,
+                    "page_number": chunk.meta.get("page_number", 1),
+                    "content": chunk.content
+                })
+
+            stage_2_message = {
+                "trace_id": str(uuid.uuid4()),
+                "document": {
+                    "file_id": file_id,
+                    "file_name": file_name,
+                    "checksum": checksum
+                },
+                "boundaries": {
+                    "part_index": part_index,
+                    "total_parts": total_parts
+                },
+                "chunks": payload_chunks
+            }
+
+            try:
+                logger.info(f"Pushing chunk batch {i//batch_size + 1} ({len(payload_chunks)} chunks, index {i} to {i+len(payload_chunks)-1}) to SQS Stage 2...")
+                sqs_client.send_message(
+                    QueueUrl=stage_2_queue_url,
+                    MessageBody=json.dumps(stage_2_message)
+                )
+            except Exception as e:
+                logger.error(f"Failed to send batch of chunks to Stage 2 queue: {e}")
+                success = False
+                break
+
+        if success:
+            logger.info(f"Successfully processed s3://{bucket_name}/{object_key}. Deleting message from Stage 1 queue...")
+            sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+        else:
+            logger.error(f"S3 file s3://{bucket_name}/{object_key} was partially processed. SQS message left in queue for retries.")
+
+    return splitter, s3_client
 
 def main():
     global graceful_exit
 
-    # Get environment variables
-    queue_url = os.getenv("AWS_SQS_STAGE_1_URL")
-    stage_2_queue_url = os.getenv("AWS_SQS_STAGE_2_URL")
-
-    # Document Splitter configuration
-    split_by = os.getenv("CHUNK_BY", "word")
-    split_length = int(os.getenv("CHUNK_SIZE", "200"))
-    split_overlap = int(os.getenv("CHUNK_OVERLAP", "20"))
-    respect_sentence_boundary = os.getenv("CHUNK_RESPECT_SENTENCE", "true").lower() == "true"
+    # Validate Queue Configs
+    queue_url = config.AWS_SQS_STAGE_1_URL
+    stage_2_queue_url = config.AWS_SQS_STAGE_2_URL
 
     if not queue_url or not stage_2_queue_url:
         logger.error("AWS_SQS_STAGE_1_URL and AWS_SQS_STAGE_2_URL must be configured.")
         sys.exit(1)
 
-    logger.info("Initializing SQS and S3 clients...")
+    logger.info("Initializing SQS client...")
     try:
-        sqs_client, s3_client = get_boto_clients()
+        sqs_client = get_sqs_client()
     except Exception as e:
-        logger.error(f"Failed to initialize AWS clients: {e}")
+        logger.error(f"Failed to initialize SQS client: {e}")
         sys.exit(1)
 
-    # Initialize Haystack DocumentSplitter
-    logger.info(f"Initializing Haystack DocumentSplitter (split_by={split_by}, size={split_length}, overlap={split_overlap})")
-    splitter = DocumentSplitter(
-        split_by=split_by,
-        split_length=split_length,
-        split_overlap=split_overlap,
-        respect_sentence_boundary=respect_sentence_boundary
-    )
+    s3_client = None
+    splitter = None
 
     logger.info("Starting Ephemeral Chunker Worker Loop...")
 
     while not graceful_exit:
         try:
-            # Poll SQS with long polling (20 seconds) to minimize API cost & idle resources
+            # Poll SQS with long polling (10 seconds)
             logger.info("Polling SQS Stage 1 queue...")
             response = sqs_client.receive_message(
                 QueueUrl=queue_url,
@@ -140,192 +306,26 @@ def main():
 
             messages = response.get("Messages", [])
             if not messages:
-                continuous_poll = os.getenv("CONTINUOUS_POLL", "false").lower() == "true"
-                if continuous_poll:
+                if config.CONTINUOUS_POLL:
                     logger.info("No messages in Stage 1 queue. Sleeping 5 seconds for continuous polling...")
-                    import time
                     time.sleep(5)
                     continue
                 else:
                     logger.info("No messages in Stage 1 queue. Exiting (Queue drained cleanly).")
                     break
 
-            message = messages[0]
-            receipt_handle = message["ReceiptHandle"]
-            body_str = message["Body"]
-
-            logger.info(f"Processing message ID: {message['MessageId']}")
-
-            # Parse message payload
-            try:
-                body = json.loads(body_str)
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON body from message: {e}")
-                # Delete corrupted message immediately to avoid loop bottlenecks
-                sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-                continue
-
-            # Gracefully ignore and delete S3 test events to avoid error logging noise
-            if body.get("Event") == "s3:TestEvent":
-                logger.info(f"Received Amazon S3 TestEvent notification for bucket '{body.get('Bucket')}'. Safely deleting message and continuing.")
-                sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-                continue
-
-            # Support both S3 Notification Envelope (Records) and developer-friendly direct events {"bucket": "...", "key": "..."}
-            bucket_name = None
-            object_key = None
-            object_size = None
-
-            if "Records" in body:
-                try:
-                    record = body["Records"][0]
-                    bucket_name = record["s3"]["bucket"]["name"]
-                    # S3 event keys are URL-encoded, we must decode them to avoid download failures
-                    object_key = unquote_plus(record["s3"]["object"]["key"])
-                    object_size = record["s3"]["object"].get("size")
-                except (KeyError, IndexError) as e:
-                    logger.error(f"Malformed S3 Notification event structure: {e}")
-            elif "bucket" in body and "key" in body:
-                bucket_name = body["bucket"]
-                object_key = body["key"]
-                object_size = body.get("size")
-
-            if not bucket_name or not object_key:
-                logger.error(f"Could not extract bucket name or object key from message body: {body_str}")
-                sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-                continue
-
-            # Enforce 100MB size limit guard to prevent OOM
-            MAX_ALLOWED_SIZE_BYTES = 104857600  # 100MB
-            if bucket_name == "local":
-                try:
-                    if os.path.exists(object_key):
-                        object_size = os.path.getsize(object_key)
-                except Exception as e:
-                    logger.warning(f"Failed to resolve file size for local path {object_key}: {e}")
-
-            if object_size is not None and object_size > MAX_ALLOWED_SIZE_BYTES:
-                logger.warning(f"File too large ({object_size} bytes). Aborting download path. Limit is {MAX_ALLOWED_SIZE_BYTES} bytes.")
-                sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-                continue
-
-            if bucket_name == "local":
-                logger.info(f"Local bypass active: using local filesystem file directly: {object_key}")
-            else:
-                logger.info(f"S3 Object Target: s3://{bucket_name}/{object_key}")
-
-            # Download file to a secure local temp directory
-            file_name = os.path.basename(object_key)
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_file_path = os.path.join(temp_dir, file_name)
-                
-                try:
-                    if bucket_name == "local":
-                        temp_file_path = object_key
-                    else:
-                        logger.info(f"Downloading s3://{bucket_name}/{object_key} to local temporary storage...")
-                        s3_client.download_file(bucket_name, object_key, temp_file_path)
-                except Exception as e:
-                    logger.error(f"Failed to access/download file: {e}")
-                    # Allow visibility timeout to reset so the job can retry on transient failures
-                    continue
-
-                # Parse the file using Strategy Pattern
-                try:
-                    logger.info(f"Resolving parser strategy for: {file_name}")
-                    parser = resolve_parser(file_name)
-                    
-                    # Prepare document metadata
-                    doc_metadata = {
-                        "bucket": bucket_name,
-                        "key": object_key,
-                        "file_name": file_name
-                    }
-                    
-                    logger.info("Executing text extraction strategy...")
-                    documents = parser.parse(temp_file_path, doc_metadata)
-                    
-                    # Splicing document text into semantic chunks
-                    logger.info("Executing Haystack DocumentSplitter...")
-                    split_result = splitter.run(documents=documents)
-                    chunks = split_result["documents"]
-                    logger.info(f"Document split into {len(chunks)} chunks.")
-
-                except ValueError as e:
-                    logger.error(f"Unsupported format error: {e}")
-                    # Deleting immediately to prevent poisoned messages from locking queue
-                    sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-                    continue
-                except Exception as e:
-                    logger.error(f"Critical error parsing and chunking file {file_name}: {e}")
-                    # Retrying via visibility timeout
-                    continue
-
-                # Calculate document checksum and file_id for the deterministic contract
-                try:
-                    checksum = calculate_sha256(temp_file_path)
-                    file_id = f"doc_{checksum[:8]}"
-                    logger.info(f"Generated file_id: {file_id} with checksum: {checksum}")
-                except Exception as e:
-                    logger.error(f"Failed to calculate checksum for {file_name}: {e}")
-                    continue
-
-                # Prepare the chunks payload and push in batches of up to 40 chunks
-                # This ensures the message payload fits comfortably inside SQS 256KB limits
-                success = True
-                batch_size = 40
-                total_chunks = len(chunks)
-                total_parts = math.ceil(total_chunks / batch_size)
-
-                for i in range(0, total_chunks, batch_size):
-                    batch_chunks = chunks[i:i + batch_size]
-                    part_index = i // batch_size
-                    
-                    # Build structured Stage 2 Payload message matching contracts.md
-                    payload_chunks = []
-                    for idx, chunk in enumerate(batch_chunks):
-                        global_index = i + idx
-                        payload_chunks.append({
-                            "chunk_index": global_index,
-                            "page_number": chunk.meta.get("page_number", 1),
-                            "content": chunk.content
-                        })
-
-                    stage_2_message = {
-                        "trace_id": str(uuid.uuid4()),
-                        "document": {
-                            "file_id": file_id,
-                            "file_name": file_name,
-                            "checksum": checksum
-                        },
-                        "boundaries": {
-                            "part_index": part_index,
-                            "total_parts": total_parts
-                        },
-                        "chunks": payload_chunks
-                    }
-
-                    try:
-                        logger.info(f"Pushing chunk batch {i//batch_size + 1} ({len(payload_chunks)} chunks, index {i} to {i+len(payload_chunks)-1}) to SQS Stage 2...")
-                        sqs_client.send_message(
-                            QueueUrl=stage_2_queue_url,
-                            MessageBody=json.dumps(stage_2_message)
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to send batch of chunks to Stage 2 queue: {e}")
-                        success = False
-                        break
-
-                if success:
-                    logger.info(f"Successfully processed s3://{bucket_name}/{object_key}. Deleting message from Stage 1 queue...")
-                    sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-                else:
-                    logger.error(f"S3 file s3://{bucket_name}/{object_key} was partially processed. SQS message left in queue for retries.")
+            # Process the received message
+            splitter, s3_client = process_message(
+                messages[0], 
+                sqs_client, 
+                s3_client, 
+                queue_url, 
+                stage_2_queue_url, 
+                splitter
+            )
 
         except Exception as e:
             logger.error(f"Unexpected error in worker loop: {e}")
-            # Prevent fast-looping crash in case of continuous SQS connectivity failures
-            import time
             time.sleep(5)
 
     logger.info("Chunker worker terminated cleanly.")

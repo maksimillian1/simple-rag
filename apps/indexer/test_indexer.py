@@ -1,7 +1,7 @@
 import unittest
 import uuid
 import zlib
-from main import generate_point_id, compute_sparse_vector, NAMESPACE_RAG
+from vector import generate_point_id, compute_sparse_vector, NAMESPACE_RAG
 
 class TestIndexerLogic(unittest.TestCase):
     def test_point_id_generation(self):
