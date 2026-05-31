@@ -53,10 +53,59 @@ When generating or interacting with infrastructure configuration or deployment m
   - **Least Privilege Access Policies:** Queue policies (`aws_sqs_queue_policy`) must define narrow conditions limiting permissions specifically to source bucket ARNs using conditional operators like `ArnEquals`.
 
 ## 5. Current Phase & Engineering Tasks
-* **Phase:** Local PoC / Ingestion Integration V2 (Transitioning to Haystack 2.0 Pipelines & K8s Preparation).
 * **Task 1 (Refactoring Apps):** Refactor `apps/chunker/` and `apps/indexer/` to drop manual HTTP/client boilerplate and migrate fully to declarative Haystack 2.0 Pipelines.
 * **Task 2 (Dev Environment Branching):** Update the core execution loop in `main.py` for both apps to cleanly split execution logic based on the `ENVIRONMENT` variable:
   - If `dev` and `CONTINUOUS_POLL=true` -> log notice and loop indefinitely with sleep interval.
   - If `prod` or queue drained in default state -> log metric and issue immediate `exit 0`.
-* **Task 3 (K8s ServiceAccount & IRSA Specs):** Prepare standard manifests in `deploy/k8s/` that expect IRSA injection, aligning permissions with the explicit SQS and S3 topologies.
-* **Data Contracts Compliance:** Every schema validation and SQS JSON payload must perfectly map to the explicit formats defined in `docs/contracts.md`.
+
+## 1. IN PROGRESS (Current Ingestion & Verification)
+* **[Task-07] Local Integration: Multi-Container Chunker & Indexer V2 Pipelines**
+  * Description: Complete refactoring of `apps/chunker/` and `apps/indexer/` to use Haystack 2.0 Pipelines with local TEI integration. Ensure lazy-loading pattern is strictly followed.
+* **[Task-08] Testing: Large 10MB+ PDF Chunking & Pipeline Validation**
+  * Description: Create a local seeding script. Run end-to-end extraction tests with real, heavy multi-page PDF documents to verify intermediate SQS Stage-2 payload boundaries (max 256KB constraint).
+* **[Task-10] API: Complete Query Path with Mock/Bedrock Contract Toggle**
+  * Description: Finalize Go API query handler. Implement the `LLMProvider` interface with a local `MockProvider` for test isolation and `BedrockProvider` using the official AWS SDK v2.
+
+## 6. Future Tasks
+## TODO (Immediate Cloud Infrastructure Step)
+* **[Task-01] Terraform: VPC Networking with PrivateLink Base**
+  * Description: Provision private/public subnets and NAT Gateways. Configure AWS Bedrock VPC Interface Endpoints (AWS PrivateLink) inside the private subnet perimeter to eliminate internet egress.
+* **[Task-11] Terraform: S3 Buckets, SQS Queues & Primary DLQ Redrive Policies**
+  * Description: Deploy production S3 raw bucket with strict public access blocks. Provision Stage-1 and Stage-2 SQS queues bound to matching dead-letter queues (`-dlq`) with maxReceiveCount=3.
+* **[Task-02] Terraform: EKS Cluster Deployment & IAM IRSA Binding Profiles**
+  * Description: Spin up managed EKS cluster with Spot-driven node groups. Generate AWS IAM Roles with precise OIDC trust relationships for S3 read, SQS process, and Bedrock InvokeModel actions.
+* **[Task-15] Core: Contract Validation Layer via Pydantic & Go Structs**
+  * Description: Implement a bulletproof validation layer to protect the asynchronous SQS payload boundary.
+  * Implementation:
+    * In `apps/chunker/` and `apps/indexer/`, introduce strict `Pydantic V2` models to validate inbound/outbound JSON structures before operations.
+    * If an incoming SQS message violates the schema defined in `contracts.md`, immediately drop execution and route the packet to the DLQ with an explicit `MalformedPayload` structured log.
+* **[Task-16] CI/CD: Automated Ingestion Contract & Linting Pipeline**
+  * Description: Set up GitHub Actions workflows to guarantee architectural quality and code compliance before cloud deployment.
+  * Requirements:
+    * Pipeline 1: Run Go linter (`golangci-lint`) and native `go test` for `apps/api/`.
+    * Pipeline 2: Run `ruff` and `pytest` for `apps/chunker/` and `apps/indexer/` to validate Pydantic schemas and lazy-loading boundaries.
+    * Pipeline 3: Execute `terraform validate` and `tflint` on the `terraform/` directory to enforce resource tagging policies.
+
+
+## BACKLOG (Cluster Day-2 Operations & Load Testing)
+* **[Task-03] K8s Native Deployment: Qdrant StatefulSet with EBS gp3 Provisioning**
+  * Description: Draft K8s deployment manifests for Qdrant. Enforce persistent storage using standard EBS `gp3` volumes with `ReadWriteOnce` dynamic claims via the AWS EBS CSI driver. (Do NOT use Multi-Attach).
+* **[Task-12] K8s Security: Cilium NetworkPolicies Egress Isolation**
+  * Description: Author precise `CiliumNetworkPolicy` specs. Restrict `indexer` egress strictly to SQS and local TEI. Restrict Go API network visibility exclusively to Qdrant cluster and Bedrock VPC endpoint IPs.
+* **[Task-13] Observability: CloudWatch Insights Logs Integration**
+  * Description: Configure container log routing via FluentBit to AWS CloudWatch Logs. Deploy the production-ready Insights analytical queries defined in ops.md to track ephemeral loop execution metrics.
+* **[Task-14] Performance: Load Testing Synchronous API via k6**
+  * Description: Write an automated k6 performance testing script to flood the Go API search endpoint. Benchmark and document p95/p99 query latencies under concurrent hybrid retrieval and RRF reranking execution profiles.
+* **[Task-17] Testing: API Load Testing & Retrieval Synergy Analysis (Preps for Article B)**
+  * Description: Deploy a native `k6` testing suite to flood the Go API query layer under high concurrency.
+  * Metrics to Extract:
+    * Measure p95/p99 query latency degradation when shifting from raw keyword matching to full Two-Stage Hybrid Retrieval + RRF ($k=60$).
+    * Document the execution overhead of the CPU-bound **Word Count Token-Frequency Penalty Formula**.
+    * Identify exactly what ruins performance (e.g., Qdrant unquantized RAM consumption vs context truncation limits).
+* **[Task-18] FinOps: End-to-End Infrastructure Cost & Savings Audit (Preps for Article C)**
+  * Description: Execute heavy load profiles through the ingestion pipeline (`chunker -> indexer -> TEI`) to gather financial and resource metrics.
+  * Metrics to Extract:
+    * Quantify RAM/CPU utilization savings achieved by shifting from 24/7 Daemons to KEDA ScaledJobs (natural scale-in to absolute zero).
+    * Measure the exact network cost reduction of routing inference requests through the AWS Bedrock VPC Interface Endpoint (PrivateLink) vs public NAT Gateway data processing rates.
+    * Document Qdrant memory optimization metrics when enabling Scalar Quantization (SQ) down to `int8`.
+
