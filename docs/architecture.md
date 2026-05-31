@@ -42,15 +42,23 @@ graph TD
     
     Indexer -->|9. Idempotent gRPC Upsert| Qdrant[(Qdrant Vector DB)]
     
-    %% Query Boundary
+    %% Query Boundary (Secured VPC Perimeter via PrivateLink)
     User -->|10. Synchronous Search Query| GoAPI[Go API]
     GoAPI -->|11. Hybrid Retrieval & RRF Rerank| Qdrant
-    GoAPI -->|12. Generate Response| LLM[Serverless LLM: Llama 3 8B]
+    
+    subgraph VPC_Private_Subnet [AWS VPC Private Subnet Perimeter]
+        GoAPI
+        Qdrant
+        VPCE[AWS Bedrock VPC Endpoint]
+    end
+
+    GoAPI -->|12. IRSA Authenticated InvokeModel| VPCE
+    VPCE -->|13. Internal AWS Route| Bedrock[AWS Bedrock: Llama 3 8B Serverless]
 
     classDef spot fill:#ffe6cc,stroke:#d79b00,stroke-width:2px;
     classDef ondemand fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px;
     class Job1,Job2 spot;
-    class GoAPI,Qdrant ondemand;
+    class GoAPI,Qdrant,VPCE ondemand;
 ```
 
 ---
@@ -62,8 +70,8 @@ graph TD
 * **AWS S3 Raw Bucket (`prod-raw-documents-eu-west-1`):** Decoupled ingestion interface. Operates under a **Trusted Ingress Assumption** (files uploaded via secure admin channels). Standard lifecycle policy transitions objects to Glacier Instant Retrieval after 7 days to minimize storage TCO.
 * **SQS Queue (stage-1-parsing):** Standard SQS queue holding S3 Object Created metadata. Backed by `stage-1-parsing-dlq` for toxic payload isolation.
 * **Haystack Chunker (`apps/chunker`):** Ephemeral Python job. Downloads files from S3.
-   * **Compute-Layer Fail-Safe (ADR-0001):** Enforces a **Max File Size Limit of 100 MB**. Parses SQS metadata *before* downloading. If the file exceeds 100 MB, it drops the item, logs a structured alert, and routes to DLQ.
-   * **Slicing:** Executes format-specific strategies (PDF, TXT, Markdown). Packs arrays into SQS Stage 2. If text chunks aggregate to >245 KB, it programmatically splits the chunks across multiple sequential SQS messages using a size-guard loop.
+    * **Compute-Layer Fail-Safe (ADR-0001):** Enforces a **Max File Size Limit of 100 MB**. Parses SQS metadata *before* downloading. If the file exceeds 100 MB, it drops the item, logs a structured alert, and routes to DLQ.
+    * **Slicing:** Executes format-specific strategies (PDF, TXT, Markdown). Packs arrays into SQS Stage 2. If text chunks aggregate to >245 KB, it programmatically splits the chunks across multiple sequential SQS messages using a size-guard loop.
 * **SQS Queue (stage-2-indexing):** High-throughput intermediate queue. Message payload contains raw text chunks. Backed by `stage-2-indexing-dlq`.
 * **Haystack Indexer (`apps/indexer`):** Ephemeral Python job running within a multi-container Pod. Fetches chunk batches from SQS Stage 2, offloads vectorization to the colocated TEI sidecar via localhost, and executes deterministic gRPC upserts to Qdrant using `UUID5(file_name + chunk_index)` to ensure idempotency. Bound to a hard resource limit of **2GB RAM**.
 
@@ -78,18 +86,20 @@ graph TD
 * **Go API (`apps/api`):** Minimalist service using `net/http` or `go-chi`. Serves static frontend assets and handles synchronous search queries (Target latency: p95 < 200ms).
 * **Stage 1: Hybrid Retrieval:** Executes synchronized hybrid query against Qdrant (Dense Vector Index + Sparse Vector Index for BM25-like matching).
 * **Word Count Match & Penalty Algorithm (ADR-0006):** Applies a deterministic token-frequency penalty algorithm to prevent keyword stuffing:
-  * $$Score_{final} = Score_{raw} \times \frac{1}{\log_{10}(TermCount + 10)}$$
+    * $$Score_{final} = Score_{raw} \times \frac{1}{\log_{10}(TermCount + 10)}$$
 * **Stage 2: Semantic Reranking (RRF):** Merges dense and sparse result sets using **Reciprocal Rank Fusion (RRF)** with constant $k=60$ directly on CPU.
 * **Context Pruning (ADR-0007):** Formats payload into a compact JSON string, stripping all non-essential metadata before passing it to the LLM to slash token costs.
+* **Stage 3: Serverless Response Synthesis:** Invokes AWS Bedrock via native Go SDK v2. The request is bound within the private VPC boundary via an AWS Bedrock VPC Endpoint, passing the pruned context to Meta Llama 3 (8B Instruct) on an On-Demand pay-per-token billing layout.
+
 ---
 
 ## 4. Security and Network Isolation
 
-1. **Identity Security (IAM IRSA):** Zero hardcoded credentials. Pods utilize dedicated Kubernetes `ServiceAccounts` mapped to AWS IAM Roles via OIDC. `chunker` has read-only S3 access and read/write SQS access. `indexer` has exclusive read/delete access to SQS Stage 2.
+1. **Identity Security (IAM IRSA):** Zero hardcoded credentials. Pods utilize dedicated Kubernetes `ServiceAccounts` mapped to AWS IAM Roles via OIDC. `chunker` has read-only S3 access and read/write SQS access. `indexer` has exclusive read/delete access to SQS Stage 2. `apps/api` has an IAM policy granting `bedrock:InvokeModel` strictly for `meta.llama3-8b-instruct-v1:0`.
 2. **Network Topology (Cilium NetworkPolicies):**
-   * `chunker`: Outbound allowed only to AWS S3, SQS, and internal CoreDNS.
-   * `indexer`: Outbound allowed only to AWS SQS, Qdrant gRPC, and `localhost` (TEI container). Direct egress to the internet is denied.
-   * `Go API`: Inbound allowed from ingress/users. Outbound allowed to Qdrant and public serverless LLM API endpoints.
+    * `chunker`: Outbound allowed only to AWS S3, SQS, and internal CoreDNS.
+    * `indexer`: Outbound allowed only to AWS SQS, Qdrant gRPC, and `localhost` (TEI container). Direct egress to the internet is denied.
+    * `Go API`: Inbound allowed from ingress/users. Outbound allowed strictly to Qdrant cluster gRPC/HTTP ports and the internal IP addresses of the AWS Bedrock VPC Interface Endpoint. Public internet access is denied at the network policy layer.
 
 ---
 
@@ -100,7 +110,7 @@ The monorepo follows a strict layout constraint. No arbitrary top-level director
 ```text
 simple-rag/
 ├── apps/
-│   ├── api/          # Go-based API (Lightweight query layer, Hybrid Retrieval + RRF Reranking)
+│   ├── api/          # Go-based API (Lightweight query layer, Hybrid Retrieval + RRF Reranking + Bedrock SDK)
 │   ├── chunker/      # Python + Haystack (Stage 1: Ephemeral Kube Job for parsing & chunking)
 │   └── indexer/      # Python + Haystack (Stage 2: Ephemeral Kube Job with colocated sidecar bge-small model)
 ├── deploy/
@@ -112,6 +122,6 @@ simple-rag/
 │   └── ops.md           # Day-2 runbooks, cost metrics, and infrastructure scaling operations
 └── terraform/
     ├── envs/prod/    # Environment entry point (invokes modules)
-    ├── modules/      # Reusable infrastructure blocks (vpc, eks, iam_irsa, s3, sqs)
+    ├── modules/      # Reusable infrastructure blocks (vpc, eks, iam_irsa, s3, sqs, vpc_endpoints)
     └── test_local/   # Standalone S3/SQS deployment for local ingestion testing (AWS Native)
 ```

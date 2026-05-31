@@ -19,7 +19,7 @@ For specific design justifications, performance baselines, and cost optimization
 * [ADR-0004: AI Pipeline Framework Selection](./docs/adr/0004-ai-pipeline-framework.md)
 * [ADR-0005: Embedding Model Selection](./docs/adr/0005-embedding-model.md)
 * [ADR-0006: Hybrid Retrieval and Reranking](./docs/adr/0006-retrieval-with-reranking.md)
-* [ADR-0007: LLM Selection for Context Post-Processing](./docs/adr/0007-llm-for-output-post-processing-and-generation.md)
+* [ADR-0007: LLM Selection for Context Post-Processing](./docs/adr/0007-llm-selection-aws-bedrock)
 
 ---
 

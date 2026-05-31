@@ -6,152 +6,80 @@ This document defines the operational runbooks, FinOps verification metrics, eme
 
 ## 1. Spot Eviction Handling & Graceful Shutdown
 
-When AWS reclaims a Spot instance, the node receives a 2-minute notice via the metadata endpoint. The `aws-node-termination-handler` taints the node and sends a `SIGTERM` to active pods.
+Compute workloads for `apps/chunker` and `apps/indexer` execute on cost-optimized AWS Spot Instances. When AWS reclaims an instance, the node receives a strict 2-minute notice via the EC2 metadata endpoint.
 
-### Application Lifecycle Code (Python Chunker/Indexer implementation)
-Your worker containers must trap `SIGTERM` to ensure zero message loss and block cleanups:
-
-```python
-import signal
-import sys
-import time
-
-class GracefulShutdownHandler:
-    def __init__(self):
-        self.received_termination = False
-        signal.signal(signal.SIGINT, self.handle_signal)
-        signal.signal(signal.SIGTERM, self.handle_signal)
-
-    def handle_signal(self, signum, frame):
-        # Triggered during AWS Spot Eviction
-        self.received_termination = True
-        print('{"level": "WARN", "message": "SIGTERM received. Halting SQS long-polling immediately."}')
-
-shutdown_handler = GracefulShutdownHandler()
-
-def worker_loop():
-    while not shutdown_handler.received_termination:
-        # SQS Long Polling (WaitTimeSeconds=20)
-        message = poll_sqs_queue()
-        if not message:
-            print('{"level": "INFO", "message": "Queue empty. Self-terminating Job."}')
-            break # Exit code 0 - Natural Scale-In
-            
-        process_message(message)
-        delete_sqs_message(message)
-        
-    print('{"level": "INFO", "message": "Safe exit completed. Inflight data flushed."}')
-    sys.exit(0)
-```
+### Graceful Termination Mechanism
+The cluster infrastructure architecture relies on `aws-node-termination-handler` to intercept the eviction event, taint the node, and broadcast a standard `SIGTERM` signal to all active pods.
+* **Signal Interception:** Upon trapping `SIGTERM`, the internal execution loop of the worker process must immediately halt SQS long-polling operations.
+* **Inflight Ingestion Flush:** The container is granted a 120-second grace window to complete processing the current active payload batch, execute deterministic gRPC upserts to Qdrant, delete the completed message from SQS, and issue a clean `exit 0`.
+* **Idempotency Guarantee:** If a hard eviction kills the pod before the active batch is deleted from SQS, the message visible visibility timeout expires, and another worker picks it up. Data duplication inside Qdrant is blocked atomically via deterministic `UUID5(file_name + chunk_index)` point ID generation, converting retries into safe overwrites.
 
 ---
 
-## 2. KEDA Scaling Configuration (deploy/k8s/keda-scaledjob.yaml)
+## 2. KEDA Autoscaling Architecture
 
-To prevent cluster thrashing, we scale via `ScaledJob` instead of `ScaledObject`. This ensures Kubernetes spins up dedicated batch workloads that live and die with queue volume.
+To prevent cluster thrashing and minimize resource utilization overhead, horizontal auto-scaling is managed strictly via Kubernetes **`ScaledJob`** resources instead of standard `ScaledObject` deployments.
 
-```yaml
-apiVersion: keda.sh/v1alpha1
-kind: ScaledJob
-metadata:
-   name: haystack-indexer-scaler
-   namespace: simple-rag
-spec:
-   jobTargetRef:
-      parallelism: 1
-      completions: 1
-      activeDeadlineSeconds: 600
-      template:
-         spec:
-            serviceAccountName: indexer-irsa-sa
-            restartPolicy: OnFailure
-            containers:
-               - name: indexer
-                 image: <aws_account_id>[.dkr.ecr.eu-west-1.amazonaws.com/simple-rag/indexer:latest](https://.dkr.ecr.eu-west-1.amazonaws.com/simple-rag/indexer:latest)
-                 resources:
-                    limits:
-                       cpu: "1"
-                       memory: 2Gi
-                    requests:
-                       cpu: "500m"
-                       memory: 1Gi
-   minReplicaCount: 0
-   maxReplicaCount: 20
-   pollingInterval: 15
-   successfulJobsHistoryLimit: 5
-   failedJobsHistoryLimit: 5
-   triggers:
-      - type: aws-sqs
-        metadata:
-           queueURL: [https://sqs.eu-west-1.amazonaws.com/](https://sqs.eu-west-1.amazonaws.com/)<aws_account_id>/stage-2-indexing
-           queueLength: "10" # Target: 1 parallel job per 10 messages in queue
-           awsRegion: eu-west-1
-           identityOwner: operator
-```
+### Dynamic Provisioning Metrics
+* **Queue-Driven Scaling:** The KEDA controller monitors the SQS queue lengths via high-frequency API polling intervals.
+* **Job Allocation Target:** The scaler instantiates parallel dedicated Kubernetes `Job` objects based on a target ratio of **1 parallel job per 10 messages** pending in the queue, up to a strict infrastructure quota limit (`maxReplicaCount = 20`).
+* **Natural Scale-In:** Resource contraction happens natively from within the application layer. When a worker process receives an empty response from the SQS long-poll request, it automatically breaks its processing loop and terminates cleanly (`exit 0`). Kubernetes automatically garbage-collects completed job pods, scaling compute resource consumption back to absolute zero when idle.
 
 ---
 
-## 3. Ingestion Assumptions & Scope Boundaries (PoC Guardrails)
+## 3. Ingestion Assumptions & Scope Boundaries
 
-For the current PoC deployment, the ingest pattern bypasses consumer-facing gateways to minimize architectural overhead during local validation.
+For the current Alpha deployment, the ingestion pipeline operates under a **Trusted Ingress Assumption** to reduce API gateway validation overhead during testing.
 
-### Operational Constraints
-1. **Trusted Ingress Enclosure:** Documents are dropped directly into the S3 bucket (`prod-raw-documents-eu-west-1`) via trusted channels (AWS Console or AWS CLI). The ingestion entry point assumes files have undergone basic structural optimization prior to landing.
-2. **Compute-Layer Fail-Safe:** Despite ingress trust assumptions, the system preserves localized protection. `apps/chunker` checks file metadata size limits programmatically before pulling objects over the network:
-   ```python
-   # Enforce strict 100MB limit inside Stage 1 to protect Pod memory constraints
-   MAX_ALLOWED_SIZE_BYTES = 104857600
-   object_size = message['Records'][0]['s3']['object']['size']
-   
-   if object_size > MAX_ALLOWED_SIZE_BYTES:
-       logger.error(f"File too large ({object_size} bytes). Aborting download path.")
-       return # Drop execution, proceed to clean SQS deletion
-   ```
-3. **Production Migration Path:** Moving this architecture to production requires an upstream API/Gateway layer that executes `Content-Length` filtering and structural linting *before* signing S3 Presigned URLs, keeping heavy data validation completely outside the asynchronous processing perimeter.
+### Operational Guardrails
+1. **Trusted Ingress Perimeter:** Source files are dropped directly into the designated S3 raw bucket via authorized enterprise channels (AWS CLI/Console utilizing local profiles). Files are assumed to be structurally sound before landing.
+2. **Compute-Layer Memory Protection:** Despite ingress assumptions, the `chunker` application enforces localized memory boundary protection. The process parses the S3 object metadata length parameter directly from the SQS payload *before* initiating network download streams. If the file size exceeds a hard limit of **100 MB**, the download path is aborted, a structured alert is logged, and the payload is shunted to protect pod RAM allocations.
+3. **Production Transition Blueprint:** Transitioning to full production environments requires decoupling ingestion by implementing an upstream API/Gateway layer. This gateway must enforce tight `Content-Length` validation and multi-part structural linting *before* generating AWS S3 Presigned URLs, isolating heavy validation processing outside the asynchronous ingestion boundary.
 
 ---
 
-## 4. FinOps and Cost-Efficiency Monitoring
+## 4. FinOps & Cost-Efficiency Verification
 
-To prove the architectural ROI to executive stakeholders, track the **Cost-Per-Document-Indexed (CPDI)** metric.
+To prove the financial ROI of the zero-daemon ephemeral architecture to business stakeholders, infrastructure teams must track the **Cost-Per-Document-Indexed (CPDI)** metric.
 
-### CloudWatch Insights Query for Spot Cost Tracking
-Run this query to track compute savings generated by the self-terminating ephemeral loop vs On-Demand billing:
-
+### CloudWatch Log Insights Query
+Infrastructure engineers can audit the efficiency of the self-terminating loop and calculate exact compute execution runtimes using this analytical query:
 ```sql
 fields @timestamp, @message
-| filter @message like /Self-terminating Job/
-| stats count() as TotalCleanShutdowns by bin(1h)
+| filter @message like /Terminating ephemeral job process/ or @message like /Worker activated/
+| sort @timestamp desc
 ```
 
 ### Business KPI Dashboard Formula
-$$\text{CPDI} = \frac{\text{Amortized S3/SQS API Costs} + \text{Spot Instance Compute Duration (Sec)} \times \text{Spot Rate}}{\text{Total Successfully Upserted Vector Points}}$$
+The total cost efficiency of the RAG pipeline incorporates serverless API invocations, storage transactions, and spot compute durations:
 
-Target ROI Metrics for this architecture:
-* Compute Cost for Ingestion: **$0.00** when SQS queues are empty.
-* Maximum processing cost: **<$0.02** per 100-page operational PDF document.
+$$\text{CPDI} = \frac{\text{Amortized S3/SQS API Costs} + (\text{Spot Node Compute Duration} \times \text{Spot Rate}) + (\text{AWS Bedrock Input/Output Token Count} \times \text{Token Rate})}{\text{Total Successfully Upserted Vector Points}}$$
+
+### Target Financial ROI Metrics
+* **Idle State Cost:** **$0.00** across all ingestion layers (`chunker`, `indexer`, and embedding generation components) when queues are empty.
+* **Active Processing Ceiling:** **<$0.02** per standard 100-page corporate PDF document (including vectorization via colocated TEI sidecar and response generation via serverless AWS Bedrock Llama 3 8B).
 
 ---
 
-## 5. Troubleshooting and Dead-Letter Queue (DLQ) Runbook
+## 5. Troubleshooting & Dead-Letter Queue (DLQ) Runbook
 
-If a document payload contains malformed binary components or causes an OOM crash in the embedded embedding model, it is shunted to the DLQ after **3 retries** (configured via SQS Redrive Policy).
+Malformed document structures, unsupported binary payloads, or network blocks that cause successive processing crashes are safely isolated via an automated SQS Redrive Policy.
 
 ### Disaster Recovery Step-by-Step
 
-1. **Identify Corrupted Payload:**
-   Inspect the `stage-2-indexing-dlq` to find the exact metadata block causing the worker crash:
+1. **Isolate Toxic Payloads:**
+   When a message fails processing **3 times** consecutively, the primary SQS queue automatically shunts the payload to its sibling dead-letter queue (`-dlq`). Audit the payload structure using the AWS CLI:
    ```bash
    aws sqs receive-message --queue-url [https://sqs.eu-west-1.amazonaws.com/](https://sqs.eu-west-1.amazonaws.com/)<aws_account_id>/stage-2-indexing-dlq --max-number-of-messages 1
    ```
-
-2. **Validate Idempotency Overwrite:**
-   Extract the `checksum` or `file_id` from the DLQ message body. Verify if partial vector fragments exist in Qdrant using the Go API or direct HTTP request:
+2. **Verify Integrity State:**
+   Extract the `file_id` or unique metadata properties from the isolated payload. Query the Qdrant Vector DB instance cluster from inside the private VPC subnet to identify if partial data fragments exist:
    ```bash
-   curl -X POST [http://qdrant.simple-rag.svc.cluster.local:6333/collections/documents/points/recommend](http://qdrant.simple-rag.svc.cluster.local:6333/collections/documents/points/recommend) \
+   curl -X POST [http://qdrant.simple-rag.svc.cluster.local:6333/collections/demo_collection/points/recommend](http://qdrant.simple-rag.svc.cluster.local:6333/collections/demo_collection/points/recommend) \
      -H "Content-Type: application/json" \
-     -d '{"filter": {"must": [{"key": "file_id", "match": {"value": "doc_9c2b4d5e"}}]}}'
+     -d '{"filter": {"must": [{"key": "file_id", "match": {"value": "TARGET_FILE_ID"}}]}}'
    ```
-
-3. **Purge / Redrive Protocol:**
-   Once the parsing bug in `apps/chunker` or model threshold is patched and the container image is updated, redrive messages back into the production pipeline using the AWS CLI SQS redrive tool.
+3. **Patch and Redrive Protocol:**
+   * Investigate structured application logs to identify if the failure stemmed from a parsing layout error in `apps/chunker` or a configuration mismatch.
+   * Apply code updates, rebuild the container images, and allow the GitOps pipeline to update cluster state.
+   * Execute the native AWS CLI SQS message redrive tool to shift packets back from the DLQ into the active ingestion stream without data loss.
