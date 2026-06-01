@@ -1,8 +1,12 @@
 package search
 
 import (
+	"context"
 	"math"
+	"strings"
 	"testing"
+
+	"github.com/maksimillian1/simple-rag/apps/api/core"
 )
 
 func TestComputeSparseVector(t *testing.T) {
@@ -131,5 +135,51 @@ func TestPerformRRF(t *testing.T) {
 	expectedC := 1.0 / 62.0
 	if math.Abs(results[2].Score-expectedC) > 1e-6 {
 		t.Errorf("expected Point C score %f, got %f", expectedC, results[2].Score)
+	}
+}
+
+func TestMockProvider(t *testing.T) {
+	mock := NewMockProvider()
+	citations := []core.Citation{
+		{
+			DocumentID:  "doc_1",
+			FileName:    "test.pdf",
+			PageNumber:  2,
+			Score:       0.85,
+			TextSnippet: "Optimized infrastructure via spot instances.",
+		},
+	}
+	ans, err := mock.GenerateAnswer(context.Background(), "cost optimization", citations)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(ans, "test.pdf") || !strings.Contains(ans, "Optimized infrastructure") {
+		t.Errorf("expected answer to contain citations and snippet, got: %q", ans)
+	}
+}
+
+func TestBedrockProvider_FallbackWhenModelIDEmpty(t *testing.T) {
+	// Initialize BedrockProvider with empty modelID
+	provider, err := NewBedrockProvider(context.Background(), "us-east-1", "")
+	if err != nil {
+		t.Fatalf("failed to create bedrock provider: %v", err)
+	}
+
+	citations := []core.Citation{
+		{
+			DocumentID:  "doc_1",
+			FileName:    "test.pdf",
+			PageNumber:  2,
+			Score:       0.85,
+			TextSnippet: "Optimized infrastructure via spot instances.",
+		},
+	}
+	ans, err := provider.GenerateAnswer(context.Background(), "cost optimization", citations)
+	if err != nil {
+		t.Fatalf("unexpected error invoking provider: %v", err)
+	}
+
+	if !strings.Contains(ans, "test.pdf") || !strings.Contains(ans, "Optimized infrastructure") {
+		t.Errorf("expected fallback answer to contain citations and snippet, got: %q", ans)
 	}
 }

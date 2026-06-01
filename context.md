@@ -60,14 +60,14 @@ When generating or interacting with infrastructure configuration or deployment m
 
 ## 1. IN PROGRESS (Current Ingestion & Verification)
 * **[Task-07] Local Integration: Multi-Container Chunker & Indexer V2 Pipelines**
-  * Description: Complete refactoring of `apps/chunker/` and `apps/indexer/` to use Haystack 2.0 Pipelines with local TEI integration. Ensure lazy-loading pattern is strictly followed.
+  * Description: Complete refactoring of `apps/chunker/` and `apps/indexer/` to use Haystack 2.0 Pipelines with local TEI integration. Ensure lazy-loading pattern is strictly followed. [VERIFIED: graceful_exit and Haystack pipeline constructs validated, fixed missing time import in Chunker]
 * **[Task-08] Testing: Large 10MB+ PDF Chunking & Pipeline Validation**
   * Description: Create a local seeding script. Run end-to-end extraction tests with real, heavy multi-page PDF documents to verify intermediate SQS Stage-2 payload boundaries (max 256KB constraint).
-* **[Task-10] API: Complete Query Path with Mock/Bedrock Contract Toggle**
-  * Description: Finalize Go API query handler. Implement the `LLMProvider` interface with a local `MockProvider` for test isolation and `BedrockProvider` using the official AWS SDK v2.
+* **[Task-10] API: Complete Query Path with Mock/Bedrock Contract Toggle (COMPLETED)**
+  * Description: Finalize Go API query handler. Implement the `LLMProvider` interface with a local `MockProvider` for test isolation and `BedrockProvider` using the official AWS SDK v2. Add mock string generation in case no MODEL_ID provided.
 
 ## 6. Future Tasks
-## TODO (Immediate Cloud Infrastructure Step)
+### TODO (Immediate Cloud Infrastructure Step)
 * **[Task-01] Terraform: VPC Networking with PrivateLink Base**
   * Description: Provision private/public subnets and NAT Gateways. Configure AWS Bedrock VPC Interface Endpoints (AWS PrivateLink) inside the private subnet perimeter to eliminate internet egress.
 * **[Task-11] Terraform: S3 Buckets, SQS Queues & Primary DLQ Redrive Policies**
@@ -86,8 +86,7 @@ When generating or interacting with infrastructure configuration or deployment m
     * Pipeline 2: Run `ruff` and `pytest` for `apps/chunker/` and `apps/indexer/` to validate Pydantic schemas and lazy-loading boundaries.
     * Pipeline 3: Execute `terraform validate` and `tflint` on the `terraform/` directory to enforce resource tagging policies.
 
-
-## BACKLOG (Cluster Day-2 Operations & Load Testing)
+### BACKLOG (Cluster Day-2 Operations & Load Testing)
 * **[Task-03] K8s Native Deployment: Qdrant StatefulSet with EBS gp3 Provisioning**
   * Description: Draft K8s deployment manifests for Qdrant. Enforce persistent storage using standard EBS `gp3` volumes with `ReadWriteOnce` dynamic claims via the AWS EBS CSI driver. (Do NOT use Multi-Attach).
 * **[Task-12] K8s Security: Cilium NetworkPolicies Egress Isolation**

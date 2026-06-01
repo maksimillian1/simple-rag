@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/maksimillian1/simple-rag/apps/api/core"
 	"github.com/maksimillian1/simple-rag/apps/api/debug"
 	"github.com/maksimillian1/simple-rag/apps/api/search"
 )
@@ -17,20 +19,29 @@ var indexHTML string
 
 func main() {
 	// Attempt to load .env locally before reading environment configurations
-	loadEnv()
+	core.LoadEnv()
 
 	// Parse configurations with sensible defaults
-	cfg := Config{
-		Port:        getEnv("PORT", "8080"),
-		QdrantURL:   getEnv("QDRANT_URL", "http://localhost:6333"),
-		Collection:  getEnv("COLLECTION_NAME", "demo_collection"),
-		TeiURL:      getEnv("TEI_URL", "http://localhost:8081"),
-		Environment: getEnv("ENVIRONMENT", "production"),
-		SQSQueueURL: getEnv("AWS_SQS_STAGE_2_URL", "http://localhost:9324/000000000000/stage-2-indexing"),
+	cfg := core.Config{
+		Port:        core.GetEnv("PORT", "8080"),
+		QdrantURL:   core.GetEnv("QDRANT_URL", "http://localhost:6333"),
+		Collection:  core.GetEnv("COLLECTION_NAME", "demo_collection"),
+		TeiURL:      core.GetEnv("TEI_URL", "http://localhost:8081"),
+		Environment: core.GetEnv("ENVIRONMENT", "production"),
+		SQSQueueURL: core.GetEnv("AWS_SQS_STAGE_2_URL", "http://localhost:9324/000000000000/stage-2-indexing"),
+		LLMProvider: core.GetEnv("LLM_PROVIDER", "mock"),
+		AwsRegion:   core.GetEnv("AWS_DEFAULT_REGION", "us-east-1"),
+		ModelID:     core.GetEnv("MODEL_ID", ""),
+	}
+
+	ctx := context.Background()
+	llm, err := search.NewLLMProvider(ctx, cfg.LLMProvider, cfg.AwsRegion, cfg.ModelID)
+	if err != nil {
+		log.Fatalf("[FATAL] Failed to initialize LLM provider: %v", err)
 	}
 
 	// Initialize modular services
-	searchService := search.NewService(cfg.QdrantURL, cfg.Collection, cfg.TeiURL)
+	searchService := search.NewService(cfg.QdrantURL, cfg.Collection, cfg.TeiURL, llm)
 	debugService := debug.NewService(cfg.Environment, cfg.SQSQueueURL, cfg.QdrantURL, cfg.TeiURL, cfg.Collection)
 
 	mux := http.NewServeMux()

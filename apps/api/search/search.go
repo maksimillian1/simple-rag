@@ -15,58 +15,26 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/maksimillian1/simple-rag/apps/api/core"
 )
 
+// Service encapsulates synchronous hybrid search retrieval configurations
 type Service struct {
 	QdrantURL  string
 	Collection string
 	TeiURL     string
+	LLM        core.LLMProvider
 }
 
-func NewService(qdrantURL, collection, teiURL string) *Service {
+// NewService instantiates a new Service with standard dependencies
+func NewService(qdrantURL, collection, teiURL string, llm core.LLMProvider) *Service {
 	return &Service{
 		QdrantURL:  qdrantURL,
 		Collection: collection,
 		TeiURL:     teiURL,
+		LLM:        llm,
 	}
-}
-
-// QueryRequest conforms to the POST /api/v1/query contract in contracts.md
-type QueryRequest struct {
-	Query string  `json:"query"`
-	TopK  int     `json:"top_k"`
-	Alpha float64 `json:"alpha"`
-	Debug bool    `json:"debug"` // Supports JSON body option for debug
-}
-
-// Citation conforms to the POST /api/v1/query response structure in contracts.md
-type Citation struct {
-	DocumentID  string  `json:"document_id"`
-	FileName    string  `json:"file_name"`
-	PageNumber  int     `json:"page_number"`
-	Score       float64 `json:"score"`
-	TextSnippet string  `json:"text_snippet"`
-}
-
-// DebugResult maps to the old /search results format for seamless dashboard rendering
-type DebugResult struct {
-	ID       interface{}            `json:"id"`
-	Score    float64                `json:"score"`
-	Text     string                 `json:"text"`
-	Metadata map[string]interface{} `json:"metadata"`
-}
-
-type DebugBlock struct {
-	Results []DebugResult `json:"results"`
-	Count   int           `json:"count"`
-}
-
-// QueryResponse conforms to the POST /api/v1/query response structure in contracts.md
-type QueryResponse struct {
-	Answer          string      `json:"answer"`
-	ExecutionTimeMS int64       `json:"execution_time_ms"`
-	Citations       []Citation  `json:"citations"`
-	Debug           *DebugBlock `json:"debug,omitempty"`
 }
 
 // SparseVector represents Qdrant sparse vector structure
@@ -204,17 +172,20 @@ func performRRF(densePoints, sparsePoints []QdrantPoint, k float64) []QdrantPoin
 	return finalPoints
 }
 
+// QdrantPoint matches Qdrant raw point payload
 type QdrantPoint struct {
 	ID      interface{}            `json:"id"`
 	Score   float64                `json:"score"`
 	Payload map[string]interface{} `json:"payload"`
 }
 
+// QdrantSearchResponse matches Qdrant query response
 type QdrantSearchResponse struct {
 	Result []QdrantPoint `json:"result"`
 	Status string        `json:"status"`
 }
 
+// QueryHandler executes the two-stage hybrid retrieval, Reciprocal Rank Fusion, and LLM synthesis flow
 func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 
@@ -228,7 +199,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	// Decode client query request
-	var req QueryRequest
+	var req core.QueryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid Request Body: "+err.Error(), http.StatusBadRequest)
 		return
@@ -445,8 +416,8 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	qdrantRes.Status = "ok"
 
 	// 5. Structure Citations and Debug blocks
-	citations := make([]Citation, 0, len(qdrantRes.Result))
-	debugResults := make([]DebugResult, 0, len(qdrantRes.Result))
+	citations := make([]core.Citation, 0, len(qdrantRes.Result))
+	debugResults := make([]core.DebugResult, 0, len(qdrantRes.Result))
 
 	for _, point := range qdrantRes.Result {
 		// Parse structured fields from point payload
@@ -469,7 +440,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 
 		textSnippet, _ := point.Payload["text"].(string)
 
-		citations = append(citations, Citation{
+		citations = append(citations, core.Citation{
 			DocumentID:  fileID,
 			FileName:    fileName,
 			PageNumber:  pageNumber,
@@ -490,7 +461,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			debugResults = append(debugResults, DebugResult{
+			debugResults = append(debugResults, core.DebugResult{
 				ID:       point.ID,
 				Score:    point.Score,
 				Text:     textSnippet,
@@ -500,18 +471,23 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 6. Synthesize RAG Answer
-	answer := synthesizeAnswer(trimmedQuery, citations)
+	answer, err := s.LLM.GenerateAnswer(ctx, trimmedQuery, citations)
+	if err != nil {
+		log.Printf("[ERROR] [query] LLM answer generation failed: %v", err)
+		http.Error(w, "Failed to generate answer from LLM: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	duration := time.Since(startTime).Milliseconds()
 
-	response := QueryResponse{
+	response := core.QueryResponse{
 		Answer:          answer,
 		ExecutionTimeMS: duration,
 		Citations:       citations,
 	}
 
 	if isDebug {
-		response.Debug = &DebugBlock{
+		response.Debug = &core.DebugBlock{
 			Results: debugResults,
 			Count:   len(debugResults),
 		}
@@ -522,7 +498,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func synthesizeAnswer(query string, citations []Citation) string {
+func synthesizeAnswer(query string, citations []core.Citation) string {
 	if len(citations) == 0 {
 		return "I searched the vector database but could not find any direct references to your query. Please make sure you have successfully indexed documents or run the seeder script."
 	}

@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"bufio"
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Config holds environment configurations
+// Config represents all central environment parameters
 type Config struct {
 	Port        string
 	QdrantURL   string
@@ -16,15 +16,23 @@ type Config struct {
 	TeiURL      string
 	Environment string
 	SQSQueueURL string
+	LLMProvider string
+	AwsRegion   string
+	ModelID     string
 }
 
-func loadEnv() {
+// LoadEnv walks up from the current working directory to locate and parse the nearest .env file
+func LoadEnv() {
 	dir, err := os.Getwd()
 	if err != nil {
 		return
 	}
+	envFile := ".env"
+	if appEnv := os.Getenv("APP_ENV"); appEnv != "" {
+		envFile = ".env." + appEnv
+	}
 	for {
-		envPath := filepath.Join(dir, ".env")
+		envPath := filepath.Join(dir, envFile)
 		if _, err := os.Stat(envPath); err == nil {
 			file, err := os.Open(envPath)
 			if err != nil {
@@ -60,7 +68,8 @@ func loadEnv() {
 	}
 }
 
-func getEnv(key, defaultVal string) string {
+// GetEnv resolves an environment variable or falls back to a default value
+func GetEnv(key, defaultVal string) string {
 	if val, exists := os.LookupEnv(key); exists {
 		return val
 	}
