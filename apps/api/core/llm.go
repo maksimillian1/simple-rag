@@ -1,4 +1,4 @@
-package search
+package core
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
-	"github.com/maksimillian1/simple-rag/apps/api/core"
 )
 
 // Llama3Request represents the prompt payload for Bedrock Llama 3.2 3B Instruct model
@@ -37,8 +36,8 @@ func NewMockProvider() *MockProvider {
 	return &MockProvider{}
 }
 
-func (m *MockProvider) GenerateAnswer(ctx context.Context, query string, citations []core.Citation) (string, error) {
-	return synthesizeAnswer(query, citations), nil
+func (m *MockProvider) GenerateAnswer(ctx context.Context, query string, citations []Citation) (string, error) {
+	return SynthesizeAnswerPlaceholder(query, citations), nil
 }
 
 // BedrockProvider is the production provider using AWS Bedrock Runtime
@@ -54,7 +53,6 @@ func NewBedrockProvider(ctx context.Context, region string, modelID string) (*Be
 	}
 
 	// Shield Bedrock from global environmental endpoint overrides (like AWS_ENDPOINT_URL for local SQS)
-	// by setting the standard AWS SDK environment variable
 	os.Setenv("AWS_IGNORE_CONFIGURED_ENDPOINT_URLS", "true")
 
 	cfg, err := config.LoadDefaultConfig(ctx, opts...)
@@ -69,11 +67,11 @@ func NewBedrockProvider(ctx context.Context, region string, modelID string) (*Be
 	}, nil
 }
 
-func (b *BedrockProvider) GenerateAnswer(ctx context.Context, query string, citations []core.Citation) (string, error) {
+func (b *BedrockProvider) GenerateAnswer(ctx context.Context, query string, citations []Citation) (string, error) {
 	// If MODEL_ID is not configured, fall back to basic placeholder citation synthesis
 	if b.modelID == "" {
 		log.Println("[INFO] [bedrock-provider] MODEL_ID is empty. Falling back to local placeholder citation synthesis.")
-		return synthesizeAnswer(query, citations), nil
+		return SynthesizeAnswerPlaceholder(query, citations), nil
 	}
 
 	if len(citations) == 0 {
@@ -88,14 +86,21 @@ func (b *BedrockProvider) GenerateAnswer(ctx context.Context, query string, cita
 
 	prompt := fmt.Sprintf(`<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
-You are a helpful assistant that synthesizes accurate answers using only the provided document chunks. Cite your sources accurately. If you don't know the answer, say so.<|eot_id|><|start_header_id|>user<|end_header_id|>
+    You are an elite, concise technical engine. Your task is to answer the user query based on the document chunks provided below.
 
-Query: %s
+    CRITICAL INSTRUCTIONS:
+    - Directly answer the question in a confident, technical manner.
+    - Do not use phrases like "Based on the provided chunks", "Unfortunately, I don't have enough information", or "The text doesn't explicitly state".
+    - If a chunk describes a tool's capabilities, features, or deployment steps, state clearly what the technology does based on those actions.
+    - Synthesize the details into a coherent definition. Do not say "I don't know" if there are technical features listed.
+    - Respond with ONLY the answer. Do not output instructions, prompt tags, or system blocks.<|eot_id|><|start_header_id|>user<|end_header_id|>
 
-Document Chunks:
-%s
+    Query: %s
 
-Synthesized Answer:<|eot_id|><|start_header_id|>assistant<|end_header_id|>`, query, chunksBuilder.String())
+    Document Chunks:
+    %s
+
+    Answer:<|eot_id|><|start_header_id|>assistant<|end_header_id|>`, query, chunksBuilder.String())
 
 	reqPayload := Llama3Request{
 		Prompt:      prompt,
@@ -130,9 +135,36 @@ Synthesized Answer:<|eot_id|><|start_header_id|>assistant<|end_header_id|>`, que
 }
 
 // NewLLMProvider constructs the appropriate LLMProvider based on configuration
-func NewLLMProvider(ctx context.Context, providerType string, region string, modelID string) (core.LLMProvider, error) {
+func NewLLMProvider(ctx context.Context, providerType string, region string, modelID string) (LLMProvider, error) {
 	if strings.ToLower(providerType) == "bedrock" {
 		return NewBedrockProvider(ctx, region, modelID)
 	}
 	return NewMockProvider(), nil
+}
+
+// SynthesizeAnswerPlaceholder builds a readable bullet point summary from retrieved citations
+func SynthesizeAnswerPlaceholder(query string, citations []Citation) string {
+	if len(citations) == 0 {
+		return "I searched the vector database but could not find any direct references to your query. Please make sure you have successfully indexed documents or run the seeder script."
+	}
+
+	var sb strings.Builder
+	sb.WriteString("Based on the retrieved document chunks, here is the synthesized answer:\n\n")
+
+	// Create cohesive bullet points from matching chunks
+	for i, cit := range citations {
+		if i >= 3 {
+			break // Only summarize top-3
+		}
+		sb.WriteString("• ")
+		text := strings.TrimSpace(cit.TextSnippet)
+		if len(text) > 160 {
+			sb.WriteString(text[:160] + "...")
+		} else {
+			sb.WriteString(text)
+		}
+		sb.WriteString(fmt.Sprintf(" (Source: *%s*, Page %d, Similarity: %.1f%%)\n", cit.FileName, cit.PageNumber, cit.Score*100))
+	}
+
+	return sb.String()
 }

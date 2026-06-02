@@ -75,3 +75,19 @@ func GetEnv(key, defaultVal string) string {
 	}
 	return defaultVal
 }
+
+// LoadConfig initializes the environment configurations and parses them with sensible defaults
+func LoadConfig() Config {
+	LoadEnv()
+	return Config{
+		Port:        GetEnv("PORT", "8080"),
+		QdrantURL:   GetEnv("QDRANT_URL", "http://localhost:6333"),
+		Collection:  GetEnv("COLLECTION_NAME", "demo_collection"),
+		TeiURL:      GetEnv("TEI_URL", "http://localhost:8081"),
+		Environment: GetEnv("ENVIRONMENT", "production"),
+		SQSQueueURL: GetEnv("AWS_SQS_STAGE_2_URL", "http://localhost:9324/000000000000/stage-2-indexing"),
+		LLMProvider: GetEnv("LLM_PROVIDER", "mock"),
+		AwsRegion:   GetEnv("AWS_DEFAULT_REGION", "us-east-1"),
+		ModelID:     GetEnv("MODEL_ID", ""),
+	}
+}

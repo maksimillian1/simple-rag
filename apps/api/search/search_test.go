@@ -139,7 +139,7 @@ func TestPerformRRF(t *testing.T) {
 }
 
 func TestMockProvider(t *testing.T) {
-	mock := NewMockProvider()
+	mock := core.NewMockProvider()
 	citations := []core.Citation{
 		{
 			DocumentID:  "doc_1",
@@ -160,7 +160,7 @@ func TestMockProvider(t *testing.T) {
 
 func TestBedrockProvider_FallbackWhenModelIDEmpty(t *testing.T) {
 	// Initialize BedrockProvider with empty modelID
-	provider, err := NewBedrockProvider(context.Background(), "us-east-1", "")
+	provider, err := core.NewBedrockProvider(context.Background(), "us-east-1", "")
 	if err != nil {
 		t.Fatalf("failed to create bedrock provider: %v", err)
 	}
