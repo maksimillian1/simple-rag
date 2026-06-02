@@ -1,69 +1,99 @@
-# Gemini Code Assist Context: simple-rag
+# ==============================================================================
+# Gemini Code Assist Context: simple-rag (Strict Guardrails & Architecture V2)
+# ==============================================================================
 
-You are an expert AI software engineer and strict cloud architect. Your goal is to assist in building simple-rag, a highly cost-efficient, production-ready document indexing and RAG pipeline deployed on AWS.
+## 1. System Role & Core Mission
+You act as an expert Software Engineer and Cloud Architect. Your goal is to generate high-performance, cost-optimized, production-ready code for `simple-rag`.
+* **Zero-Abstraction Policy:** Reject universal wrappers, redundant SDKs, or enterprise bloat.
+* **Production-Ready Mandate:** Never omit code, never use `// TODO` or `pass` placeholders. Every snippet must be valid, syntactically clean, and complete.
 
-Core Mission: Build a rigid, decoupled, and business-sensible two-stage ingestion pipeline (S3 -> SQS Stage 1 -> K8s Chunker Job -> SQS Stage 2 Payload -> K8s Indexer Job -> VectorDB). Reject "universal code" or over-engineered abstractions. Focus on pragmatic architecture, AWS Spot resiliency, and resource efficiency.
+## 2. Directory Structure Constraints
+You must strictly follow this layout. Do not generate code outside these boundaries:
+* `apps/api/`         -> Go standard library / `go-chi` (Synchronous query path)
+* `apps/chunker/`     -> Python / Haystack 2.0 (Stage 1: Ephemeral parsing job)
+* `apps/indexer/`     -> Python / Haystack 2.0 (Stage 2: Ephemeral indexing job)
+* `deploy/k8s/`       -> Kubernetes manifests (KEDA ScaledJobs, Cilium NetworkPolicies, ServiceAccounts)
+* `docs/`             -> System documentation (`architecture.md`, `contracts.md`, `ops.md`)
+* `terraform/`        -> Infrastructure as Code (Strict AWS EKS, IAM IRSA, SQS, S3 provision)
 
-## 1. Directory Structure
+## 3. Rigid Architectural References & SDK Guardrails
+All implementation details, data routing, and infrastructure limitations are governed strictly by `docs/architecture.md`. You must enforce the following rules:
 
-You must strictly adhere to this monorepo structure. Do not invent new root folders.
-Look [Directory Structure](./docs/architecture.md#directory-structure)
+* **Single Source of Truth (SSoT):** Adhere exclusively to the lifecycle, diagrams, and components defined in `docs/architecture.md`.
+* **Mandatory Haystack 2.0 Integration (Strict Limit):** You are STRICTLY FORBIDDEN from writing raw HTTP requests (via `requests`, `httpx`, or `urllib3`) to the TEI service, and you MUST NOT use the low-level `qdrant_client` directly for document ingestion or point structure generation. Both `chunker` and `indexer` MUST exclusively use the **Haystack 2.0 Pipeline architecture**. Use native components like `TEIDocumentEmbedder` and `QdrantDocumentWriter` from `qdrant-haystack`. Custom vector operations (such as token hashing or Sparse Vector generation) must be injected into Haystack `Document` objects before running the pipeline.
+* **Zero-Daemon / Continuous Poll Strategy:** Both `chunker` and `indexer` must run as Python applications supporting dual execution modes governed by the `CONTINUOUS_POLL` environment variable:
+  - **Dev Mode (local / local-test):** If `CONTINUOUS_POLL` is `True`, the worker loops continuously, sleeping 5 seconds on an empty queue and then polling again.
+  - **Prod Mode (Kubernetes Jobs):** If `CONTINUOUS_POLL` is `False` or omitted, the worker must gracefully break the loop and self-terminate (`exit 0`) immediately when the SQS queue returns empty, enabling KEDA to scale down the transient job cleanly.
+* **Stage 2 Pod Ingestion Pipeline (Haystack 2.0):** The `indexer` application must be built natively using declarative Haystack 2.0 Ingestion Pipelines. It must connect `TEIDocumentEmbedder` (which offloads dense embedding generation to the shared **TEI Service** using `BAAI/bge-small-en-v1.5`) and `QdrantDocumentWriter`. SQS chunks are mapped to native Haystack `Document` objects with custom `sparse_embedding` weights computed deterministically via Term Frequency (using Adler-32 hashes).
+* **Idempotency Strategy:** The `indexer` must generate deterministic point IDs for Qdrant using `UUID5(file_name + chunk_index)` to ensure flawless AWS Spot resiliency.
+* **Query Layer Logic:** The Go API (`apps/api/`) must strictly implement the Two-Stage Hybrid Retrieval, the specific **Word Count Token-Frequency Penalty Formula**, and **Reciprocal Rank Fusion (RRF with $k=60$)** detailed in the architecture guide.
+* **Security & IAM (IRSA Compliance):** Absolutely zero hardcoded AWS Access Keys or `.env` files with credentials. Production code relies entirely on standard AWS Credential Provider Chain. Kubernetes pods use IAM Roles for Service Accounts (IRSA) via WebIdentity token projection. Local code must let `boto3`/Go SDK resolve native AWS shared config profiles (`~/.aws/credentials`) transparently.
+* **Kubernetes Memory Optimization Strategy:** All Python applications must adhere strictly to a **Lazy-Loading Pattern**. Framework components (e.g., Haystack `Pipeline`, `QdrantDocumentWriter`, `boto3`) must be imported and initialized dynamically only after a message is successfully pulled or when the application initializes its runtime components.
 
-## 2. Infrastructure & Workflow Rules
-Execution Flow:
-1. User uploads file to AWS S3 Raw Bucket.
-2. S3 triggers an Object Created Event sending a notification to SQS stage-1-parsing.
-3. KEDA monitors SQS Stage 1 and scales up Kubernetes ScaledJob (Haystack Chunker).
-4. Chunker parses the document into text chunks and pushes a JSON array payload directly to SQS stage-2-indexing (Bypassing S3 to eliminate API transaction costs).
-5. KEDA monitors SQS Stage 2 and scales up Kubernetes ScaledJob (Haystack Indexer).
-6. Indexer requests embeddings from TEI and executes an idempotent gRPC upsert to Qdrant VectorDB.
+## 4. Terraform & Kubernetes Co-existence & IaC Architecture Rules
+When generating or interacting with infrastructure configuration or deployment manifests, you must strictly comply with these enterprise design principles:
 
-Zero-Daemon Policy: Neither the chunker nor the indexer application MUST run as a continuous worker or background daemon. They are short-lived Kubernetes Jobs that wake up via KEDA, process their respective SQS tasks, and immediately terminate with exit code 0 to ensure absolute zero idle compute costs on AWS Spot Instances.
+* **Separation of Concerns (Terraform vs K8s Boundary):**
+  - Terraform (`terraform/`) is strictly restricted to provisioning cloud infrastructure foundational state: VPC, EKS cluster, managed node groups, SQS queues, S3 buckets, and IAM Roles.
+  - You are STRICTLY FORBIDDEN from using Terraform to manage Kubernetes application payloads. Do not use `kubernetes_manifest`, `kubernetes_pod`, or `helm_release` inside Terraform modules to deploy `simple-rag` services. All K8s manifests, KEDA ScaledJobs, and K8s ServiceAccounts must be isolated strictly inside `deploy/k8s/`.
+* **IRSA (IAM Roles for Service Accounts) Tight Coupling:**
+  - For every cloud resource requiring access (S3, SQS), Terraform must export the AWS IAM Role ARN featuring an explicit Trust Policy bound to the EKS Cluster OIDC Provider (`oidc.eks.<region>.amazonaws.com/id/...`).
+  - The corresponding Kubernetes manifest in `deploy/k8s/service-account.yaml` must explicitly declare the annotation `eks.amazonaws.com/role-arn: <IAM_ROLE_ARN>` to bind the runtime pod security context natively.
+* **Mandatory Resource Tagging Policy:** Every AWS resource that supports metadata tags MUST be explicitly configured with the following tag definitions:
+  - `app          = "simple-rag"` (Grouping project identification)
+  - `environment  = var.environment` (e.g. `"local-test"`, `"staging"`, or `"prod"`)
+  - `managed-by   = "terraform"` (Identifying management layer)
+* **Standardized Suffixes & Collisons Protection:**
+  - Resource names must prefix or suffix their logical identifiers using dynamic prefix variables like `${var.resource_prefix}` or local variables to isolate test stacks.
+  - S3 buckets must utilize `random_id` dynamic suffix generation to avoid global naming collisions.
+* **Security & Resource Boundaries:**
+  - **Public Access Blocks:** All S3 buckets must be coupled with an explicit, strict `aws_s3_bucket_public_access_block` configuration with all blocking fields set to `true`.
+  - **No Hardcoded Secrets:** Credentials, AWS Access Keys, or Account IDs must never be checked into git or written directly in provider blocks. Always rely on standard profile references or the default credential chains.
+  - **Dead-Letter Queues (DLQs):** All primary message queues (SQS) must declare a redrive policy routing failing messages to a sibling `-dlq` queue with reasonable `maxReceiveCount` limit (e.g. 3).
+  - **Least Privilege Access Policies:** Queue policies (`aws_sqs_queue_policy`) must define narrow conditions limiting permissions specifically to source bucket ARNs using conditional operators like `ArnEquals`.
 
-Security (Strict): ZERO hardcoded AWS credentials. Do not use .env files for AWS access keys. Authentication must be handled entirely via IAM Roles for Service Accounts (IRSA) attached to the Kubernetes ServiceAccounts.
+## 5. Current Phase & Engineering Tasks
+* **Task 1 adjust design (Completed):** Embedding model cannot be a co-located container as API required to vectorise request. So we have to adjust env from TEI_URL to more verbose EMBEDDING_MODEL_TEI_URL and make it a public endpoint. This means we have to adjust the design to have the embedding model as a separate service that can be called by both the indexer and API. Adjust documents and diagrams accordingly. It will be separate deployment in k8s with KEDA scaling on tei_queue_size.
 
+## 6. Future Tasks
+### TODO (Immediate Cloud Infrastructure Step)
+* **[Task-01] Terraform: VPC Networking with PrivateLink Base**
+  * Description: Provision private/public subnets and NAT Gateways. Configure AWS Bedrock VPC Interface Endpoints (AWS PrivateLink) inside the private subnet perimeter to eliminate internet egress.
+* **[Task-11] Terraform: S3 Buckets, SQS Queues & Primary DLQ Redrive Policies**
+  * Description: Deploy production S3 raw bucket with strict public access blocks. Provision Stage-1 and Stage-2 SQS queues bound to matching dead-letter queues (`-dlq`) with maxReceiveCount=3.
+* **[Task-02] Terraform: EKS Cluster Deployment & IAM IRSA Binding Profiles**
+  * Description: Spin up managed EKS cluster with Spot-driven node groups. Generate AWS IAM Roles with precise OIDC trust relationships for S3 read, SQS process, and Bedrock InvokeModel actions.
+* **[Task-15] Core: Contract Validation Layer via Pydantic & Go Structs**
+  * Description: Implement a bulletproof validation layer to protect the asynchronous SQS payload boundary.
+  * Implementation:
+    * In `apps/chunker/` and `apps/indexer/`, introduce strict `Pydantic V2` models to validate inbound/outbound JSON structures before operations.
+    * If an incoming SQS message violates the schema defined in `contracts.md`, immediately drop execution and route the packet to the DLQ with an explicit `MalformedPayload` structured log.
+* **[Task-16] CI/CD: Automated Ingestion Contract & Linting Pipeline**
+  * Description: Set up GitHub Actions workflows to guarantee architectural quality and code compliance before cloud deployment.
+  * Requirements:
+    * Pipeline 1: Run Go linter (`golangci-lint`) and native `go test` for `apps/api/`.
+    * Pipeline 2: Run `ruff` and `pytest` for `apps/chunker/` and `apps/indexer/` to validate Pydantic schemas and lazy-loading boundaries.
+    * Pipeline 3: Execute `terraform validate` and `tflint` on the `terraform/` directory to enforce resource tagging policies.
 
-## 3. Application Constraints
-Python Chunker (apps/chunker/)
-- Framework: Haystack for document parsing pipelines.
-- Parsing (Strategy Pattern): Parsing logic MUST follow the Strategy Pattern. Define a common interface in parsers/base.py.
-- Allowed Formats: Support ONLY 3 formats: PDF, TXT, and Markdown. No heavy, generic wrappers (e.g., do not use unstructured).
-- Data Contract: Must ensure that the generated array of text chunks + metadata packed into the SQS Stage 2 message strictly fits within the 256 KB SQS payload limit. Split across multiple messages if a document is too large.
+### BACKLOG (Cluster Day-2 Operations & Load Testing)
+* **[Task-03] K8s Native Deployment: Qdrant StatefulSet with EBS gp3 Provisioning**
+  * Description: Draft K8s deployment manifests for Qdrant. Enforce persistent storage using standard EBS `gp3` volumes with `ReadWriteOnce` dynamic claims via the AWS EBS CSI driver. (Do NOT use Multi-Attach).
+* **[Task-12] K8s Security: Cilium NetworkPolicies Egress Isolation**
+  * Description: Author precise `CiliumNetworkPolicy` specs. Restrict `indexer` egress strictly to SQS and local TEI. Restrict Go API network visibility exclusively to Qdrant cluster and Bedrock VPC endpoint IPs.
+* **[Task-13] Observability: CloudWatch Insights Logs Integration**
+  * Description: Configure container log routing via FluentBit to AWS CloudWatch Logs. Deploy the production-ready Insights analytical queries defined in ops.md to track ephemeral loop execution metrics.
+* **[Task-14] Performance: Load Testing Synchronous API via k6**
+  * Description: Write an automated k6 performance testing script to flood the Go API search endpoint. Benchmark and document p95/p99 query latencies under concurrent hybrid retrieval and RRF reranking execution profiles.
+* **[Task-17] Testing: API Load Testing & Retrieval Synergy Analysis (Preps for Article B)**
+  * Description: Deploy a native `k6` testing suite to flood the Go API query layer under high concurrency.
+  * Metrics to Extract:
+    * Measure p95/p99 query latency degradation when shifting from raw keyword matching to full Two-Stage Hybrid Retrieval + RRF ($k=60$).
+    * Document the execution overhead of the CPU-bound **Word Count Token-Frequency Penalty Formula**.
+    * Identify exactly what ruins performance (e.g., Qdrant unquantized RAM consumption vs context truncation limits).
+* **[Task-18] FinOps: End-to-End Infrastructure Cost & Savings Audit (Preps for Article C)**
+  * Description: Execute heavy load profiles through the ingestion pipeline (`chunker -> indexer -> TEI`) to gather financial and resource metrics.
+  * Metrics to Extract:
+    * Quantify RAM/CPU utilization savings achieved by shifting from 24/7 Daemons to KEDA ScaledJobs (natural scale-in to absolute zero).
+    * Measure the exact network cost reduction of routing inference requests through the AWS Bedrock VPC Interface Endpoint (PrivateLink) vs public NAT Gateway data processing rates.
+    * Document Qdrant memory optimization metrics when enabling Scalar Quantization (SQ) down to `int8`.
 
-Python Indexer (apps/indexer/)
-- Framework: Haystack for embedding and indexing pipelines.
-- Idempotency Policy: Must generate deterministic Point IDs for Qdrant using a cryptographic hash of the source metadata (e.g., UUID5(file_name + chunk_index)). This guarantees that if an AWS Spot instance is evicted mid-job, a retry will result in an overwrite rather than vector duplication.
-
-Go API (apps/api/)
-- Purpose: A minimalist API layer for serving frontend charts, dashboards, and executing low-latency synchronous semantic queries against VectorDB. 
-- Stack: Use the Go standard library (net/http) or an ultra-lightweight router (e.g., go-chi). Do not use heavy enterprise frameworks. Maximize memory efficiency.
-
-Terraform (terraform/)
-- Write clean, modular, and reusable infrastructure-as-code.
-- Every AWS resource must be explicitly tagged with Project = "simple-rag".
-
-## 4. AI Assistant Directives
-Keep it Lean: If an engineering problem can be solved natively without adding a new third-party dependency, do it. Extra dependencies translate directly to larger Docker images and higher Spot billing limits.
-
-Production-Ready Code: Skip placeholders, // TODO comments, or dummy mock data unless explicitly requested. Provide complete, valid, and lint-clean code snippets.
-
-Observability: Since the indexer runs as a detached, ephemeral Kube Job, implement clear, structured logging to stdout (JSON format preferred) for fast CloudWatch debugging.
-
-## 5. Current Status
-### Current Timeline & Target
-- Phase: Local PoC / Infrastructure Design
-- Current Focus: Selection of Embedding models, and contract definitions for Chunker, Indexer, and Go API.
-
-### Accepted ADRs
-- [ADR-0004: Using SQS Payload to Transfer Document Chunks] Status: Accepted.
-
-### Current Tech Stack
-- Frontend: Single HTML (Vanilla JS) served by Go.
-- Ingestion (Stage 1): S3 -> SQS (stage-1-parsing) -> KEDA -> K8s ScaledJob (Python/Haystack Chunker).
-- Ingestion (Stage 2): SQS (stage-2-indexing payload) -> KEDA -> K8s ScaledJob (Python/Haystack Indexer).
-- VectorDB: Qdrant (Self-hosted in Kubernetes, gRPC integration).
-- Query Layer: Go API (Read-Only access to Qdrant).
-
-### Current Blockers / Tasks to Discuss
-- Embedding model selection (e.g., Text Embeddings Inference configuration), and strict JSON schema definition for the SQS Stage 2 chunk payload.
-- Decide about AI framework Haystack vs LangChain for the chunker and indexer. Haystack is currently favored for its out-of-the-box document parsing and embedding pipeline capabilities, but LangChain could offer more flexibility if we need to implement custom logic later on.

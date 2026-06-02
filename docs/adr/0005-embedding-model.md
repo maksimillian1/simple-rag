@@ -1,4 +1,4 @@
-# 4: Embedding Model Selection for Local Inference
+# 5: Embedding Model Selection and Decoupled Service Architecture
 
 Date: 2026-05-26
 
@@ -8,31 +8,37 @@ Accepted
 
 ## Context
 
-The `simple-rag` ingestion pipeline processes unstructured documents (PDF, TXT, Markdown) and requires an embedding model to convert text chunks into vectors before upserting them into Qdrant VectorDB.
+The `simple-rag` ingestion pipeline processes unstructured documents (PDF, TXT, Markdown) and requires an embedding model to convert text chunks into vectors before upserting them into the Qdrant VectorDB. Concurrently, the synchronous Go API query path requires real-time query vectorization to perform hybrid dense/sparse search retrieval in Qdrant.
 
-The architecture enforces an embedded, in-job inference model running strictly on CPU instances within ephemeral Kubernetes ScaledJobs (via KEDA) on AWS Spot infrastructure. This environment introduces tight operational constraints:
-1. **Memory Ceiling:** Individual `indexer` jobs have a hard resource limit of 2GB RAM.
-2. **Cold Start Cost:** Downloading model weights from external registries (HuggingFace Hub) at runtime or over slow network mounts (AWS EFS) eliminates AWS Spot cost-efficiency due to CPU idle time.
-3. **Retrieval Quality (Business Driver):** Low-quality search retrieval leads to poor RAG outputs, which carries a severe penalty for Enterprise-grade applications. We cannot use outdated or poorly performing models just because they are lightweight.
+To satisfy both the asynchronous ingestion pipeline and the synchronous query path, the embedding layer is deployed as a centralized, dedicated HuggingFace TEI (Text Embeddings Inference) service.
+
+This architecture satisfies the following core operational requirements:
+
+* **Global Accessibility:** The embedding service exposes centralized gRPC/HTTP endpoints, making it simultaneously accessible to the synchronous `Go API` (for low-latency search queries) and the ephemeral `indexer` workers (for batch document chunks).
+* **Predictable Autoscaling (KEDA):** The service scales dynamically using KEDA based on the internal model queue depth (`tei_queue_size`). This decouples scaling from raw CPU/Memory metrics, preventing cold-start latency spikes during ingestion bursts while efficiently handling user search traffic.
+* **Resource Efficiency & Throughput:** Centralizing the TEI deployment enables server-side dynamic batching. It pools concurrent single queries from the search API and bulk requests from the ingestion workers into unified batches, maximizing GPU/CPU utilization and system throughput.
+* **Infrastructure Simplification:** A standalone service eliminates the need to bundle, maintain, and duplicate heavy model containers inside multiple application pods. This simplifies the container footprint across all environments, including local development.
 
 ## Decision
 
-We adopt **`BAAI/bge-small-en-v1.5`** as the default embedding model for the `simple-rag` baseline pipeline.
+We adopt **`BAAI/bge-small-en-v1.5`** as the default embedding model and deploy HuggingFace TEI as a **decoupled, shared Kubernetes Service** rather than a co-located sidecar.
 
-To satisfy the context constraints, we enforce the following implementation mandates:
+To satisfy the system design, we enforce the following implementation mandates:
 
-1. **CI/CD Model Baking:** The 130MB model weights must be downloaded during the Docker image build phase and baked directly into the `apps/indexer/` container layer. The Haystack execution context must load the model locally, guaranteeing zero external network dependencies during Job execution.
-2. **Acceptance of Resource Overhead:** We explicitly accept a ~40% increase in model size and computational footprint compared to `all-MiniLM-L6-v2` (~90MB). This trade-off is justified by the significant upgrade in retrieval quality (MTEB score), which directly correlates with business value.
-3. **Vector Database Optimization:** The model outputs a **384-dimensional vector**. This size is optimal as it minimizes Qdrant's RAM usage for HNSW indexing, keeping VectorDB compute costs flat.
-4. **Decoupled Evaluation Strategy:** The codebase must wrap the embedding execution behind a Strategy Pattern. This ensures we can easily run future automated retrieval evaluation pipelines (e.g., A/B testing with LLM-as-a-Judge) to justify the cost-to-quality ROI of heavier models versus lighter baselines.
+1. **Shared Deployment Model:** The TEI container runs in its own Kubernetes deployment, exposing an HTTP/gRPC interface accessible within the cluster.
+2**KEDA Scaling on Request Metrics:** The standalone TEI deployment scales dynamically via a KEDA scaler monitoring queue depth metrics (`tei_queue_size`).
+3**Vector Database Optimization:** The model outputs a **384-dimensional vector**, minimizing Qdrant's RAM usage for HNSW indexing.
+4**CI/CD Model Baking:** The 130MB model weights remain baked directly into the TEI Docker image to eliminate HuggingFace Hub downloads at runtime.
 
 ## Consequences
 
 ### What becomes easier:
-* **Production Reliability:** Baking the model into the container makes `indexer` throughput (`chunks/job/sec`) completely deterministic and bound only to allocated CPU shares.
-* **Vector DB Cost Control:** Sticking to 384 dimensions prevents RAM bloat in Qdrant, allowing the database to scale cheaply on standard AWS compute nodes.
-* **Search Precision:** High baseline accuracy on English-language documents right out of the box.
+* **Synchronous Query Vectorization:** The Go API can easily query the shared TEI service endpoint to vectorize search queries, completing the hybrid retrieval flow.
+* **Simplified Job Pods:** The `indexer` is simplified into a single-container job, reducing RAM and scheduling overhead per K8s Job.
+* **Independent Scalability:** Embedding compute power (CPU/GPU nodes) scales independently of the SQS message queues based on actual inference demand.
 
 ### What becomes more difficult / Risks:
-* **Image Delivery Overhead:** The final Docker image size increases by ~130MB. This must be mitigated by optimizing EKS node image caching (e.g., using pre-warmed AMI or large EBS volumes) to ensure fast KEDA scale-ups.
-* **Strict Language Lock-in:** `bge-small-en-v1.5` supports English only. Processing multilingual documents (e.g., Russian text) will result in complete garbage vectors. Swapping to a multilingual model (like `multilingual-e5-small`) is deferred to Phase 2 and will require a full database re-indexing.
+* **Network Overhead:** Ingestion now requires internal cluster network calls between the `indexer` and the shared TEI service (instead of zero-network overhead localhost loopback). This is mitigated by keeping both services within the private VPC subnet boundary.
+* **Complex Infrastructure Tracking:** Introducing a separate TEI deployment adds another KEDA autoscaler configuration, which must be tuned to prevent cold starts when handling sudden ingestion bursts.
+* **Strict Language Lock-in:** `bge-small-en-v1.5` remains English-only.
+
