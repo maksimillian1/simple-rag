@@ -63,7 +63,7 @@ services:
       
       - AWS_DEFAULT_REGION=eu-central-1
       - AWS_REGION=eu-central-1
-      - TEI_ENDPOINT=http://tei-embeddings:80
+      - EMBEDDING_MODEL_TEI_URL=http://tei-embeddings:80
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - CONTINUOUS_POLL=true

@@ -9,19 +9,19 @@ import (
 
 // Service coordinates health and diagnostics checks for backend dependencies
 type Service struct {
-	QdrantURL   string
-	TeiURL      string
-	Environment string
-	Collection  string
+	QdrantURL            string
+	EmbeddingModelTeiURL string
+	Environment          string
+	Collection           string
 }
 
 // NewService instantiates a new health Service diagnostic runner
-func NewService(qdrantURL, teiURL, environment, collection string) *Service {
+func NewService(qdrantURL, embeddingModelTeiURL, environment, collection string) *Service {
 	return &Service{
-		QdrantURL:   qdrantURL,
-		TeiURL:      teiURL,
-		Environment: environment,
-		Collection:  collection,
+		QdrantURL:            qdrantURL,
+		EmbeddingModelTeiURL: embeddingModelTeiURL,
+		Environment:          environment,
+		Collection:           collection,
 	}
 }
 
@@ -46,10 +46,10 @@ func (s *Service) Handler(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Validate Hugging Face TEI embeddings connection via health endpoint
 	teiStatus := "connected"
-	teiResp, err := client.Get(s.TeiURL + "/health")
+	teiResp, err := client.Get(s.EmbeddingModelTeiURL + "/health")
 	if err != nil {
 		teiStatus = "disconnected"
-		log.Printf("[ERROR] Health check failed to connect to TEI embeddings at %s: %v", s.TeiURL, err)
+		log.Printf("[ERROR] Health check failed to connect to TEI embeddings at %s: %v", s.EmbeddingModelTeiURL, err)
 	} else {
 		teiResp.Body.Close()
 	}

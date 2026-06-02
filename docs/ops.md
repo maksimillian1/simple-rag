@@ -57,7 +57,7 @@ $$\text{CPDI} = \frac{\text{Amortized S3/SQS API Costs} + (\text{Spot Node Compu
 
 ### Target Financial ROI Metrics
 * **Idle State Cost:** **$0.00** across all ingestion layers (`chunker`, `indexer`, and embedding generation components) when queues are empty.
-* **Active Processing Ceiling:** **<$0.02** per standard 100-page corporate PDF document (including vectorization via colocated TEI sidecar and response generation via serverless AWS Bedrock Llama 3 8B).
+* **Active Processing Ceiling:** **<$0.02** per standard 100-page corporate PDF document (including vectorization via standalone TEI service and response generation via serverless AWS Bedrock Llama 3 8B).
 
 ---
 

@@ -10,15 +10,15 @@ import (
 
 // Config represents all central environment parameters
 type Config struct {
-	Port        string
-	QdrantURL   string
-	Collection  string
-	TeiURL      string
-	Environment string
-	SQSQueueURL string
-	LLMProvider string
-	AwsRegion   string
-	ModelID     string
+	Port                 string
+	QdrantURL            string
+	Collection           string
+	EmbeddingModelTeiURL string
+	Environment          string
+	SQSQueueURL          string
+	LLMProvider          string
+	AwsRegion            string
+	ModelID              string
 }
 
 // LoadEnv walks up from the current working directory to locate and parse the nearest .env file
@@ -80,14 +80,14 @@ func GetEnv(key, defaultVal string) string {
 func LoadConfig() Config {
 	LoadEnv()
 	return Config{
-		Port:        GetEnv("PORT", "8080"),
-		QdrantURL:   GetEnv("QDRANT_URL", "http://localhost:6333"),
-		Collection:  GetEnv("COLLECTION_NAME", "demo_collection"),
-		TeiURL:      GetEnv("TEI_URL", "http://localhost:8081"),
-		Environment: GetEnv("ENVIRONMENT", "production"),
-		SQSQueueURL: GetEnv("AWS_SQS_STAGE_2_URL", "http://localhost:9324/000000000000/stage-2-indexing"),
-		LLMProvider: GetEnv("LLM_PROVIDER", "mock"),
-		AwsRegion:   GetEnv("AWS_DEFAULT_REGION", "us-east-1"),
-		ModelID:     GetEnv("MODEL_ID", ""),
+		Port:                 GetEnv("PORT", "8080"),
+		QdrantURL:            GetEnv("QDRANT_URL", "http://localhost:6333"),
+		Collection:           GetEnv("COLLECTION_NAME", "demo_collection"),
+		EmbeddingModelTeiURL: GetEnv("EMBEDDING_MODEL_TEI_URL", "http://localhost:8081"),
+		Environment:          GetEnv("ENVIRONMENT", "production"),
+		SQSQueueURL:          GetEnv("AWS_SQS_STAGE_2_URL", "http://localhost:9324/000000000000/stage-2-indexing"),
+		LLMProvider:          GetEnv("LLM_PROVIDER", "mock"),
+		AwsRegion:            GetEnv("AWS_DEFAULT_REGION", "us-east-1"),
+		ModelID:              GetEnv("MODEL_ID", ""),
 	}
 }

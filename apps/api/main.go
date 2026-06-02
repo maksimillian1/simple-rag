@@ -44,7 +44,7 @@ func main() {
 
 	log.Printf("[INFO] Starting Go API on port %s...", cfg.Port)
 	log.Printf("[INFO] Connected to Qdrant instance at %s", cfg.QdrantURL)
-	log.Printf("[INFO] Connected to TEI service at %s", cfg.TeiURL)
+	log.Printf("[INFO] Connected to TEI service at %s", cfg.EmbeddingModelTeiURL)
 	log.Printf("[INFO] Serving retrieval requests for collection '%s'", cfg.Collection)
 
 	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
@@ -60,9 +60,9 @@ func bootstrapServices(ctx context.Context, cfg core.Config) (*search.Service, *
 		return nil, nil, nil, nil, err
 	}
 
-	searchService := search.NewService(cfg.QdrantURL, cfg.Collection, cfg.TeiURL, llm)
-	debugService := debug.NewService(cfg.Environment, cfg.SQSQueueURL, cfg.QdrantURL, cfg.TeiURL, cfg.Collection)
-	healthService := health.NewService(cfg.QdrantURL, cfg.TeiURL, cfg.Environment, cfg.Collection)
+	searchService := search.NewService(cfg.QdrantURL, cfg.Collection, cfg.EmbeddingModelTeiURL, llm)
+	debugService := debug.NewService(cfg.Environment, cfg.SQSQueueURL, cfg.QdrantURL, cfg.EmbeddingModelTeiURL, cfg.Collection)
+	healthService := health.NewService(cfg.QdrantURL, cfg.EmbeddingModelTeiURL, cfg.Environment, cfg.Collection)
 	uiService := ui.NewService(cfg.Environment, cfg.Collection)
 
 	return searchService, debugService, healthService, uiService, nil

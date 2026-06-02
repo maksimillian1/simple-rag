@@ -62,7 +62,7 @@ def build_haystack_pipeline():
 
     # Step 1: Colocated TEI Sidecar for embedding generation
     pipeline.add_component("embedder", TEIDocumentEmbedder(
-        url=config.TEI_ENDPOINT,
+        url=config.EMBEDDING_MODEL_TEI_URL,
         model="BAAI/bge-small-en-v1.5"
     ))
 

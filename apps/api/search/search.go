@@ -21,19 +21,19 @@ import (
 
 // Service encapsulates synchronous hybrid search retrieval configurations
 type Service struct {
-	QdrantURL  string
-	Collection string
-	TeiURL     string
-	LLM        core.LLMProvider
+	QdrantURL            string
+	Collection           string
+	EmbeddingModelTeiURL string
+	LLM                  core.LLMProvider
 }
 
 // NewService instantiates a new Service with standard dependencies
-func NewService(qdrantURL, collection, teiURL string, llm core.LLMProvider) *Service {
+func NewService(qdrantURL, collection, embeddingModelTeiURL string, llm core.LLMProvider) *Service {
 	return &Service{
-		QdrantURL:  qdrantURL,
-		Collection: collection,
-		TeiURL:     teiURL,
-		LLM:        llm,
+		QdrantURL:            qdrantURL,
+		Collection:           collection,
+		EmbeddingModelTeiURL: embeddingModelTeiURL,
+		LLM:                  llm,
 	}
 }
 
@@ -228,7 +228,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqTei, err := http.NewRequestWithContext(ctx, http.MethodPost, s.TeiURL+"/embed", bytes.NewBuffer(teiPayload))
+	reqTei, err := http.NewRequestWithContext(ctx, http.MethodPost, s.EmbeddingModelTeiURL+"/embed", bytes.NewBuffer(teiPayload))
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

@@ -8,7 +8,7 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
 # TEI Configuration
-TEI_ENDPOINT = os.getenv("TEI_ENDPOINT", "http://localhost:8080")
+EMBEDDING_MODEL_TEI_URL = os.getenv("EMBEDDING_MODEL_TEI_URL", "http://localhost:8080")
 TEI_MAX_BATCH_SIZE = int(os.getenv("TEI_MAX_BATCH_SIZE", "32"))
 
 # Qdrant Configuration

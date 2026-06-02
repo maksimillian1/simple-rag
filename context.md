@@ -20,11 +20,11 @@ You must strictly follow this layout. Do not generate code outside these boundar
 All implementation details, data routing, and infrastructure limitations are governed strictly by `docs/architecture.md`. You must enforce the following rules:
 
 * **Single Source of Truth (SSoT):** Adhere exclusively to the lifecycle, diagrams, and components defined in `docs/architecture.md`.
-* **Mandatory Haystack 2.0 Integration (Strict Limit):** You are STRICTLY FORBIDDEN from writing raw HTTP requests (via `requests`, `httpx`, or `urllib3`) to the TEI sidecar, and you MUST NOT use the low-level `qdrant_client` directly for document ingestion or point structure generation. Both `chunker` and `indexer` MUST exclusively use the **Haystack 2.0 Pipeline architecture**. Use native components like `TEIDocumentEmbedder` and `QdrantDocumentWriter` from `qdrant-haystack`. Custom vector operations (such as token hashing or Sparse Vector generation) must be injected into Haystack `Document` objects before running the pipeline.
+* **Mandatory Haystack 2.0 Integration (Strict Limit):** You are STRICTLY FORBIDDEN from writing raw HTTP requests (via `requests`, `httpx`, or `urllib3`) to the TEI service, and you MUST NOT use the low-level `qdrant_client` directly for document ingestion or point structure generation. Both `chunker` and `indexer` MUST exclusively use the **Haystack 2.0 Pipeline architecture**. Use native components like `TEIDocumentEmbedder` and `QdrantDocumentWriter` from `qdrant-haystack`. Custom vector operations (such as token hashing or Sparse Vector generation) must be injected into Haystack `Document` objects before running the pipeline.
 * **Zero-Daemon / Continuous Poll Strategy:** Both `chunker` and `indexer` must run as Python applications supporting dual execution modes governed by the `CONTINUOUS_POLL` environment variable:
   - **Dev Mode (local / local-test):** If `CONTINUOUS_POLL` is `True`, the worker loops continuously, sleeping 5 seconds on an empty queue and then polling again.
   - **Prod Mode (Kubernetes Jobs):** If `CONTINUOUS_POLL` is `False` or omitted, the worker must gracefully break the loop and self-terminate (`exit 0`) immediately when the SQS queue returns empty, enabling KEDA to scale down the transient job cleanly.
-* **Stage 2 Pod Ingestion Pipeline (Haystack 2.0):** The `indexer` application must be built natively using declarative Haystack 2.0 Ingestion Pipelines. It must connect `TEIDocumentEmbedder` (which offloads dense embedding generation to the colocated **TEI Sidecar** using `BAAI/bge-small-en-v1.5`) and `QdrantDocumentWriter`. SQS chunks are mapped to native Haystack `Document` objects with custom `sparse_embedding` weights computed deterministically via Term Frequency (using Adler-32 hashes).
+* **Stage 2 Pod Ingestion Pipeline (Haystack 2.0):** The `indexer` application must be built natively using declarative Haystack 2.0 Ingestion Pipelines. It must connect `TEIDocumentEmbedder` (which offloads dense embedding generation to the shared **TEI Service** using `BAAI/bge-small-en-v1.5`) and `QdrantDocumentWriter`. SQS chunks are mapped to native Haystack `Document` objects with custom `sparse_embedding` weights computed deterministically via Term Frequency (using Adler-32 hashes).
 * **Idempotency Strategy:** The `indexer` must generate deterministic point IDs for Qdrant using `UUID5(file_name + chunk_index)` to ensure flawless AWS Spot resiliency.
 * **Query Layer Logic:** The Go API (`apps/api/`) must strictly implement the Two-Stage Hybrid Retrieval, the specific **Word Count Token-Frequency Penalty Formula**, and **Reciprocal Rank Fusion (RRF with $k=60$)** detailed in the architecture guide.
 * **Security & IAM (IRSA Compliance):** Absolutely zero hardcoded AWS Access Keys or `.env` files with credentials. Production code relies entirely on standard AWS Credential Provider Chain. Kubernetes pods use IAM Roles for Service Accounts (IRSA) via WebIdentity token projection. Local code must let `boto3`/Go SDK resolve native AWS shared config profiles (`~/.aws/credentials`) transparently.
@@ -53,18 +53,7 @@ When generating or interacting with infrastructure configuration or deployment m
   - **Least Privilege Access Policies:** Queue policies (`aws_sqs_queue_policy`) must define narrow conditions limiting permissions specifically to source bucket ARNs using conditional operators like `ArnEquals`.
 
 ## 5. Current Phase & Engineering Tasks
-* **Task 1 (Refactoring Apps):** Refactor `apps/chunker/` and `apps/indexer/` to drop manual HTTP/client boilerplate and migrate fully to declarative Haystack 2.0 Pipelines.
-* **Task 2 (Dev Environment Branching):** Update the core execution loop in `main.py` for both apps to cleanly split execution logic based on the `ENVIRONMENT` variable:
-  - If `dev` and `CONTINUOUS_POLL=true` -> log notice and loop indefinitely with sleep interval.
-  - If `prod` or queue drained in default state -> log metric and issue immediate `exit 0`.
-
-## 1. IN PROGRESS (Current Ingestion & Verification)
-* **[Task-07] Local Integration: Multi-Container Chunker & Indexer V2 Pipelines**
-  * Description: Complete refactoring of `apps/chunker/` and `apps/indexer/` to use Haystack 2.0 Pipelines with local TEI integration. Ensure lazy-loading pattern is strictly followed. [VERIFIED: graceful_exit and Haystack pipeline constructs validated, fixed missing time import in Chunker]
-* **[Task-08] Testing: Large 10MB+ PDF Chunking & Pipeline Validation**
-  * Description: Create a local seeding script. Run end-to-end extraction tests with real, heavy multi-page PDF documents to verify intermediate SQS Stage-2 payload boundaries (max 256KB constraint).
-* **[Task-10] API: Complete Query Path with Mock/Bedrock Contract Toggle (COMPLETED)**
-  * Description: Finalize Go API query handler. Implement the `LLMProvider` interface with a local `MockProvider` for test isolation and `BedrockProvider` using the official AWS SDK v2. Add mock string generation in case no MODEL_ID provided.
+* **Task 1 adjust design (Completed):** Embedding model cannot be a co-located container as API required to vectorise request. So we have to adjust env from TEI_URL to more verbose EMBEDDING_MODEL_TEI_URL and make it a public endpoint. This means we have to adjust the design to have the embedding model as a separate service that can be called by both the indexer and API. Adjust documents and diagrams accordingly. It will be separate deployment in k8s with KEDA scaling on tei_queue_size.
 
 ## 6. Future Tasks
 ### TODO (Immediate Cloud Infrastructure Step)

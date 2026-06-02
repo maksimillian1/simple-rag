@@ -153,7 +153,7 @@ Returns the generated text from Llama 3 along with explicit citations and confid
 
 ## 4. Vector Storage Schema (Qdrant Point Payload)
 
-Points in the Qdrant collection incorporate dense vectors generated via the colocated TEI Sidecar, sparse vector tokens generated in-app by the indexer worker, and structured context metadata.
+Points in the Qdrant collection incorporate dense vectors generated via the shared TEI Service, sparse vector tokens generated in-app by the indexer worker, and structured context metadata.
 
 ```json
 {

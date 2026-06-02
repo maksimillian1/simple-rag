@@ -19,46 +19,50 @@ This document describes the high-level architecture, component boundaries, and d
 The definitive system architecture diagram is maintained here as the single source of truth:
 
 ```mermaid
-graph TD
-    User([User / External System]) -->|1. Upload Document| S3[AWS S3 Raw Bucket]
-    S3 -->|2. S3 Event Notification| SQS1[AWS SQS: stage-1-parsing]
-    
-    %% Stage 1 Boundary
-    SQS1 -->|Queue Metrics| KEDA1[KEDA Scaler]
-    KEDA1 -->|3. Scale-Out: Create Jobs| Job1[K8s ScaledJob: Chunker]
-    SQS1 -->|4. Loop Polling Tasks| Job1
-    
-    %% Intermediate Payload Passing
-    Job1 -->|5. Push Chunks Payload max 256KB| SQS2[AWS SQS: stage-2-indexing]
-    
-    %% Stage 2 Boundary (Colocated Sidecar Pattern)
-    SQS2 -->|Queue Metrics| KEDA2[KEDA Scaler]
-    KEDA2 -->|6. Scale-Out: Create Jobs| Job2[K8s ScaledJob: Indexer Pod]
-    SQS2 -->|7. Loop Polling Chunks| Indexer
-    
-    subgraph Job2 [K8s ScaledJob Pod: Colocated Boundary]
-        Indexer[apps/indexer: Python Worker] -->|8. Localhost gRPC/HTTP Call| TEI[TEI Sidecar: bge-small-en-v1.5]
-    end
-    
-    Indexer -->|9. Idempotent gRPC Upsert| Qdrant[(Qdrant Vector DB)]
-    
-    %% Query Boundary (Secured VPC Perimeter via PrivateLink)
-    User -->|10. Synchronous Search Query| GoAPI[Go API]
-    GoAPI -->|11. Hybrid Retrieval & RRF Rerank| Qdrant
-    
-    subgraph VPC_Private_Subnet [AWS VPC Private Subnet Perimeter]
-        GoAPI
-        Qdrant
-        VPCE[AWS Bedrock VPC Endpoint]
+graph TB
+    %% Styles
+    classDef container fill:#1168bd,stroke:#0b4c8c,color:#ffffff,rx:5px;
+    classDef external fill:#999999,stroke:#666666,color:#ffffff,rx:5px;
+    classDef boundary fill:none,stroke:#444444,stroke-width:2px,stroke-dasharray: 5 5;
+
+    User([User / External System]):::external -->|1. Upload Document| S3[AWS S3 Raw Bucket<br/>'Container: Object Store']:::container
+    User -->|11. Sync Search Query| GoAPI
+
+    %% SYSTEM BOUNDARY: Ingestion
+    subgraph Ingestion_System [System Boundary: Ingestion Pipeline]
+        SQS1[AWS SQS: stage-1-parsing<br/>'Container: Message Queue']:::container
+        Job1[K8s ScaledJob: Chunker<br/>'Container: Go/Python Worker']:::container
+        SQS2[AWS SQS: stage-2-indexing<br/>'Container: Message Queue']:::container
+        Indexer[K8s ScaledJob: Python Indexer<br/>'Container: Python Worker']:::container
+
+        S3 -->|2. S3 Event| SQS1
+        SQS1 -->|4. Poll| Job1
+        Job1 -->|5. Push Chunks| SQS2
+        SQS2 -->|7. Poll| Indexer
     end
 
-    GoAPI -->|12. IRSA Authenticated InvokeModel| VPCE
-    VPCE -->|13. Internal AWS Route| Bedrock[AWS Bedrock: Llama 3 8B Serverless]
+    %% SYSTEM BOUNDARY: Core RAG Storage & Inference
+    subgraph RAG_Core_System [System Boundary: RAG Core & Search]
+        GoAPI[Go API<br/>'Container: Go Web App']:::container
+        TEI[TEI Service: bge-small-en<br/>'Container: Rust ML Inference']:::container
+        Qdrant[(Qdrant Vector DB<br/>'Container: Vector Database')]:::container
 
-    classDef spot fill:#ffe6cc,stroke:#d79b00,stroke-width:2px;
-    classDef ondemand fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px;
-    class Job1,Job2 spot;
-    class GoAPI,Qdrant,VPCE ondemand;
+        Indexer -->|8. Embed text| TEI
+        Indexer -->|10. Upsert| Qdrant
+        
+        GoAPI -->|9. Embed query| TEI
+        GoAPI -->|12. Hybrid Search| Qdrant
+    end
+
+    %% External System Boundary
+    GoAPI -->|13. Invoke Model| Bedrock[AWS Bedrock: Llama 3<br/>'External System: LLM API']:::external
+
+    %% KEDA Controls (Cross-cutting infrastructure)
+    KEDA[KEDA Operator]:::external -.->|Scale-out| Job1
+    KEDA -.->|Scale-out| Indexer
+    KEDA -.->|Scale-out| TEI
+
+    classDef Container Boundary boundary;
 ```
 
 ---
@@ -73,12 +77,12 @@ graph TD
     * **Compute-Layer Fail-Safe (ADR-0001):** Enforces a **Max File Size Limit of 100 MB**. Parses SQS metadata *before* downloading. If the file exceeds 100 MB, it drops the item, logs a structured alert, and routes to DLQ.
     * **Slicing:** Executes format-specific strategies (PDF, TXT, Markdown). Packs arrays into SQS Stage 2. If text chunks aggregate to >245 KB, it programmatically splits the chunks across multiple sequential SQS messages using a size-guard loop.
 * **SQS Queue (stage-2-indexing):** High-throughput intermediate queue. Message payload contains raw text chunks. Backed by `stage-2-indexing-dlq`.
-* **Haystack Indexer (`apps/indexer`):** Ephemeral Python job running within a multi-container Pod. Fetches chunk batches from SQS Stage 2, offloads vectorization to the colocated TEI sidecar via localhost, and executes deterministic gRPC upserts to Qdrant using `UUID5(file_name + chunk_index)` to ensure idempotency. Bound to a hard resource limit of **2GB RAM**.
+* **Haystack Indexer (`apps/indexer`):** Ephemeral Python job. Fetches chunk batches from SQS Stage 2, offloads vectorization to the standalone TEI service via HTTP/gRPC, and executes deterministic gRPC upserts to Qdrant using `UUID5(file_name + chunk_index)` to ensure idempotency. Bound to a hard resource limit of **2GB RAM**.
 
 ### Infrastructure and Storage Layer
 
-* **KEDA (Kubernetes Event-driven Autoscaling):** Ancillary cluster controller that monitors SQS queue lengths and dynamically provisions standard Kubernetes `Job` workloads up to quota limits.
-* **TEI Sidecar (HuggingFace Text Embeddings Inference - ADR-0005):** Lean, high-performance Rust container running inside the Indexer Job Pod. Loads **`BAAI/bge-small-en-v1.5`** (130MB weights baked directly into the container storage layer via CI/CD). Serves embeddings over localhost HTTP/gRPC, outputs **384-dimensional vectors**, and terminates automatically when the primary Indexer worker process exits.
+* **KEDA (Kubernetes Event-driven Autoscaling):** Ancillary cluster controller that monitors SQS queue lengths and dynamically provisions standard Kubernetes `Job` workloads up to quota limits. It also dynamically scales the shared TEI Service based on queue/traffic metrics (`tei_queue_size`).
+* **TEI Service (HuggingFace Text Embeddings Inference - ADR-0005):** Standalone, shared Kubernetes deployment running the Rust-based TEI container. It loads **`BAAI/bge-small-en-v1.5`** (130MB weights baked directly into the container storage layer via CI/CD) and exposes a private HTTP/gRPC endpoint (`EMBEDDING_MODEL_TEI_URL`) accessible by both the `indexer` and the `Go API`. It outputs **384-dimensional vectors** and scales horizontally via KEDA on `tei_queue_size`.
 * **Qdrant Vector DB (ADR-0002):** Self-hosted distributed vector database running via Helm on persistent On-Demand compute nodes with AWS EBS (gp3) storage. Configured with native Dense (384-dim) and Sparse indexing. Uses single-stage filtering and Scalar Quantization (SQ) to reduce RAM consumption by ~75%.
 
 ### Synchronous Query Path
@@ -98,8 +102,8 @@ graph TD
 1. **Identity Security (IAM IRSA):** Zero hardcoded credentials. Pods utilize dedicated Kubernetes `ServiceAccounts` mapped to AWS IAM Roles via OIDC. `chunker` has read-only S3 access and read/write SQS access. `indexer` has exclusive read/delete access to SQS Stage 2. `apps/api` has an IAM policy granting `bedrock:InvokeModel` strictly for `us.meta.llama3-1-8b-instruct-v1:0`.
 2. **Network Topology (Cilium NetworkPolicies):**
     * `chunker`: Outbound allowed only to AWS S3, SQS, and internal CoreDNS.
-    * `indexer`: Outbound allowed only to AWS SQS, Qdrant gRPC, and `localhost` (TEI container). Direct egress to the internet is denied.
-    * `Go API`: Inbound allowed from ingress/users. Outbound allowed strictly to Qdrant cluster gRPC/HTTP ports and the internal IP addresses of the AWS Bedrock VPC Interface Endpoint. Public internet access is denied at the network policy layer.
+    * `indexer`: Outbound allowed only to AWS SQS, Qdrant gRPC, and the shared TEI Service endpoint. Direct egress to the internet is denied.
+    * `Go API`: Inbound allowed from ingress/users. Outbound allowed strictly to Qdrant cluster gRPC/HTTP ports, the shared TEI Service endpoint, and the internal IP addresses of the AWS Bedrock VPC Interface Endpoint. Public internet access is denied at the network policy layer.
 
 ---
 
@@ -112,7 +116,7 @@ simple-rag/
 ├── apps/
 │   ├── api/          # Go-based API (Lightweight query layer, Hybrid Retrieval + RRF Reranking + Bedrock SDK)
 │   ├── chunker/      # Python + Haystack (Stage 1: Ephemeral Kube Job for parsing & chunking)
-│   └── indexer/      # Python + Haystack (Stage 2: Ephemeral Kube Job with colocated sidecar bge-small model)
+│   └── indexer/      # Python + Haystack (Stage 2: Ephemeral Kube Job calling shared TEI service)
 ├── deploy/
 │   └── k8s/          # Kubernetes manifests, KEDA ScaledJob and Cilium NetworkPolicies
 ├── docs/             # High-level system design and overview documentation

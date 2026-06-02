@@ -21,20 +21,20 @@ import (
 var seedDataJSON []byte
 
 type Service struct {
-	Environment string
-	SQSQueueURL string
-	QdrantURL   string
-	TeiURL      string
-	Collection  string
+	Environment          string
+	SQSQueueURL          string
+	QdrantURL            string
+	EmbeddingModelTeiURL string
+	Collection           string
 }
 
-func NewService(environment, sqsQueueURL, qdrantURL, teiURL, collection string) *Service {
+func NewService(environment, sqsQueueURL, qdrantURL, embeddingModelTeiURL, collection string) *Service {
 	return &Service{
-		Environment: environment,
-		SQSQueueURL: sqsQueueURL,
-		QdrantURL:   qdrantURL,
-		TeiURL:      teiURL,
-		Collection:  collection,
+		Environment:          environment,
+		SQSQueueURL:          sqsQueueURL,
+		QdrantURL:            qdrantURL,
+		EmbeddingModelTeiURL: embeddingModelTeiURL,
+		Collection:           collection,
 	}
 }
 
@@ -293,7 +293,7 @@ func (s *Service) getEmbedding(text string) ([]float32, error) {
 	}
 
 	client := http.Client{Timeout: 10 * time.Second}
-	teiResp, err := client.Post(s.TeiURL+"/embed", "application/json", bytes.NewBuffer(teiPayload))
+	teiResp, err := client.Post(s.EmbeddingModelTeiURL+"/embed", "application/json", bytes.NewBuffer(teiPayload))
 	if err != nil {
 		return nil, err
 	}
