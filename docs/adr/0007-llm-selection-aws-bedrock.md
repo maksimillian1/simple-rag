@@ -1,4 +1,4 @@
-# 7: AWS Bedrock (Llama 3.2 3B Instruct) Selection for Context Generation
+# 7: AWS Bedrock (Llama 3.1 8B Instruct) Selection for Context Generation
 
 Date: 2026-05-31
 
@@ -11,7 +11,7 @@ After retrieving and reranking the top-$K$ document chunks via dual-stage hybrid
 While generic commodity APIs (OpenAI, DeepSeek) provide similar token structures, they introduce corporate compliance risks, public internet egress costs, and overhead from long-lived API key management (Secrets Rotation).
 
 ## Decision
-We explicitly adopt **AWS Bedrock running Meta Llama 3.2 (3B Instruct)** as the primary generative engine.
+We explicitly adopt **AWS Bedrock running Meta Llama 3.1 (8B Instruct)** as the primary generative engine.
 
 ### Operational Constraints & Implementation Tactics:
 1. **IAM IRSA Native Authentication:** We strictly ban the injection of long-lived API keys (`LLM_API_KEY`) into the EKS cluster runtime. The Go API (`apps/api`) will utilize the official `aws-sdk-go-v2/service/bedrockruntime` client. Authentication is delegated to the EKS OIDC provider via standard Kubernetes ServiceAccount annotations (`eks.amazonaws.com/role-arn`), invoking the role mapped to the `bedrock:InvokeModel` policy.

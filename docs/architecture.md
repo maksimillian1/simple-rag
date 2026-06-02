@@ -89,13 +89,13 @@ graph TD
     * $$Score_{final} = Score_{raw} \times \frac{1}{\log_{10}(TermCount + 10)}$$
 * **Stage 2: Semantic Reranking (RRF):** Merges dense and sparse result sets using **Reciprocal Rank Fusion (RRF)** with constant $k=60$ directly on CPU.
 * **Context Pruning (ADR-0007):** Formats payload into a compact JSON string, stripping all non-essential metadata before passing it to the LLM to slash token costs.
-* **Stage 3: Serverless Response Synthesis:** Invokes AWS Bedrock via native Go SDK v2. The request is bound within the private VPC boundary via an AWS Bedrock VPC Endpoint, passing the pruned context to Meta Llama 3.2 (3B Instruct) on an On-Demand pay-per-token billing layout.
+* **Stage 3: Serverless Response Synthesis:** Invokes AWS Bedrock via native Go SDK v2. The request is bound within the private VPC boundary via an AWS Bedrock VPC Endpoint, passing the pruned context to Meta Llama 3.1 (8B Instruct) on an On-Demand pay-per-token billing layout.
 
 ---
 
 ## 4. Security and Network Isolation
 
-1. **Identity Security (IAM IRSA):** Zero hardcoded credentials. Pods utilize dedicated Kubernetes `ServiceAccounts` mapped to AWS IAM Roles via OIDC. `chunker` has read-only S3 access and read/write SQS access. `indexer` has exclusive read/delete access to SQS Stage 2. `apps/api` has an IAM policy granting `bedrock:InvokeModel` strictly for `meta.llama3-2-3b-instruct-v1:0`.
+1. **Identity Security (IAM IRSA):** Zero hardcoded credentials. Pods utilize dedicated Kubernetes `ServiceAccounts` mapped to AWS IAM Roles via OIDC. `chunker` has read-only S3 access and read/write SQS access. `indexer` has exclusive read/delete access to SQS Stage 2. `apps/api` has an IAM policy granting `bedrock:InvokeModel` strictly for `us.meta.llama3-1-8b-instruct-v1:0`.
 2. **Network Topology (Cilium NetworkPolicies):**
     * `chunker`: Outbound allowed only to AWS S3, SQS, and internal CoreDNS.
     * `indexer`: Outbound allowed only to AWS SQS, Qdrant gRPC, and `localhost` (TEI container). Direct egress to the internet is denied.

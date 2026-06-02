@@ -44,10 +44,12 @@ services:
       - AWS_DEFAULT_REGION=eu-central-1
       - AWS_REGION=eu-central-1
       - CONTINUOUS_POLL=true
+      - DEBUG_DIR=/chunker/debug
     volumes:
       - /Users/maksimsnitcuk/Applications/personal/simple-rag:/Users/maksimsnitcuk/Applications/personal/simple-rag
       - ./apps/chunker:/app
       - ~/.aws:/root/.aws:ro
+      - ./apps/chunker/debug:/chunker/debug
 
   indexer:
     build:

@@ -220,6 +220,37 @@ def process_message(message: dict, sqs_client, s3_client, queue_url: str, stage_
             logger.error(f"Failed to calculate checksum for {file_name}: {e}")
             return splitter, s3_client
 
+        # Dump chunks locally if DEBUG_DIR is set
+        debug_dir = os.getenv("DEBUG_DIR")
+        if debug_dir:
+            try:
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                # Clean up filename for safe folder naming
+                clean_filename = "".join(c for c in file_name if c.isalnum() or c in "._-").strip()
+                dynamic_folder_name = f"{timestamp}-{clean_filename}"
+                
+                target_debug_dir = os.path.join(debug_dir, dynamic_folder_name)
+                os.makedirs(target_debug_dir, exist_ok=True)
+                
+                logger.info(f"Dumping {len(chunks)} chunks to dynamic DEBUG_DIR: {target_debug_dir}...")
+                for idx, chunk in enumerate(chunks):
+                    chunk_index = idx
+                    page_number = chunk.meta.get("page_number", 1)
+                    debug_file_path = os.path.join(target_debug_dir, f"{file_id}_chunk_{chunk_index:04d}.txt")
+                    with open(debug_file_path, "w", encoding="utf-8") as f:
+                        f.write("--- METADATA ---\n")
+                        f.write(f"File Name: {file_name}\n")
+                        f.write(f"File ID: {file_id}\n")
+                        f.write(f"Checksum: {checksum}\n")
+                        f.write(f"Chunk Index: {chunk_index}\n")
+                        f.write(f"Page Number: {page_number}\n")
+                        f.write("----------------\n\n")
+                        f.write(chunk.content)
+                logger.info("Successfully dumped chunks to DEBUG_DIR.")
+            except Exception as e:
+                logger.error(f"Failed to dump debug chunks to {debug_dir}: {e}")
+
         # Prepare the chunks payload and push in batches of up to 40 chunks
         success = True
         batch_size = 40
