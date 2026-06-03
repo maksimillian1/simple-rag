@@ -16,9 +16,14 @@ You must strictly follow this layout. Do not generate code outside these boundar
 * `docs/`             -> System documentation (`architecture.md`, `contracts.md`, `ops.md`)
 * `terraform/`        -> Infrastructure as Code (Strict AWS EKS, IAM IRSA, SQS, S3 provision)
 
-## 3. Rigid Architectural References & SDK Guardrails
-All implementation details, data routing, and infrastructure limitations are governed strictly by `docs/architecture.md`. You must enforce the following rules:
+## 3. Interaction Protocol & Review-Optimized Output
+* **No Wall of Code:** Generating the entire file is prohibited if the changes affect less than 50% of the code. Use the "Diff/Patch" pattern or show specific functions.
+* **Explain the "Why":** Before the code, the model should explain the architectural decision (why this particular pattern/library) in 2-3 lines (bullet points).
+* **Cognitive Load Reduction:** No obvious comments in the code (like `// initialize router`). The code should be self-documenting. Comment only on complex algorithms (e.g., the RRF or Adler-32 formula).
+* **Draft Mode by Default:** If the task is complex, first propose the high-level design (pseudocode or function signatures) and wait for approval, instead of generating 200 lines of Python/Go code.
 
+## 4. Rigid Architectural References & SDK Guardrails
+All implementation details, data routing, and infrastructure limitations are governed strictly by `docs/architecture.md`. You must enforce the following rules:
 * **Single Source of Truth (SSoT):** Adhere exclusively to the lifecycle, diagrams, and components defined in `docs/architecture.md`.
 * **Mandatory Haystack 2.0 Integration (Strict Limit):** You are STRICTLY FORBIDDEN from writing raw HTTP requests (via `requests`, `httpx`, or `urllib3`) to the TEI service, and you MUST NOT use the low-level `qdrant_client` directly for document ingestion or point structure generation. Both `chunker` and `indexer` MUST exclusively use the **Haystack 2.0 Pipeline architecture**. Use native components like `TEIDocumentEmbedder` and `QdrantDocumentWriter` from `qdrant-haystack`. Custom vector operations (such as token hashing or Sparse Vector generation) must be injected into Haystack `Document` objects before running the pipeline.
 * **Zero-Daemon / Continuous Poll Strategy:** Both `chunker` and `indexer` must run as Python applications supporting dual execution modes governed by the `CONTINUOUS_POLL` environment variable:
@@ -30,9 +35,8 @@ All implementation details, data routing, and infrastructure limitations are gov
 * **Security & IAM (IRSA Compliance):** Absolutely zero hardcoded AWS Access Keys or `.env` files with credentials. Production code relies entirely on standard AWS Credential Provider Chain. Kubernetes pods use IAM Roles for Service Accounts (IRSA) via WebIdentity token projection. Local code must let `boto3`/Go SDK resolve native AWS shared config profiles (`~/.aws/credentials`) transparently.
 * **Kubernetes Memory Optimization Strategy:** All Python applications must adhere strictly to a **Lazy-Loading Pattern**. Framework components (e.g., Haystack `Pipeline`, `QdrantDocumentWriter`, `boto3`) must be imported and initialized dynamically only after a message is successfully pulled or when the application initializes its runtime components.
 
-## 4. Terraform & Kubernetes Co-existence & IaC Architecture Rules
+## 5. Terraform & Kubernetes Co-existence & IaC Architecture Rules
 When generating or interacting with infrastructure configuration or deployment manifests, you must strictly comply with these enterprise design principles:
-
 * **Separation of Concerns (Terraform vs K8s Boundary):**
   - Terraform (`terraform/`) is strictly restricted to provisioning cloud infrastructure foundational state: VPC, EKS cluster, managed node groups, SQS queues, S3 buckets, and IAM Roles.
   - You are STRICTLY FORBIDDEN from using Terraform to manage Kubernetes application payloads. Do not use `kubernetes_manifest`, `kubernetes_pod`, or `helm_release` inside Terraform modules to deploy `simple-rag` services. All K8s manifests, KEDA ScaledJobs, and K8s ServiceAccounts must be isolated strictly inside `deploy/k8s/`.
@@ -52,10 +56,11 @@ When generating or interacting with infrastructure configuration or deployment m
   - **Dead-Letter Queues (DLQs):** All primary message queues (SQS) must declare a redrive policy routing failing messages to a sibling `-dlq` queue with reasonable `maxReceiveCount` limit (e.g. 3).
   - **Least Privilege Access Policies:** Queue policies (`aws_sqs_queue_policy`) must define narrow conditions limiting permissions specifically to source bucket ARNs using conditional operators like `ArnEquals`.
 
-## 5. Current Phase & Engineering Tasks
-* **Task 1 adjust design (Completed):** Embedding model cannot be a co-located container as API required to vectorise request. So we have to adjust env from TEI_URL to more verbose EMBEDDING_MODEL_TEI_URL and make it a public endpoint. This means we have to adjust the design to have the embedding model as a separate service that can be called by both the indexer and API. Adjust documents and diagrams accordingly. It will be separate deployment in k8s with KEDA scaling on tei_queue_size.
+## 6. Current Phase & Engineering Tasks
+* **Task 1 Chunking:** Currently chunking needs to be improved using semantic split by paragraphs or sentences.
+* **Task 2 Improve code for readability:** Check chunker and also a lot of comments in go app.
 
-## 6. Future Tasks
+## 7. Future Tasks
 ### TODO (Immediate Cloud Infrastructure Step)
 * **[Task-01] Terraform: VPC Networking with PrivateLink Base**
   * Description: Provision private/public subnets and NAT Gateways. Configure AWS Bedrock VPC Interface Endpoints (AWS PrivateLink) inside the private subnet perimeter to eliminate internet egress.
