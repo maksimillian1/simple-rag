@@ -57,9 +57,9 @@ def calculate_sha256(file_path: str) -> str:
     return sha256_hash.hexdigest()
 
 def get_splitter():
-    logger.info("Initializing ProperTokenHybridSplitter (lazy loading)...")
-    from .hybrid_splitter import ProperTokenHybridSplitter
-    return ProperTokenHybridSplitter(
+    logger.info("Initializing HybridDocumentSplitter (lazy loading)...")
+    from .hybrid_splitter import HybridDocumentSplitter
+    return HybridDocumentSplitter(
         max_tokens=config.CHUNK_SIZE,
         overlap_tokens=config.CHUNK_OVERLAP
     )
@@ -77,7 +77,7 @@ def parse_and_split(temp_file_path: str, file_name: str, bucket_name: str, objec
     logger.info("Executing text extraction strategy...")
     documents = parser.parse(temp_file_path, doc_metadata)
     
-    logger.info("Executing ProperTokenHybridSplitter...")
+    logger.info("Executing HybridDocumentSplitter...")
     split_result = splitter.run(documents=documents)
     chunks = split_result["documents"]
     logger.info(f"Document split into {len(chunks)} chunks.")

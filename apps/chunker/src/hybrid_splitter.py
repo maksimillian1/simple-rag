@@ -5,7 +5,7 @@ from haystack.dataclasses import Document
 
 DEFAULT_MAX_TOKENS = 300
 DEFAULT_OVERLAP_TOKENS = 50
-DEFAULT_LLAMA_MODEL = "Xenova/llama3-tokenizer-base"
+DEFAULT_LLAMA_MODEL = "unsloth/llama-3-8b-Instruct"
 
 RE_SENTENCE_SPLIT = re.compile(r'(?<=[.!?])\s+')
 RE_MULTIPLE_SPACES = re.compile(r' +')

@@ -40,9 +40,13 @@ def test_markdown_parser():
 def test_pdf_parser(monkeypatch):
     mock_doc = MagicMock()
     mock_page1 = MagicMock()
-    mock_page1.get_text.return_value = "Page 1 text content."
+    mock_page1.get_text.return_value = [
+        (0, 0, 100, 100, "Page 1 text content.", 0, 0)
+    ]
     mock_page2 = MagicMock()
-    mock_page2.get_text.return_value = "Page 2 text content."
+    mock_page2.get_text.return_value = [
+        (0, 0, 100, 100, "Page 2 text content.", 0, 0)
+    ]
     
     # Mock fitz document behaves as a context manager and page iterator
     mock_doc.__enter__.return_value = mock_doc
@@ -54,13 +58,11 @@ def test_pdf_parser(monkeypatch):
     parser = PDFParser()
     docs = parser.parse("dummy_path.pdf", {"bucket": "test-bucket", "key": "test.pdf"})
     
-    assert len(docs) == 2
-    assert docs[0].content == "Page 1 text content."
+    assert len(docs) == 1
+    assert docs[0].content == "__PAGE_1__ Page 1 text content. __PAGE_2__ Page 2 text content."
     assert docs[0].meta["page_number"] == 1
     assert docs[0].meta["bucket"] == "test-bucket"
-    assert docs[1].content == "Page 2 text content."
-    assert docs[1].meta["page_number"] == 2
-    assert docs[1].meta["key"] == "test.pdf"
+    assert docs[0].meta["key"] == "test.pdf"
 
 def test_resolve_parser_success():
     assert isinstance(resolve_parser("document.txt"), TXTParser)

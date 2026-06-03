@@ -1,14 +1,13 @@
-import tiktoken
 from haystack.dataclasses import Document
-from src.hybrid_splitter import ProperTokenHybridSplitter
+from src.hybrid_splitter import HybridDocumentSplitter
 
 def test_hybrid_document_splitter_empty():
-    splitter = ProperTokenHybridSplitter(max_tokens=10, overlap_tokens=2)
+    splitter = HybridDocumentSplitter(max_tokens=10, overlap_tokens=2)
     result = splitter.run(documents=[])
     assert result == {"documents": []}
 
 def test_hybrid_document_splitter_short_text():
-    splitter = ProperTokenHybridSplitter(max_tokens=15, overlap_tokens=2)
+    splitter = HybridDocumentSplitter(max_tokens=15, overlap_tokens=2)
     docs = [Document(content="Short text for testing splitter.", meta={"key": "val"})]
     result = splitter.run(documents=docs)
     
@@ -18,7 +17,7 @@ def test_hybrid_document_splitter_short_text():
     assert result["documents"][0].meta["chunk_index"] == 0
 
 def test_hybrid_document_splitter_split_text():
-    splitter = ProperTokenHybridSplitter(max_tokens=5, overlap_tokens=1)
+    splitter = HybridDocumentSplitter(max_tokens=5, overlap_tokens=1)
     text = "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10"
     docs = [Document(content=text, meta={"key": "val"})]
     result = splitter.run(documents=docs)
@@ -26,9 +25,9 @@ def test_hybrid_document_splitter_split_text():
     splitted_docs = result["documents"]
     assert len(splitted_docs) > 1
     
-    enc = tiktoken.get_encoding("cl100k_base")
+    tokenizer = splitter.tokenizer
     for doc in splitted_docs:
-        tokens_count = len(enc.encode(doc.content))
+        tokens_count = len(tokenizer.encode(doc.content))
         assert tokens_count <= 5
         assert doc.meta["key"] == "val"
         assert "chunk_index" in doc.meta
