@@ -11,9 +11,9 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
 # Document Splitter Config
 CHUNK_BY = os.getenv("CHUNK_BY", "word")
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "200"))
-CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "20"))
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "250"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "40"))
 CHUNK_RESPECT_SENTENCE = os.getenv("CHUNK_RESPECT_SENTENCE", "true").lower() == "true"
 
-# Loop Configuration
+# Loop Configuration for Dev mode testing
 CONTINUOUS_POLL = os.getenv("CONTINUOUS_POLL", "false").lower() == "true"

@@ -10,6 +10,12 @@ The system relies on an event-driven flow that automatically scales out via KEDA
 
 Look [Architecture Diagram](./docs/architecture.md#data-flow-diagram)
 
+## Key constraints:
+Embedding model must be 384 dimensions to minimize Qdrant RAM usage.
+Chunk size is 512 tokens max, prod range should be 256–384 tokens to balance context retention and vector quality.
+Single sqs message could have chunks of single file with upper size limit of 256KB, which is the max SQS message size.
+
+
 ### Architectural Deep-Dives (ADR Log)
 For specific design justifications, performance baselines, and cost optimization trade-offs, consult the official Architecture Decision Records matching the current repository state:
 

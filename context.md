@@ -1,5 +1,5 @@
 # ==============================================================================
-# Gemini Code Assist Context: simple-rag (Strict Guardrails & Architecture V2)
+# Gemini Code Assist Context: simple-rag (Strict Guardrails & Architecture V2.2)
 # ==============================================================================
 
 ## 1. System Role & Core Mission
@@ -9,7 +9,7 @@ You act as an expert Software Engineer and Cloud Architect. Your goal is to gene
 
 ## 2. Directory Structure Constraints
 You must strictly follow this layout. Do not generate code outside these boundaries:
-* `apps/api/`         -> Go standard library / `go-chi` (Synchronous query path)
+* `apps/api/`         -> Go standard library / `labstack/echo` (Synchronous query path)
 * `apps/chunker/`     -> Python / Haystack 2.0 (Stage 1: Ephemeral parsing job)
 * `apps/indexer/`     -> Python / Haystack 2.0 (Stage 2: Ephemeral indexing job)
 * `deploy/k8s/`       -> Kubernetes manifests (KEDA ScaledJobs, Cilium NetworkPolicies, ServiceAccounts)
@@ -19,13 +19,17 @@ You must strictly follow this layout. Do not generate code outside these boundar
 ## 3. Interaction Protocol & Review-Optimized Output
 * **No Wall of Code:** Generating the entire file is prohibited if the changes affect less than 50% of the code. Use the "Diff/Patch" pattern or show specific functions.
 * **Explain the "Why":** Before the code, the model should explain the architectural decision (why this particular pattern/library) in 2-3 lines (bullet points).
-* **Cognitive Load Reduction:** No obvious comments in the code (like `// initialize router`). The code should be self-documenting. Comment only on complex algorithms (e.g., the RRF or Adler-32 formula).
+* **Cognitive Load Reduction:** No obvious comments in the code (like `// initialize router`). The code must be self-documenting. Comment only on complex math/algorithms (e.g., the RRF or Adler-32 formula).
 * **Draft Mode by Default:** If the task is complex, first propose the high-level design (pseudocode or function signatures) and wait for approval, instead of generating 200 lines of Python/Go code.
+* **Strict Function Length & SRP:** The maximum size of any function or method is 50 lines of execution code (excluding decorators and docstrings). You must decompose logic into pure, single-purpose, easily testable functions adhering to the Single Responsibility Principle.
+* **Magic Numbers & Configuration Guardrail:** Hardcoding configuration strings, regular expressions, salt values, or mathematical constants directly inside function bodies is strictly forbidden. All such values must be declared as top-level module constants (`UPPER_CASE`) or loaded via environment variables/Pydantic settings. Linear indices (0, 1) and empty initializers are allowed in-place.
 
 ## 4. Rigid Architectural References & SDK Guardrails
 All implementation details, data routing, and infrastructure limitations are governed strictly by `docs/architecture.md`. You must enforce the following rules:
 * **Single Source of Truth (SSoT):** Adhere exclusively to the lifecycle, diagrams, and components defined in `docs/architecture.md`.
-* **Mandatory Haystack 2.0 Integration (Strict Limit):** You are STRICTLY FORBIDDEN from writing raw HTTP requests (via `requests`, `httpx`, or `urllib3`) to the TEI service, and you MUST NOT use the low-level `qdrant_client` directly for document ingestion or point structure generation. Both `chunker` and `indexer` MUST exclusively use the **Haystack 2.0 Pipeline architecture**. Use native components like `TEIDocumentEmbedder` and `QdrantDocumentWriter` from `qdrant-haystack`. Custom vector operations (such as token hashing or Sparse Vector generation) must be injected into Haystack `Document` objects before running the pipeline.
+* **Mandatory Haystack 2.0 Integration (Strict Limit):** Writing raw HTTP requests (via `requests`, `httpx`, or `urllib3`) to the TEI service is STRICTLY FORBIDDEN. You MUST NOT use the low-level `qdrant_client` directly for document ingestion or point structure generation. Both `chunker` and `indexer` MUST exclusively use the **Haystack 2.0 Pipeline architecture**.
+* **Native Component Injection Rule:** Any custom logic (such as token hashing, ID generation, or Sparse Vector calculation) **MUST NOT** exist as standalone procedural functions. They must be encapsulated natively into custom Haystack components (`@component`) and linked explicitly inside the `Pipeline()` engine before execution, mapping inputs directly to Haystack `Document` objects.
+* **Go API Framework & Non-Destructive Migration:** The `apps/api/` layer uses the `labstack/echo` framework. When modifying or optimizing the Go API, **do not rewrite existing working endpoints or routers from scratch** unless explicitly requested. Apply surgical modifications, keeping existing `go-chi` interfaces intact if they are not part of the active task, or gracefully adapt them to `echo.Context` without breaking the contract.
 * **Zero-Daemon / Continuous Poll Strategy:** Both `chunker` and `indexer` must run as Python applications supporting dual execution modes governed by the `CONTINUOUS_POLL` environment variable:
   - **Dev Mode (local / local-test):** If `CONTINUOUS_POLL` is `True`, the worker loops continuously, sleeping 5 seconds on an empty queue and then polling again.
   - **Prod Mode (Kubernetes Jobs):** If `CONTINUOUS_POLL` is `False` or omitted, the worker must gracefully break the loop and self-terminate (`exit 0`) immediately when the SQS queue returns empty, enabling KEDA to scale down the transient job cleanly.
@@ -57,8 +61,10 @@ When generating or interacting with infrastructure configuration or deployment m
   - **Least Privilege Access Policies:** Queue policies (`aws_sqs_queue_policy`) must define narrow conditions limiting permissions specifically to source bucket ARNs using conditional operators like `ArnEquals`.
 
 ## 6. Current Phase & Engineering Tasks
-* **Task 1 Chunking:** Currently chunking needs to be improved using semantic split by paragraphs or sentences.
-* **Task 2 Improve code for readability:** Check chunker and also a lot of comments in go app.
+* **Task 1 Chunking:** Implement hybrid(semantic if possible) chunking via paragraph/sentence splitting using native Haystack 2.0 components (`DocumentSplitter`).
+* **Task 2 Chunking:** Fix PDF parser doesn't count pages correctly.
+* **Task 3 Code Optimization Python:** Refactor Python applications for strict compliance with the dynamic component injection/lazy-loading pattern, and clean up excessive/redundant comments.
+* **Task 4 Code Optimization Go:** Go API layer while ensuring compatibility with `labstack/echo`.
 
 ## 7. Future Tasks
 ### TODO (Immediate Cloud Infrastructure Step)
@@ -101,4 +107,3 @@ When generating or interacting with infrastructure configuration or deployment m
     * Quantify RAM/CPU utilization savings achieved by shifting from 24/7 Daemons to KEDA ScaledJobs (natural scale-in to absolute zero).
     * Measure the exact network cost reduction of routing inference requests through the AWS Bedrock VPC Interface Endpoint (PrivateLink) vs public NAT Gateway data processing rates.
     * Document Qdrant memory optimization metrics when enabling Scalar Quantization (SQ) down to `int8`.
-
