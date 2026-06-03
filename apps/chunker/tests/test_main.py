@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from haystack.dataclasses import Document
 
-from src.core import calculate_sha256, process_message
+from src.main import calculate_sha256, process_message
 
 def test_calculate_sha256():
     content = b"test checksum logic"
@@ -21,8 +21,8 @@ def test_calculate_sha256():
     finally:
         os.remove(temp_file_path)
 
-@patch("src.core.download_file_to_local")
-@patch("src.core.parse_and_split")
+@patch("src.main.download_file_to_local")
+@patch("src.main.parse_and_split")
 def test_process_message_success(mock_parse_split, mock_download):
     mock_sqs = MagicMock()
     mock_s3 = MagicMock()
@@ -37,7 +37,7 @@ def test_process_message_success(mock_parse_split, mock_download):
     chunks = [Document(content="chunk text", meta={"page_number": 1})]
     mock_parse_split.return_value = (chunks, "doc_123", "checksum_abc")
     
-    with patch("src.core.send_stage_2_batches") as mock_send_batches:
+    with patch("src.main.send_stage_2_batches") as mock_send_batches:
         mock_send_batches.return_value = True
         
         res_splitter, res_s3 = process_message(

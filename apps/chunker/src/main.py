@@ -29,11 +29,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger("chunker")
 
+# Constants
 MAX_ALLOWED_SIZE_BYTES = 104857600  # 100MB
 POLL_WAIT_TIME_SECONDS = 10
+POLL_SLEEP_INTERVAL_SECONDS = 5
 ERROR_SLEEP_INTERVAL_SECONDS = 5
-
-POLL_SLEEP_INTERVAL_SECONDS = 5 # For debug only
 
 # Signal handling for AWS Spot instance eviction
 graceful_exit = False
@@ -57,13 +57,11 @@ def calculate_sha256(file_path: str) -> str:
     return sha256_hash.hexdigest()
 
 def get_splitter():
-    logger.info("Initializing Haystack DocumentSplitter (lazy loading)...")
-    from haystack.components.preprocessors import DocumentSplitter
-    return DocumentSplitter(
-        split_by=config.CHUNK_BY,
-        split_length=config.CHUNK_SIZE,
-        split_overlap=config.CHUNK_OVERLAP,
-        respect_sentence_boundary=config.CHUNK_RESPECT_SENTENCE
+    logger.info("Initializing ProperTokenHybridSplitter (lazy loading)...")
+    from .hybrid_splitter import ProperTokenHybridSplitter
+    return ProperTokenHybridSplitter(
+        max_tokens=config.CHUNK_SIZE,
+        overlap_tokens=config.CHUNK_OVERLAP
     )
 
 def parse_and_split(temp_file_path: str, file_name: str, bucket_name: str, object_key: str, splitter):
@@ -79,7 +77,7 @@ def parse_and_split(temp_file_path: str, file_name: str, bucket_name: str, objec
     logger.info("Executing text extraction strategy...")
     documents = parser.parse(temp_file_path, doc_metadata)
     
-    logger.info("Executing Haystack DocumentSplitter...")
+    logger.info("Executing ProperTokenHybridSplitter...")
     split_result = splitter.run(documents=documents)
     chunks = split_result["documents"]
     logger.info(f"Document split into {len(chunks)} chunks.")
@@ -209,7 +207,6 @@ def main():
         logger.error(f"Failed to initialize SQS client: {e}")
         sys.exit(1)
 
-    # Lazy init
     s3_client = None
     splitter = None
 

@@ -38,15 +38,18 @@ def test_markdown_parser():
         os.remove(temp_file_path)
 
 def test_pdf_parser(monkeypatch):
-    mock_reader = MagicMock()
+    mock_doc = MagicMock()
     mock_page1 = MagicMock()
-    mock_page1.extract_text.return_value = "Page 1 text content."
+    mock_page1.get_text.return_value = "Page 1 text content."
     mock_page2 = MagicMock()
-    mock_page2.extract_text.return_value = "Page 2 text content."
-    mock_reader.pages = [mock_page1, mock_page2]
+    mock_page2.get_text.return_value = "Page 2 text content."
     
-    # Mock the PdfReader class to return our mock reader
-    monkeypatch.setattr("pypdf.PdfReader", lambda path: mock_reader)
+    # Mock fitz document behaves as a context manager and page iterator
+    mock_doc.__enter__.return_value = mock_doc
+    mock_doc.__iter__.return_value = [mock_page1, mock_page2]
+    
+    # Mock fitz.open class/method
+    monkeypatch.setattr("fitz.open", lambda path: mock_doc)
     
     parser = PDFParser()
     docs = parser.parse("dummy_path.pdf", {"bucket": "test-bucket", "key": "test.pdf"})

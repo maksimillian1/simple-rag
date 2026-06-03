@@ -12,7 +12,7 @@ apps/chunker/
 ├── src/
 │   ├── __init__.py
 │   ├── config.py
-│   ├── core.py
+│   ├── main.py
 │   ├── hybrid_splitter.py
 │   ├── messaging.py
 │   ├── parser.py
@@ -20,7 +20,7 @@ apps/chunker/
 └── tests/
     ├── __init__.py
     ├── conftest.py
-    ├── test_core.py
+    ├── test_main.py
     ├── test_hybrid_splitter.py
     ├── test_messaging.py
     ├── test_parser.py

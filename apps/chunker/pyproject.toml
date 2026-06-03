@@ -11,9 +11,11 @@ requires-python = ">=3.11"
 dependencies = [
     "haystack-ai>=2.0.0",
     "boto3>=1.28.0",
-    "pypdf>=4.0.0",
+    "pymupdf>=1.22.0",
+    "tiktoken",
     "urllib3>=1.26.0",
-    "nltk>=3.9.1"
+    "nltk>=3.9.1",
+    "transformers>=4.0.0"
 ]
 
 [project.optional-dependencies]
@@ -23,7 +25,7 @@ dev = [
 ]
 
 [project.scripts]
-chunker = "src.core:main"
+chunker = "src.main:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

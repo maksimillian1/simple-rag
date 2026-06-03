@@ -3,27 +3,39 @@ from typing import List, Dict, Any
 from haystack import component
 from haystack.dataclasses import Document
 
-DEFAULT_MAX_WORDS = 250
-DEFAULT_OVERLAP_WORDS = 40
+DEFAULT_MAX_TOKENS = 300
+DEFAULT_OVERLAP_TOKENS = 50
+DEFAULT_LLAMA_MODEL = "Xenova/llama3-tokenizer-base"
 
-SEPARATORS = [
-    r"\n\n+",
-    r"\n",
-    r"(?<=[.!?]) +",
-    r"(?<=[,;]) +",
-    r" "
-]
+RE_SENTENCE_SPLIT = re.compile(r'(?<=[.!?])\s+')
+RE_MULTIPLE_SPACES = re.compile(r' +')
+RE_PAGE_MARKER = re.compile(r'__PAGE_(\d+)__')
 
 @component
 class HybridDocumentSplitter:
     """
     Haystack 2.0 component for recursive hybrid text splitting
-    with semantic boundaries and strict word limits.
+    with semantic boundaries, page tracking, and Llama 3.1 tokenization.
     """
+    def __init__(
+        self,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
+        overlap_tokens: int = DEFAULT_OVERLAP_TOKENS,
+        model_name: str = DEFAULT_LLAMA_MODEL
+    ):
+        self.max_tokens = max_tokens
+        self.overlap_tokens = overlap_tokens
+        self.model_name = model_name
+        self._tokenizer = None
 
-    def __init__(self, max_words: int = DEFAULT_MAX_WORDS, overlap: int = DEFAULT_OVERLAP_WORDS):
-        self.max_words = max_words
-        self.overlap = overlap
+    @property
+    def tokenizer(self):
+        """Lazy loading of the HuggingFace tokenizer tailored for Llama 3.1"""
+        if self._tokenizer is None:
+            from transformers import AutoTokenizer
+            # Downloads only the tiny tokenizer config (~4MB), no model weights
+            self._tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        return self._tokenizer
 
     @component.output_types(documents=List[Document])
     def run(self, documents: List[Document]) -> Dict[str, Any]:
@@ -35,81 +47,123 @@ class HybridDocumentSplitter:
             if not doc.content or not isinstance(doc.content, str):
                 continue
 
-            chunks = self._split_text(doc.content, SEPARATORS)
+            cleaned_text = self._prepare_text(doc.content)
+            chunks = self._split_into_chunks(cleaned_text)
+
             for i, chunk in enumerate(chunks):
-                processed_docs.append(Document(
-                    content=chunk,
-                    meta={**doc.meta, "chunk_index": i}
-                ))
+                processed_docs.append(self._build_document(doc, chunk, i))
 
         return {"documents": processed_docs}
 
-    def _split_text(self, text: str, separators: List[str]) -> List[str]:
-        if len(text.split()) <= self.max_words:
-            return [text]
+    def _prepare_text(self, text: str) -> str:
+        text = text.replace("\n\n", "===PARAGRAPH===")
+        text = text.replace("\n", " ")
+        text = text.replace("===PARAGRAPH===", "\n\n")
+        return RE_MULTIPLE_SPACES.sub(' ', text).strip()
 
-        separator = separators[0] if separators else ""
-        next_separators = separators[1:] if separators else []
+    def _build_document(self, parent_doc: Document, chunk_text: str, index: int) -> Document:
+        page_match = RE_PAGE_MARKER.search(chunk_text)
+        chunk_page = parent_doc.meta.get("page_number", 1)
+        if page_match:
+            chunk_page = int(page_match.group(1))
 
-        if separator:
-            fragments = [f for f in re.split(separator, text) if f.strip()]
-        else:
-            fragments = list(text)
+        clean_content = RE_PAGE_MARKER.sub('', chunk_text)
+        clean_content = RE_MULTIPLE_SPACES.sub(' ', clean_content).strip()
 
-        if len(fragments) == 1:
-            if next_separators:
-                return self._split_text(text, next_separators)
-            return self._hard_split_by_words(text)
+        new_meta = {
+            **parent_doc.meta,
+            "chunk_index": index,
+            "page_number": chunk_page
+        }
+        return Document(content=clean_content, meta=new_meta)
 
-        return self._merge_fragments(fragments, next_separators)
+    def _split_into_chunks(self, text: str) -> List[str]:
+        paragraphs = text.split("\n\n")
+        all_sentences = []
 
-    def _compute_overlap(self, fragments: List[str]) -> List[str]:
-        overlap_fragments = []
-        overlap_words = 0
-        for frag in reversed(fragments):
-            frag_len = len(frag.split())
-            if overlap_words + frag_len > self.overlap:
-                break
-            overlap_fragments.insert(0, frag)
-            overlap_words += frag_len
-        return overlap_fragments
+        for para in paragraphs:
+            if not para.strip():
+                continue
+            sentences = [s.strip() for s in RE_SENTENCE_SPLIT.split(para) if s.strip()]
+            all_sentences.extend(sentences)
+            if all_sentences:
+                all_sentences[-1] += "\n\n"
 
-    def _handle_oversized_fragment(self, frag: str, next_seps: List[str], current_chunks: List[str]) -> tuple:
-        deep_chunks = self._split_text(frag, next_seps)
-        current_chunks.extend(deep_chunks[:-1])
-        last_chunk = deep_chunks[-1]
-        return [last_chunk], len(last_chunk.split())
+        chunks, current_chunk = [], []
+        current_tokens = 0
 
-    def _merge_fragments(self, fragments: List[str], next_separators: List[str]) -> List[str]:
-        chunks, current_frags = [], []
-        current_words = 0
+        for sentence in all_sentences:
+            sentence_tokens = len(self.tokenizer.encode(sentence))
 
-        for frag in fragments:
-            frag_words = len(frag.split())
+            if sentence_tokens > self.max_tokens:
+                if current_chunk:
+                    chunks.append(" ".join(current_chunk).strip())
+                    current_chunk, current_tokens = [], 0
 
-            if frag_words > self.max_words:
-                if current_frags:
-                    chunks.append(" ".join(current_frags).strip())
-                current_frags, current_words = self._handle_oversized_fragment(frag, next_separators, chunks)
+                sub_chunks = self._safe_word_split(sentence)
+                chunks.extend(sub_chunks[:-1])
+                last_piece = sub_chunks[-1]
+                current_chunk = [last_piece]
+                current_tokens = len(self.tokenizer.encode(last_piece))
                 continue
 
-            if current_words + frag_words > self.max_words:
-                if current_frags:
-                    chunks.append(" ".join(current_frags).strip())
-                current_frags = self._compute_overlap(current_frags) + [frag]
-                current_words = sum(len(f.split()) for f in current_frags)
+            if current_tokens + sentence_tokens > self.max_tokens:
+                chunks.append(" ".join(current_chunk).strip())
+                overlap_chunk = self._build_overlap_sentences(current_chunk)
+                current_chunk = overlap_chunk + [sentence]
+                current_tokens = sum(len(self.tokenizer.encode(s)) for s in current_chunk)
             else:
-                current_frags.append(frag)
-                current_words += frag_words
+                current_chunk.append(sentence)
+                current_tokens += sentence_tokens
 
-        if current_frags:
-            chunks.append(" ".join(current_frags).strip())
+        if current_chunk:
+            chunks.append(" ".join(current_chunk).strip())
         return chunks
 
-    def _hard_split_by_words(self, text: str) -> List[str]:
+    def _build_overlap_sentences(self, current_chunk: List[str]) -> List[str]:
+        overlap_chunk = []
+        overlap_tokens_count = 0
+        for s in reversed(current_chunk):
+            s_t = len(self.tokenizer.encode(s))
+            if overlap_tokens_count + s_t > self.overlap_tokens:
+                break
+            overlap_chunk.insert(0, s)
+            overlap_tokens_count += s_t
+
+        if not overlap_chunk and current_chunk:
+            last_sentence = current_chunk[-1]
+            overlap_chunk = [self._extract_last_words_by_tokens(last_sentence, self.overlap_tokens)]
+        return overlap_chunk
+
+    def _safe_word_split(self, text: str) -> List[str]:
         words = text.split()
-        chunks = []
-        step = self.max_words - self.overlap
-        for i in range(0, len(words), step):
-            chunks.append(" ".join(words[i:i + self.max_words]))
-        return chunks
+        sub_chunks, current_words = [], []
+
+        for word in words:
+            current_words.append(word)
+            if len(self.tokenizer.encode(" ".join(current_words))) > self.max_tokens:
+                if len(current_words) > 1:
+                    current_words.pop()
+                sub_chunks.append(" ".join(current_words))
+
+                overlap_words = []
+                for w in reversed(current_words):
+                    overlap_words.insert(0, w)
+                    if len(self.tokenizer.encode(" ".join(overlap_words))) >= self.overlap_tokens:
+                        break
+                current_words = overlap_words + [word]
+
+        if current_words:
+            sub_chunks.append(" ".join(current_words))
+        return sub_chunks
+
+    def _extract_last_words_by_tokens(self, text: str, target_tokens: int) -> str:
+        words = text.split()
+        extracted_words = []
+        for word in reversed(words):
+            extracted_words.insert(0, word)
+            if len(self.tokenizer.encode(" ".join(extracted_words))) > target_tokens:
+                if len(extracted_words) > 1:
+                    extracted_words.pop(0)
+                break
+        return " ".join(extracted_words)
