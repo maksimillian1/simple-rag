@@ -2,10 +2,7 @@ import re
 from typing import List, Dict, Any
 from haystack import component
 from haystack.dataclasses import Document
-
-DEFAULT_MAX_TOKENS = 300
-DEFAULT_OVERLAP_TOKENS = 50
-DEFAULT_LLAMA_MODEL = "unsloth/llama-3-8b-Instruct"
+from . import config
 
 RE_SENTENCE_SPLIT = re.compile(r'(?<=[.!?])\s+')
 RE_MULTIPLE_SPACES = re.compile(r' +')
@@ -18,13 +15,13 @@ class HybridDocumentSplitter:
     """
     def __init__(
         self,
-        max_tokens: int = DEFAULT_MAX_TOKENS,
-        overlap_tokens: int = DEFAULT_OVERLAP_TOKENS,
-        model_name: str = DEFAULT_LLAMA_MODEL
+        max_tokens: int = None,
+        overlap_tokens: int = None,
+        model_name: str = None
     ):
-        self.max_tokens = max_tokens
-        self.overlap_tokens = overlap_tokens
-        self.model_name = model_name
+        self.max_tokens = max_tokens if max_tokens is not None else config.DEFAULT_MAX_TOKENS
+        self.overlap_tokens = overlap_tokens if overlap_tokens is not None else config.DEFAULT_OVERLAP_TOKENS
+        self.model_name = model_name if model_name is not None else config.DEFAULT_LLAMA_MODEL
         self._tokenizer = None
 
     @property

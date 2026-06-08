@@ -29,12 +29,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("chunker")
 
-# Constants
-MAX_ALLOWED_SIZE_BYTES = 104857600  # 100MB
-POLL_WAIT_TIME_SECONDS = 10
-POLL_SLEEP_INTERVAL_SECONDS = 5
-ERROR_SLEEP_INTERVAL_SECONDS = 5
-
 # Signal handling for AWS Spot instance eviction
 graceful_exit = False
 
@@ -60,8 +54,8 @@ def get_splitter():
     logger.info("Initializing HybridDocumentSplitter (lazy loading)...")
     from .hybrid_splitter import HybridDocumentSplitter
     return HybridDocumentSplitter(
-        max_tokens=config.CHUNK_SIZE,
-        overlap_tokens=config.CHUNK_OVERLAP
+        max_tokens=config.DEFAULT_MAX_TOKENS,
+        overlap_tokens=config.DEFAULT_OVERLAP_TOKENS
     )
 
 def parse_and_split(temp_file_path: str, file_name: str, bucket_name: str, object_key: str, splitter):
@@ -115,38 +109,32 @@ def write_debug_chunks(chunks, file_id: str, file_name: str, checksum: str, debu
     except Exception as e:
         logger.error(f"Failed to dump debug chunks to {debug_dir}: {e}")
 
-def process_message(message: dict, sqs_client, s3_client, queue_url: str, stage_2_queue_url: str, splitter):
-    """
-    Process a single Stage 1 chunking task:
-    1. Parses message and extracts coordinates.
-    2. Downloads payload file from S3 to temp location.
-    3. Runs parsing and document splitting.
-    4. Submits chunk batches to SQS Stage 2.
-    5. Deletes source message from Stage 1 queue.
-    """
+def _parse_and_validate_coords(message: dict, sqs_client, queue_url: str) -> tuple | None:
+    """Parses message body, validates S3 coords, and checks file size limits."""
     receipt_handle = message["ReceiptHandle"]
     body = parse_message_body(message)
     if not body or is_s3_test_event(body):
         sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-        return splitter, s3_client
+        return None
 
     coords = extract_s3_coords(body)
-    if not coords or not validate_object_size(coords[0], coords[1], coords[2], MAX_ALLOWED_SIZE_BYTES):
+    if not coords or not validate_object_size(coords[0], coords[1], coords[2], config.MAX_ALLOWED_SIZE_BYTES):
         sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-        return splitter, s3_client
-    bucket_name, object_key, _ = coords
+        return None
 
-    if bucket_name != "local" and s3_client is None:
-        logger.info("Initializing S3 client (lazy loading)...")
-        try:
-            s3_client = get_s3_client()
-        except Exception as e:
-            logger.error(f"Failed to initialize S3 client: {e}")
-            return splitter, None
+    return coords[0], coords[1], coords[2], receipt_handle
 
-    if splitter is None:
-        splitter = get_splitter()
-
+def _execute_processing_flow(
+    bucket_name: str,
+    object_key: str,
+    receipt_handle: str,
+    sqs_client,
+    s3_client,
+    queue_url: str,
+    stage_2_queue_url: str,
+    splitter
+) -> None:
+    """Executes temp download, parsing, chunking, SQS send, and SQS delete flow."""
     file_name = os.path.basename(object_key)
     
     import contextlib
@@ -164,17 +152,17 @@ def process_message(message: dict, sqs_client, s3_client, queue_url: str, stage_
                 download_file_to_local(s3_client, bucket_name, object_key, temp_file_path)
             except Exception as e:
                 logger.error(f"Failed to access/download file: {e}")
-                return splitter, s3_client
+                return
 
         try:
             chunks, file_id, checksum = parse_and_split(temp_file_path, file_name, bucket_name, object_key, splitter)
         except ValueError as e:
             logger.error(f"Unsupported format error: {e}")
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-            return splitter, s3_client
+            return
         except Exception as e:
             logger.error(f"Critical error parsing and chunking file {file_name}: {e}")
-            return splitter, s3_client
+            return
 
         debug_dir = os.getenv("DEBUG_DIR")
         if debug_dir:
@@ -186,6 +174,37 @@ def process_message(message: dict, sqs_client, s3_client, queue_url: str, stage_
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
         else:
             logger.error(f"S3 file s3://{bucket_name}/{object_key} was partially processed. SQS message left in queue for retries.")
+
+def process_message(message: dict, sqs_client, s3_client, queue_url: str, stage_2_queue_url: str, splitter):
+    """
+    Process a single Stage 1 chunking task:
+    1. Parses message and extracts S3 coordinates.
+    2. Lazy-loads S3 client and document splitter if required.
+    3. Runs file download, parsing, chunking, and stage 2 batch submission.
+    """
+    coords_info = _parse_and_validate_coords(message, sqs_client, queue_url)
+    if not coords_info:
+        return splitter, s3_client
+
+    bucket_name, object_key, _, receipt_handle = coords_info
+
+    # Lazy-load S3 client if required
+    if bucket_name != "local" and s3_client is None:
+        logger.info("Initializing S3 client (lazy loading)...")
+        try:
+            s3_client = get_s3_client()
+        except Exception as e:
+            logger.error(f"Failed to initialize S3 client: {e}")
+            return splitter, None
+
+    # Lazy-load document splitter if required
+    if splitter is None:
+        splitter = get_splitter()
+
+    _execute_processing_flow(
+        bucket_name, object_key, receipt_handle,
+        sqs_client, s3_client, queue_url, stage_2_queue_url, splitter
+    )
 
     return splitter, s3_client
 
@@ -218,14 +237,14 @@ def main():
             response = sqs_client.receive_message(
                 QueueUrl=queue_url,
                 MaxNumberOfMessages=1,
-                WaitTimeSeconds=POLL_WAIT_TIME_SECONDS
+                WaitTimeSeconds=config.POLL_WAIT_TIME_SECONDS
             )
 
             messages = response.get("Messages", [])
             if not messages:
                 if config.CONTINUOUS_POLL:
                     logger.info("No messages in Stage 1 queue. Sleeping 5 seconds for continuous polling...")
-                    time.sleep(POLL_SLEEP_INTERVAL_SECONDS)
+                    time.sleep(config.POLL_SLEEP_INTERVAL_SECONDS)
                     continue
                 else:
                     logger.info("No messages in Stage 1 queue. Exiting (Queue drained cleanly).")
@@ -243,7 +262,7 @@ def main():
 
         except Exception as e:
             logger.error(f"Unexpected error in worker loop: {e}")
-            time.sleep(ERROR_SLEEP_INTERVAL_SECONDS)
+            time.sleep(config.ERROR_SLEEP_INTERVAL_SECONDS)
 
     logger.info("Chunker worker terminated cleanly.")
 

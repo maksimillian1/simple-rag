@@ -50,7 +50,7 @@ def test_send_stage_2_batches():
     ]
     
     # Temporarily set batch size to 2 to test batching
-    with patch("src.messaging.BATCH_SIZE", 2):
+    with patch("src.config.BATCH_SIZE", 2):
         success = send_stage_2_batches(
             mock_sqs,
             "https://stage-2-url",

@@ -1,10 +1,8 @@
 import json
 import logging
+from . import config
 
 logger = logging.getLogger("chunker")
-
-# Constants
-BATCH_SIZE = 40
 
 def get_sqs_client():
     """
@@ -73,11 +71,11 @@ def send_stage_2_batches(sqs_client, stage_2_queue_url: str, chunks, file_id: st
     import math
     
     total_chunks = len(chunks)
-    total_parts = math.ceil(total_chunks / BATCH_SIZE)
+    total_parts = math.ceil(total_chunks / config.BATCH_SIZE)
     
-    for i in range(0, total_chunks, BATCH_SIZE):
-        batch_chunks = chunks[i:i + BATCH_SIZE]
-        part_index = i // BATCH_SIZE
+    for i in range(0, total_chunks, config.BATCH_SIZE):
+        batch_chunks = chunks[i:i + config.BATCH_SIZE]
+        part_index = i // config.BATCH_SIZE
         
         payload_chunks = []
         for idx, chunk in enumerate(batch_chunks):
