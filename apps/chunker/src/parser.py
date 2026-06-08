@@ -49,70 +49,64 @@ class PDFParser(BaseParser):
     def parse(self, file_path: str, metadata: dict) -> List[Document]:
         import fitz
 
-        raw_pages: List[str] = []
+        # Get raw pages text
         with fitz.open(file_path) as doc:
-            for page in doc:
-                page_text = self._extract_page_text(page)
-                raw_pages.append(page_text)
+            raw_pages = [self._extract_page_text(page) for page in doc]
 
-        processed_text = self._merge_pages_with_hyphen_migration(raw_pages)
+        # Normalize text breaks across and within pages
+        normalized_pages = self._normalize_text_on_pages(raw_pages)
 
-        combined_meta = metadata.copy()
-        combined_meta["page_number"] = DEFAULT_PAGE_NUM
-        return [Document(content=processed_text, meta=combined_meta)]
+        # Prepare a List of Documents for each page
+        documents = []
+        for idx, page_text in enumerate(normalized_pages):
+            if page_text.strip():
+                page_meta = metadata.copy()
+                page_meta["page_number"] = idx + 1
+                documents.append(Document(content=page_text.strip(), meta=page_meta))
+
+        return documents
 
     def _extract_page_text(self, page) -> str:
         blocks = page.get_text("blocks")
-        page_pieces = []
-        for b in blocks:
-            block_text = b[4].strip()
-            if block_text:
-                page_pieces.append(block_text)
+        return " ".join(b[4] for b in blocks if b[4])
 
-        raw_text = " ".join(page_pieces)
-        # Fix inline intra-page hyphens immediately
-        clean_text = RE_LINE_HYPHEN.sub('', raw_text)
-        return RE_MULTIPLE_SPACES.sub(' ', clean_text).strip()
-
-    def _merge_pages_with_hyphen_migration(self, pages: List[str]) -> str:
+    def _normalize_text_on_pages(self, pages: List[str]) -> List[str]:
         """
-        Advanced page stitching algorithm. If a page ends with a hyphenated half-word,
-        it cuts it out, shifts it to the next page, and glues it back together.
-        This preserves structural integrity and keeps page markers accurate for the UI.
+        Normalizes page texts:
+        1. Cleans intra-page line-end hyphens and collapses spaces.
+        2. Glues inter-page boundary hyphenated words by pulling the continuation backward.
         """
-        final_pieces: List[str] = []
-        carry_over_word = ""
+        # Step 1: Clean intra-page line breaks and multiple spaces
+        cleaned = []
+        for text in pages:
+            clean_text = RE_LINE_HYPHEN.sub("", text)
+            cleaned.append(RE_MULTIPLE_SPACES.sub(" ", clean_text).strip())
 
-        for idx, page_text in enumerate(pages):
-            page_num = idx + 1
+        # Step 2: Glue inter-page boundary hyphenated words
+        for idx in range(len(cleaned)):
+            page_text = cleaned[idx]
+            match = RE_TRAILING_HYPHEN_WORD.search(page_text)
+            if not match:
+                continue
 
-            if carry_over_word and page_text:
-                # Prepend the carried over partial word to the first word of the next page
-                first_space_idx = page_text.find(" ")
-                if first_space_idx != -1:
-                    first_word = page_text[:first_space_idx]
-                    rest_of_page = page_text[first_space_idx:]
-                    glued_word = (carry_over_word + first_word).replace("-", "")
-                    page_text = glued_word + rest_of_page
-                else:
-                    page_text = (carry_over_word + page_text).replace("-", "")
-                carry_over_word = ""
+            hyphen_prefix = match.group(1)
+            next_idx = idx + 1
+            has_next = next_idx < len(cleaned) and cleaned[next_idx]
 
-            page_text, carry_over_word = self._extract_trailing_hyphen(page_text)
+            if has_next:
+                next_page_text = cleaned[next_idx]
+                parts = next_page_text.split(" ", 1)
+                first_word = parts[0]
+                rest_of_next_page = parts[1] if len(parts) > 1 else ""
 
-            if page_text.strip() or carry_over_word:
-                final_pieces.append(f"__PAGE_{page_num}__ {page_text.strip()}")
+                glued_word = (hyphen_prefix + first_word).replace("-", "")
+                cleaned[idx] = (page_text[:match.start()].strip() + " " + glued_word).strip()
+                cleaned[next_idx] = rest_of_next_page.strip()
+            else:
+                glued_word = hyphen_prefix.replace("-", "")
+                cleaned[idx] = (page_text[:match.start()].strip() + " " + glued_word).strip()
 
-        complete_text = " ".join(final_pieces)
-        return RE_MULTIPLE_SPACES.sub(' ', complete_text).strip()
-
-    def _extract_trailing_hyphen(self, text: str) -> Tuple[str, str]:
-        match = RE_TRAILING_HYPHEN_WORD.search(text)
-        if match:
-            hyphen_word = match.group(1)
-            clean_text = text[:match.start()].strip()
-            return clean_text, hyphen_word
-        return text, ""
+        return cleaned
 
 def resolve_parser(file_name: str) -> BaseParser:
     """

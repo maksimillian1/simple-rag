@@ -9,7 +9,6 @@ DEFAULT_LLAMA_MODEL = "unsloth/llama-3-8b-Instruct"
 
 RE_SENTENCE_SPLIT = re.compile(r'(?<=[.!?])\s+')
 RE_MULTIPLE_SPACES = re.compile(r' +')
-RE_PAGE_MARKER = re.compile(r'__PAGE_(\d+)__')
 
 @component
 class HybridDocumentSplitter:
@@ -42,18 +41,49 @@ class HybridDocumentSplitter:
         if not documents:
             return {"documents": []}
 
-        processed_docs = []
+        all_sentences = self._extract_sentences(documents)
+        chunks = self._split_into_chunks(all_sentences)
+        processed_docs = self._build_documents_from_chunks(chunks, documents[0].meta)
+
+        return {"documents": processed_docs}
+
+    def _extract_sentences(self, documents: List[Document]) -> List[Dict[str, Any]]:
+        """Extracts and cleans all sentences from input documents, tracking page numbers."""
+        all_sentences = []
         for doc in documents:
             if not doc.content or not isinstance(doc.content, str):
                 continue
 
+            page_num = doc.meta.get("page_number", 1)
             cleaned_text = self._prepare_text(doc.content)
-            chunks = self._split_into_chunks(cleaned_text)
+            paragraphs = cleaned_text.split("\n\n")
 
-            for i, chunk in enumerate(chunks):
-                processed_docs.append(self._build_document(doc, chunk, i))
+            for para in paragraphs:
+                if not para.strip():
+                    continue
+                sentences = [s.strip() for s in RE_SENTENCE_SPLIT.split(para) if s.strip()]
+                for s in sentences:
+                    all_sentences.append({"text": s, "page_number": page_num})
+                if all_sentences:
+                    all_sentences[-1]["text"] += "\n\n"
+        return all_sentences
 
-        return {"documents": processed_docs}
+    def _build_documents_from_chunks(self, chunks: List[Dict[str, Any]], base_meta: Dict[str, Any]) -> List[Document]:
+        """Creates Document objects from chunks using a map approach."""
+        return [
+            Document(
+                content=chunk["text"],
+                meta=self._prepare_metadata(base_meta, idx, chunk["page_number"])
+            )
+            for idx, chunk in enumerate(chunks)
+        ]
+
+    def _prepare_metadata(self, base_meta: Dict[str, Any], index: int, page_number: int) -> Dict[str, Any]:
+        """Prepares the metadata dictionary for a chunk document."""
+        new_meta = base_meta.copy()
+        new_meta["chunk_index"] = index
+        new_meta["page_number"] = page_number
+        return new_meta
 
     def _prepare_text(self, text: str) -> str:
         text = text.replace("\n\n", "===PARAGRAPH===")
@@ -61,78 +91,65 @@ class HybridDocumentSplitter:
         text = text.replace("===PARAGRAPH===", "\n\n")
         return RE_MULTIPLE_SPACES.sub(' ', text).strip()
 
-    def _build_document(self, parent_doc: Document, chunk_text: str, index: int) -> Document:
-        page_match = RE_PAGE_MARKER.search(chunk_text)
-        chunk_page = parent_doc.meta.get("page_number", 1)
-        if page_match:
-            chunk_page = int(page_match.group(1))
+    def _create_chunk(self, sentences: List[Dict[str, Any]]) -> Dict[str, Any]:
+        text = " ".join(s["text"] for s in sentences).strip()
+        text = RE_MULTIPLE_SPACES.sub(' ', text).strip()
+        page_num = sentences[0]["page_number"] if sentences else 1
+        return {"text": text, "page_number": page_num}
 
-        clean_content = RE_PAGE_MARKER.sub('', chunk_text)
-        clean_content = RE_MULTIPLE_SPACES.sub(' ', clean_content).strip()
-
-        new_meta = {
-            **parent_doc.meta,
-            "chunk_index": index,
-            "page_number": chunk_page
-        }
-        return Document(content=clean_content, meta=new_meta)
-
-    def _split_into_chunks(self, text: str) -> List[str]:
-        paragraphs = text.split("\n\n")
-        all_sentences = []
-
-        for para in paragraphs:
-            if not para.strip():
-                continue
-            sentences = [s.strip() for s in RE_SENTENCE_SPLIT.split(para) if s.strip()]
-            all_sentences.extend(sentences)
-            if all_sentences:
-                all_sentences[-1] += "\n\n"
-
-        chunks, current_chunk = [], []
+    def _split_into_chunks(self, all_sentences: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        chunks = []
+        current_chunk = []
         current_tokens = 0
 
-        for sentence in all_sentences:
+        for sent_info in all_sentences:
+            sentence = sent_info["text"]
+            page_num = sent_info["page_number"]
             sentence_tokens = len(self.tokenizer.encode(sentence))
 
             if sentence_tokens > self.max_tokens:
                 if current_chunk:
-                    chunks.append(" ".join(current_chunk).strip())
-                    current_chunk, current_tokens = [], 0
+                    chunks.append(self._create_chunk(current_chunk))
+                    current_chunk = []
+                    current_tokens = 0
 
                 sub_chunks = self._safe_word_split(sentence)
-                chunks.extend(sub_chunks[:-1])
+                for piece in sub_chunks[:-1]:
+                    chunks.append({"text": piece, "page_number": page_num})
                 last_piece = sub_chunks[-1]
-                current_chunk = [last_piece]
+                current_chunk = [{"text": last_piece, "page_number": page_num}]
                 current_tokens = len(self.tokenizer.encode(last_piece))
                 continue
 
             if current_tokens + sentence_tokens > self.max_tokens:
-                chunks.append(" ".join(current_chunk).strip())
+                chunks.append(self._create_chunk(current_chunk))
                 overlap_chunk = self._build_overlap_sentences(current_chunk)
-                current_chunk = overlap_chunk + [sentence]
-                current_tokens = sum(len(self.tokenizer.encode(s)) for s in current_chunk)
+                current_chunk = overlap_chunk + [sent_info]
+                current_tokens = sum(len(self.tokenizer.encode(s["text"])) for s in current_chunk)
             else:
-                current_chunk.append(sentence)
+                current_chunk.append(sent_info)
                 current_tokens += sentence_tokens
 
         if current_chunk:
-            chunks.append(" ".join(current_chunk).strip())
+            chunks.append(self._create_chunk(current_chunk))
         return chunks
 
-    def _build_overlap_sentences(self, current_chunk: List[str]) -> List[str]:
+    def _build_overlap_sentences(self, current_chunk: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         overlap_chunk = []
         overlap_tokens_count = 0
-        for s in reversed(current_chunk):
+        for s_info in reversed(current_chunk):
+            s = s_info["text"]
             s_t = len(self.tokenizer.encode(s))
             if overlap_tokens_count + s_t > self.overlap_tokens:
                 break
-            overlap_chunk.insert(0, s)
+            overlap_chunk.insert(0, s_info)
             overlap_tokens_count += s_t
 
         if not overlap_chunk and current_chunk:
-            last_sentence = current_chunk[-1]
-            overlap_chunk = [self._extract_last_words_by_tokens(last_sentence, self.overlap_tokens)]
+            last_s_info = current_chunk[-1]
+            last_sentence = last_s_info["text"]
+            overlap_text = self._extract_last_words_by_tokens(last_sentence, self.overlap_tokens)
+            overlap_chunk = [{"text": overlap_text, "page_number": last_s_info["page_number"]}]
         return overlap_chunk
 
     def _safe_word_split(self, text: str) -> List[str]:
