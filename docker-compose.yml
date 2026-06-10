@@ -40,16 +40,14 @@ services:
       - AWS_SQS_STAGE_1_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-1-parsing
       - AWS_SQS_STAGE_2_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-2-indexing
       - AWS_PROFILE=developer
-      
       - AWS_DEFAULT_REGION=eu-central-1
       - AWS_REGION=eu-central-1
       - CONTINUOUS_POLL=true
-      - DEBUG_DIR=/chunker/debug
+      - DEBUG_DIR=/app/debug
     volumes:
-      - /Users/maksimsnitcuk/Applications/personal/simple-rag:/Users/maksimsnitcuk/Applications/personal/simple-rag
+      - .:/simple-rag
       - ./apps/chunker:/app
       - ~/.aws:/root/.aws:ro
-      - ./apps/chunker/debug:/chunker/debug
 
   indexer:
     build:

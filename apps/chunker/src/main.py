@@ -21,7 +21,6 @@ from .storage import (
     download_file_to_local
 )
 
-# Setup structured logging
 logging.basicConfig(
     level=logging.INFO,
     format='{"time": "%(asctime)s", "level": "%(levelname)s", "msg": "%(message)s"}',
@@ -29,7 +28,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("chunker")
 
-# Signal handling for AWS Spot instance eviction
 graceful_exit = False
 
 def handle_signal(signum, frame):
