@@ -27,14 +27,15 @@ def compute_sparse_vector(text: str) -> dict:
     counts = Counter(words)
     total_words = len(words)
     
-    sparse_data = []
+    # Use a dictionary to aggregate weights for colliding indices
+    aggregated = {}
     for word, count in counts.items():
         word_index = zlib.adler32(word.encode('utf-8')) & 0x7fffffff
         weight = float(count) / total_words
-        sparse_data.append((word_index, weight))
+        aggregated[word_index] = aggregated.get(word_index, 0.0) + weight
     
     # Sort by index ascending (Qdrant requirement)
-    sparse_data.sort(key=lambda x: x[0])
+    sparse_data = sorted(aggregated.items())
     
     indices = [item[0] for item in sparse_data]
     values = [round(item[1], 4) for item in sparse_data]

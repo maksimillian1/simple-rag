@@ -26,15 +26,19 @@ type Service struct {
 	QdrantURL            string
 	EmbeddingModelTeiURL string
 	Collection           string
+	DenseVectorsName     string
+	SparseVectorsName    string
 }
 
-func NewService(environment, sqsQueueURL, qdrantURL, embeddingModelTeiURL, collection string) *Service {
+func NewService(environment, sqsQueueURL, qdrantURL, embeddingModelTeiURL, collection string, denseName, sparseName string) *Service {
 	return &Service{
 		Environment:          environment,
 		SQSQueueURL:          sqsQueueURL,
 		QdrantURL:            qdrantURL,
 		EmbeddingModelTeiURL: embeddingModelTeiURL,
 		Collection:           collection,
+		DenseVectorsName:     denseName,
+		SparseVectorsName:    sparseName,
 	}
 }
 
@@ -134,13 +138,13 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 	// 3. Create collection with vector dimensions=384 and Cosine distance
 	createPayload := map[string]interface{}{
 		"vectors": map[string]interface{}{
-			"text-dense": map[string]interface{}{
+			s.DenseVectorsName: map[string]interface{}{
 				"size":     384,
 				"distance": "Cosine",
 			},
 		},
 		"sparse_vectors": map[string]interface{}{
-			"text-sparse": map[string]interface{}{},
+			s.SparseVectorsName: map[string]interface{}{},
 		},
 	}
 	createBytes, _ := json.Marshal(createPayload)
@@ -199,8 +203,8 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 					point: QdrantPoint{
 						ID:     j.id,
 						Vector: map[string]interface{}{
-							"text-dense":  vector,
-							"text-sparse": sparseVec,
+							s.DenseVectorsName:  vector,
+							s.SparseVectorsName: sparseVec,
 						},
 						Payload: map[string]interface{}{
 							"text":     j.item.Text,

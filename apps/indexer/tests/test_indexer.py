@@ -52,6 +52,16 @@ def test_sparse_vector_case_insensitivity_and_punctuation():
     assert res["indices"] == [h_growth]
     assert res["values"] == [1.0]
 
+def test_sparse_vector_collision_aggregation(monkeypatch):
+    import zlib
+    monkeypatch.setattr(zlib, "adler32", lambda data: 100)
+    
+    text = "word1 word2 word3"
+    res = compute_sparse_vector(text)
+    
+    assert res["indices"] == [100]
+    assert res["values"] == [1.0]
+
 def test_build_haystack_pipeline(monkeypatch):
     from src import config
     monkeypatch.setattr(config, "EMBEDDING_MODEL_TEI_URL", "http://localhost:8080")

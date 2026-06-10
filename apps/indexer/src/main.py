@@ -66,9 +66,7 @@ def build_haystack_pipeline():
         embedding_dim=384
     )
 
-    pipeline.add_component("writer", DocumentWriter(
-        document_store=document_store
-    ))
+    pipeline.add_component("writer", DocumentWriter(document_store=document_store))
 
     pipeline.connect("embedder.documents", "writer.documents")
     return pipeline

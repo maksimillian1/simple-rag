@@ -25,15 +25,19 @@ type Service struct {
 	Collection           string
 	EmbeddingModelTeiURL string
 	LLM                  core.LLMProvider
+	DenseVectorsName     string
+	SparseVectorsName    string
 }
 
 // NewService instantiates a new Service with standard dependencies
-func NewService(qdrantURL, collection, embeddingModelTeiURL string, llm core.LLMProvider) *Service {
+func NewService(qdrantURL, collection, embeddingModelTeiURL string, llm core.LLMProvider, denseName, sparseName string) *Service {
 	return &Service{
 		QdrantURL:            qdrantURL,
 		Collection:           collection,
 		EmbeddingModelTeiURL: embeddingModelTeiURL,
 		LLM:                  llm,
+		DenseVectorsName:     denseName,
+		SparseVectorsName:    sparseName,
 	}
 }
 
@@ -126,6 +130,66 @@ func computeTermCountPenalty(text string, query string) float64 {
 	}
 
 	return 1.0 / math.Log10(float64(totalCount)+10.0)
+}
+
+func getStringField(payload map[string]interface{}, key string) string {
+	if val, ok := payload[key]; ok {
+		if strVal, ok := val.(string); ok && strVal != "" {
+			return strVal
+		}
+	}
+	if metaVal, ok := payload["meta"]; ok {
+		if metaMap, ok := metaVal.(map[string]interface{}); ok {
+			if val, ok := metaMap[key]; ok {
+				if strVal, ok := val.(string); ok && strVal != "" {
+					return strVal
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func getIntField(payload map[string]interface{}, key string, defaultVal int) int {
+	if val, ok := payload[key]; ok {
+		switch v := val.(type) {
+		case float64:
+			return int(v)
+		case int:
+			return v
+		case int32:
+			return int(v)
+		case int64:
+			return int(v)
+		}
+	}
+	if metaVal, ok := payload["meta"]; ok {
+		if metaMap, ok := metaVal.(map[string]interface{}); ok {
+			if val, ok := metaMap[key]; ok {
+				switch v := val.(type) {
+				case float64:
+					return int(v)
+				case int:
+					return v
+				case int32:
+					return int(v)
+				case int64:
+					return int(v)
+				}
+			}
+		}
+	}
+	return defaultVal
+}
+
+func getContentField(payload map[string]interface{}) string {
+	if val := getStringField(payload, "text"); val != "" {
+		return val
+	}
+	if val := getStringField(payload, "content"); val != "" {
+		return val
+	}
+	return ""
 }
 
 func performRRF(densePoints, sparsePoints []QdrantPoint, k float64) []QdrantPoint {
@@ -297,7 +361,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
 		denseReq := QdrantSearchRequest{
 			Vector: NamedDenseQuery{
-				Name:   "text-dense",
+				Name:   s.DenseVectorsName,
 				Vector: queryVector,
 			},
 			Limit:       limit * 2, // Query double limit for better RRF coverage
@@ -340,7 +404,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
 		sparseReq := QdrantSearchRequest{
 			Vector: NamedSparseQuery{
-				Name:   "text-sparse",
+				Name:   s.SparseVectorsName,
 				Vector: querySparseVector,
 			},
 			Limit:       limit * 2, // Query double limit for better RRF coverage
@@ -392,7 +456,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Apply Word Count Penalty Algorithm to Sparse Results
 	for i, p := range sparseResults {
-		textSnippet, _ := p.Payload["text"].(string)
+		textSnippet := getContentField(p.Payload)
 		penalty := computeTermCountPenalty(textSnippet, trimmedQuery)
 		sparseResults[i].Score = p.Score * penalty
 	}
@@ -421,24 +485,17 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, point := range qdrantRes.Result {
 		// Parse structured fields from point payload
-		fileID, _ := point.Payload["file_id"].(string)
+		fileID := getStringField(point.Payload, "file_id")
 		if fileID == "" {
 			fileID = "unknown"
 		}
-		fileName, _ := point.Payload["file_name"].(string)
+		fileName := getStringField(point.Payload, "file_name")
 		if fileName == "" {
 			fileName = "unknown"
 		}
 		
-		// page_number might be decoded as float64 from JSON
-		pageNumber := 1
-		if pVal, ok := point.Payload["page_number"]; ok {
-			if fVal, ok := pVal.(float64); ok {
-				pageNumber = int(fVal)
-			}
-		}
-
-		textSnippet, _ := point.Payload["text"].(string)
+		pageNumber := getIntField(point.Payload, "page_number", 1)
+		textSnippet := getContentField(point.Payload)
 
 		citations = append(citations, core.Citation{
 			DocumentID:  fileID,
@@ -455,10 +512,8 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 			metadata["file_name"] = fileName
 			metadata["page_number"] = pageNumber
 			
-			if chunkIdxVal, ok := point.Payload["chunk_index"]; ok {
-				if fIdx, ok := chunkIdxVal.(float64); ok {
-					metadata["chunk_index"] = int(fIdx)
-				}
+			if chunkIdx := getIntField(point.Payload, "chunk_index", -1); chunkIdx != -1 {
+				metadata["chunk_index"] = chunkIdx
 			}
 
 			debugResults = append(debugResults, core.DebugResult{

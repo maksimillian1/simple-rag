@@ -19,6 +19,8 @@ type Config struct {
 	LLMProvider          string
 	AwsRegion            string
 	ModelID              string
+	DenseVectorsName     string
+	SparseVectorsName    string
 }
 
 // LoadEnv walks up from the current working directory to locate and parse the nearest .env file
@@ -89,5 +91,7 @@ func LoadConfig() Config {
 		LLMProvider:          GetEnv("LLM_PROVIDER", "mock"),
 		AwsRegion:            GetEnv("AWS_DEFAULT_REGION", "us-east-1"),
 		ModelID:              GetEnv("MODEL_ID", ""),
+		DenseVectorsName:     GetEnv("DENSE_VECTORS_NAME", "text-dense"),
+		SparseVectorsName:    GetEnv("SPARSE_VECTORS_NAME", "text-sparse"),
 	}
 }

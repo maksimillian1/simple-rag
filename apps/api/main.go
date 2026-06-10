@@ -60,8 +60,8 @@ func bootstrapServices(ctx context.Context, cfg core.Config) (*search.Service, *
 		return nil, nil, nil, nil, err
 	}
 
-	searchService := search.NewService(cfg.QdrantURL, cfg.Collection, cfg.EmbeddingModelTeiURL, llm)
-	debugService := debug.NewService(cfg.Environment, cfg.SQSQueueURL, cfg.QdrantURL, cfg.EmbeddingModelTeiURL, cfg.Collection)
+	searchService := search.NewService(cfg.QdrantURL, cfg.Collection, cfg.EmbeddingModelTeiURL, llm, cfg.DenseVectorsName, cfg.SparseVectorsName)
+	debugService := debug.NewService(cfg.Environment, cfg.SQSQueueURL, cfg.QdrantURL, cfg.EmbeddingModelTeiURL, cfg.Collection, cfg.DenseVectorsName, cfg.SparseVectorsName)
 	healthService := health.NewService(cfg.QdrantURL, cfg.EmbeddingModelTeiURL, cfg.Environment, cfg.Collection)
 	uiService := ui.NewService(cfg.Environment, cfg.Collection)
 
