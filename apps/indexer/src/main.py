@@ -5,7 +5,7 @@ import logging
 import time
 
 from . import config
-from .vector import compute_sparse_vector
+from .vector import generate_point_id, compute_sparse_vector
 
 logging.basicConfig(
     level=logging.INFO,
@@ -46,21 +46,28 @@ def get_sqs_client():
 
 def build_haystack_pipeline():
     from haystack import Pipeline
-    from haystack.components.embedders import TEIDocumentEmbedder
-    from haystack_integrations.components.writers.qdrant import QdrantDocumentWriter
+    from haystack.components.embedders import HuggingFaceAPIDocumentEmbedder
+    from haystack.components.writers import DocumentWriter
+    from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
 
     pipeline = Pipeline()
 
-    pipeline.add_component("embedder", TEIDocumentEmbedder(
-        url=config.EMBEDDING_MODEL_TEI_URL,
-        model=config.TEI_EMBEDDING_MODEL
+    pipeline.add_component("embedder", HuggingFaceAPIDocumentEmbedder(
+        api_type="text_embeddings_inference",
+        api_params={"url": config.EMBEDDING_MODEL_TEI_URL}
     ))
 
-    pipeline.add_component("writer", QdrantDocumentWriter(
+    document_store = QdrantDocumentStore(
         host=config.QDRANT_HOST,
         port=config.QDRANT_PORT,
-        collection=config.COLLECTION_NAME,
-        prefer_grpc=True
+        index=config.COLLECTION_NAME,
+        prefer_grpc=True,
+        use_sparse_embeddings=True,
+        embedding_dim=384
+    )
+
+    pipeline.add_component("writer", DocumentWriter(
+        document_store=document_store
     ))
 
     pipeline.connect("embedder.documents", "writer.documents")
@@ -83,6 +90,7 @@ def process_sqs_message(message_body: str, pipeline) -> bool:
         return True
 
     from haystack import Document
+    from haystack.dataclasses import SparseEmbedding
 
     haystack_docs = []
     for chunk in chunks:
@@ -90,15 +98,19 @@ def process_sqs_message(message_body: str, pipeline) -> bool:
         sparse_res = compute_sparse_vector(text)
 
         doc = Document(
+            id=generate_point_id(file_name, chunk["chunk_index"]),
             content=text,
             meta={
                 "file_id": file_id,
                 "file_name": file_name,
                 "chunk_index": chunk["chunk_index"],
                 "page_number": chunk.get("page_number", 1)
-            }
+            },
+            sparse_embedding=SparseEmbedding(
+                indices=sparse_res["indices"],
+                values=sparse_res["values"]
+            )
         )
-        doc.sparse_embedding = sparse_res
         haystack_docs.append(doc)
 
     try:

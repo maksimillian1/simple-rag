@@ -134,13 +134,13 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 	// 3. Create collection with vector dimensions=384 and Cosine distance
 	createPayload := map[string]interface{}{
 		"vectors": map[string]interface{}{
-			"dense": map[string]interface{}{
+			"text-dense": map[string]interface{}{
 				"size":     384,
 				"distance": "Cosine",
 			},
 		},
 		"sparse_vectors": map[string]interface{}{
-			"sparse": map[string]interface{}{},
+			"text-sparse": map[string]interface{}{},
 		},
 	}
 	createBytes, _ := json.Marshal(createPayload)
@@ -199,8 +199,8 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 					point: QdrantPoint{
 						ID:     j.id,
 						Vector: map[string]interface{}{
-							"dense":  vector,
-							"sparse": sparseVec,
+							"text-dense":  vector,
+							"text-sparse": sparseVec,
 						},
 						Payload: map[string]interface{}{
 							"text":     j.item.Text,

@@ -297,7 +297,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
 		denseReq := QdrantSearchRequest{
 			Vector: NamedDenseQuery{
-				Name:   "dense",
+				Name:   "text-dense",
 				Vector: queryVector,
 			},
 			Limit:       limit * 2, // Query double limit for better RRF coverage
@@ -340,7 +340,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
 		sparseReq := QdrantSearchRequest{
 			Vector: NamedSparseQuery{
-				Name:   "sparse",
+				Name:   "text-sparse",
 				Vector: querySparseVector,
 			},
 			Limit:       limit * 2, // Query double limit for better RRF coverage

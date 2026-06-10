@@ -3,7 +3,8 @@ import uuid
 import zlib
 from collections import Counter
 
-NAMESPACE_RAG = uuid.UUID('6ba7b810-9dad-11d1-80b4-00c04fd430c8')
+# Standard DNS namespace UUID for deterministic UUIDv5 generation
+NAMESPACE_RAG = uuid.NAMESPACE_DNS
 
 def generate_point_id(file_name: str, chunk_index: int) -> str:
     """

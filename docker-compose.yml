@@ -5,7 +5,7 @@ services:
   # Vector DB Layer
   # ---------------------------------------------------------------------------
   qdrant:
-    image: qdrant/qdrant:v1.9.2
+    image: qdrant/qdrant:v1.18.0
     container_name: simple-rag-qdrant
     ports:
       - "6333:6333" # HTTP REST API / Dashboard

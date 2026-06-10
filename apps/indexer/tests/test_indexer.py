@@ -37,3 +37,30 @@ def test_sparse_vector_computation():
     
     assert indices == expected_indices
     assert values == expected_values
+
+def test_sparse_vector_empty_or_no_valid_words():
+    res = compute_sparse_vector("")
+    assert res == {"indices": [], "values": []}
+
+    res2 = compute_sparse_vector("a b c I")
+    assert res2 == {"indices": [], "values": []}
+
+def test_sparse_vector_case_insensitivity_and_punctuation():
+    text = "Growth, growth! Growth."
+    res = compute_sparse_vector(text)
+    h_growth = zlib.adler32(b"growth") & 0x7fffffff
+    assert res["indices"] == [h_growth]
+    assert res["values"] == [1.0]
+
+def test_build_haystack_pipeline(monkeypatch):
+    from src import config
+    monkeypatch.setattr(config, "EMBEDDING_MODEL_TEI_URL", "http://localhost:8080")
+    monkeypatch.setattr(config, "QDRANT_HOST", "localhost")
+    monkeypatch.setattr(config, "QDRANT_PORT", 6334)
+    monkeypatch.setattr(config, "COLLECTION_NAME", "test_collection")
+
+    from src.main import build_haystack_pipeline
+    pipeline = build_haystack_pipeline()
+    assert pipeline is not None
+    assert "embedder" in pipeline.graph.nodes
+    assert "writer" in pipeline.graph.nodes

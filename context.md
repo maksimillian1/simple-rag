@@ -61,8 +61,6 @@ When generating or interacting with infrastructure configuration or deployment m
   - **Least Privilege Access Policies:** Queue policies (`aws_sqs_queue_policy`) must define narrow conditions limiting permissions specifically to source bucket ARNs using conditional operators like `ArnEquals`.
 
 ## 6. Current Phase & Engineering Tasks
-* **Task 1 Chunking:** Implement hybrid(semantic if possible) chunking via paragraph/sentence splitting using native Haystack 2.0 components (`DocumentSplitter`).
-* **Task 2 Chunking:** Fix PDF parser doesn't count pages correctly.
 * **Task 3 Code Optimization Python:** Refactor Python applications for strict compliance with the dynamic component injection/lazy-loading pattern, and clean up excessive/redundant comments.
 * **Task 4 Code Optimization Go:** Go API layer while ensuring compatibility with `labstack/echo`.
 
