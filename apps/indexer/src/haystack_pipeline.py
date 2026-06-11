@@ -6,25 +6,26 @@ from haystack.dataclasses import SparseEmbedding
 from . import config
 from .vector import generate_point_id
 
+_SHARED_SPLADE_MODEL = None
+
+def get_splade_model(model_name: str) -> SparseTextEmbedding:
+    global _SHARED_SPLADE_MODEL
+    if _SHARED_SPLADE_MODEL is None:
+        _SHARED_SPLADE_MODEL = SparseTextEmbedding(model_name=model_name)
+    return _SHARED_SPLADE_MODEL
+
 @component
 class SpladeDocumentProcessor:
     def __init__(self, model_name: str = config.SPLADE_MODEL_NAME):
         self.model_name = model_name
-        self._model = None
-
-    @property
-    def model(self):
-        if self._model is None:
-            from fastembed import SparseTextEmbedding
-            self._model = SparseTextEmbedding(model_name=self.model_name)
-        return self._model
 
     @component.output_types(documents=List[Document])
     def run(self, documents: List[Document]) -> dict:
-        # FastEmbed is optimized for batch embedding text sequences
+        model = get_splade_model(self.model_name)
+
         texts = [doc.content for doc in documents if doc.content]
         if texts:
-            embeddings = list(self.model.embed(texts))
+            embeddings = list(model.embed(texts))
             emb_iter = iter(embeddings)
         else:
             emb_iter = iter([])
