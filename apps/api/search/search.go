@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"hash/adler32"
 	"io"
 	"log"
 	"math"
@@ -17,7 +16,18 @@ import (
 	"time"
 
 	"github.com/maksimillian1/simple-rag/apps/api/core"
+	"github.com/qdrant/fastembed-go"
+	"github.com/qdrant/go-client/qdrant"
+	"google.golang.org/grpc"
 )
+
+type QdrantClient interface {
+	Search(ctx context.Context, in *qdrant.SearchPoints, opts ...grpc.CallOption) (*qdrant.SearchResponse, error)
+}
+
+type SparseModel interface {
+	Embed(ctx context.Context, texts []string) ([]fastembed.SparseEmbedding, error)
+}
 
 // Service encapsulates synchronous hybrid search retrieval configurations
 type Service struct {
@@ -27,10 +37,12 @@ type Service struct {
 	LLM                  core.LLMProvider
 	DenseVectorsName     string
 	SparseVectorsName    string
+	SparseModel          SparseModel
+	QdrantClient         QdrantClient
 }
 
 // NewService instantiates a new Service with standard dependencies
-func NewService(qdrantURL, collection, embeddingModelTeiURL string, llm core.LLMProvider, denseName, sparseName string) *Service {
+func NewService(qdrantURL, collection, embeddingModelTeiURL string, llm core.LLMProvider, denseName, sparseName string, sparseModel SparseModel, qdrantClient QdrantClient) *Service {
 	return &Service{
 		QdrantURL:            qdrantURL,
 		Collection:           collection,
@@ -38,73 +50,9 @@ func NewService(qdrantURL, collection, embeddingModelTeiURL string, llm core.LLM
 		LLM:                  llm,
 		DenseVectorsName:     denseName,
 		SparseVectorsName:    sparseName,
+		SparseModel:          sparseModel,
+		QdrantClient:         qdrantClient,
 	}
-}
-
-// SparseVector represents Qdrant sparse vector structure
-type SparseVector struct {
-	Indices []uint32  `json:"indices"`
-	Values  []float64 `json:"values"`
-}
-
-// NamedDenseQuery represents named dense vector search payload
-type NamedDenseQuery struct {
-	Name   string    `json:"name"`
-	Vector []float64 `json:"vector"`
-}
-
-// NamedSparseQuery represents named sparse vector search payload
-type NamedSparseQuery struct {
-	Name   string       `json:"name"`
-	Vector SparseVector `json:"vector"`
-}
-
-// QdrantSearchRequest matches Qdrant's REST search API schema (named dense/sparse)
-type QdrantSearchRequest struct {
-	Vector      interface{} `json:"vector"`
-	Limit       int         `json:"limit"`
-	WithPayload bool        `json:"with_payload"`
-	WithVector  bool        `json:"with_vector"`
-}
-
-func computeSparseVector(text string) SparseVector {
-	re := regexp.MustCompile(`\b[a-zA-Z0-9]{2,}\b`)
-	words := re.FindAllString(strings.ToLower(text), -1)
-	if len(words) == 0 {
-		return SparseVector{Indices: []uint32{}, Values: []float64{}}
-	}
-
-	counts := make(map[string]int)
-	for _, w := range words {
-		counts[w]++
-	}
-
-	type item struct {
-		index uint32
-		value float64
-	}
-	var items []item
-	totalWords := float64(len(words))
-
-	for w, count := range counts {
-		h := adler32.Checksum([]byte(w))
-		index := h & 0x7fffffff
-		value := float64(count) / totalWords
-		items = append(items, item{index: index, value: value})
-	}
-
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].index < items[j].index
-	})
-
-	indices := make([]uint32, len(items))
-	values := make([]float64, len(items))
-	for i, it := range items {
-		indices[i] = it.index
-		values[i] = it.value
-	}
-
-	return SparseVector{Indices: indices, Values: values}
 }
 
 func computeTermCountPenalty(text string, query string) float64 {
@@ -190,6 +138,64 @@ func getContentField(payload map[string]interface{}) string {
 		return val
 	}
 	return ""
+}
+
+func qdrantValueToInterface(val *qdrant.Value) interface{} {
+	if val == nil {
+		return nil
+	}
+	switch k := val.Kind.(type) {
+	case *qdrant.Value_NullValue:
+		return nil
+	case *qdrant.Value_DoubleValue:
+		return k.DoubleValue
+	case *qdrant.Value_IntegerValue:
+		return k.IntegerValue
+	case *qdrant.Value_StringValue:
+		return k.StringValue
+	case *qdrant.Value_BoolValue:
+		return k.BoolValue
+	case *qdrant.Value_StructValue:
+		if k.StructValue == nil {
+			return nil
+		}
+		m := make(map[string]interface{})
+		for key, value := range k.StructValue.Fields {
+			m[key] = qdrantValueToInterface(value)
+		}
+		return m
+	case *qdrant.Value_ListValue:
+		if k.ListValue == nil {
+			return nil
+		}
+		l := make([]interface{}, len(k.ListValue.Values))
+		for idx, value := range k.ListValue.Values {
+			l[idx] = qdrantValueToInterface(value)
+		}
+		return l
+	}
+	return nil
+}
+
+func payloadToMap(payload map[string]*qdrant.Value) map[string]interface{} {
+	m := make(map[string]interface{})
+	for k, v := range payload {
+		m[k] = qdrantValueToInterface(v)
+	}
+	return m
+}
+
+func getPointID(id *qdrant.PointId) interface{} {
+	if id == nil {
+		return nil
+	}
+	switch opt := id.PointIdOptions.(type) {
+	case *qdrant.PointId_Uuid:
+		return opt.Uuid
+	case *qdrant.PointId_Num:
+		return opt.Num
+	}
+	return nil
 }
 
 func performRRF(densePoints, sparsePoints []QdrantPoint, k float64) []QdrantPoint {
@@ -345,100 +351,79 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Calculate sparse vector for query
-	querySparseVector := computeSparseVector(trimmedQuery)
+	denseQueryVector := make([]float32, len(queryVector))
+	for i, v := range queryVector {
+		denseQueryVector[i] = float32(v)
+	}
+
+	// Calculate sparse vector for query using fastembed SPLADE model
+	embeddings, err := s.SparseModel.Embed(ctx, []string{trimmedQuery})
+	if err != nil {
+		log.Printf("[ERROR] [query] Failed to generate sparse embedding: %v", err)
+		http.Error(w, "Failed to generate sparse embedding: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(embeddings) == 0 {
+		log.Printf("[ERROR] [query] No sparse embeddings generated")
+		http.Error(w, "No sparse embeddings generated", http.StatusInternalServerError)
+		return
+	}
+	sparseEmbedding := embeddings[0]
 
 	// Execute concurrent Dense and Sparse searches in Qdrant
 	var wg sync.WaitGroup
 	var denseResults, sparseResults []QdrantPoint
 	var denseErr, sparseErr error
 
-	qdrantSearchURL := fmt.Sprintf("%s/collections/%s/points/search", s.QdrantURL, s.Collection)
-
 	// 1. Dense Search Routine
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		denseReq := QdrantSearchRequest{
-			Vector: NamedDenseQuery{
-				Name:   s.DenseVectorsName,
-				Vector: queryVector,
-			},
-			Limit:       limit * 2, // Query double limit for better RRF coverage
-			WithPayload: true,
-			WithVector:  false,
+		denseReq := &qdrant.SearchPoints{
+			CollectionName: s.Collection,
+			Vector:         denseQueryVector,
+			VectorName:     &s.DenseVectorsName,
+			Limit:          uint64(limit * 2), // Query double limit for better RRF coverage
+			WithPayload:    &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true}},
 		}
-		denseBody, err := json.Marshal(denseReq)
+		res, err := s.QdrantClient.Search(ctx, denseReq)
 		if err != nil {
 			denseErr = err
 			return
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, qdrantSearchURL, bytes.NewBuffer(denseBody))
-		if err != nil {
-			denseErr = err
-			return
+		for _, p := range res.Result {
+			denseResults = append(denseResults, QdrantPoint{
+				ID:      getPointID(p.Id),
+				Score:   float64(p.Score),
+				Payload: payloadToMap(p.Payload),
+			})
 		}
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := client.Do(req)
-		if err != nil {
-			denseErr = err
-			return
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			bodyBytes, _ := io.ReadAll(resp.Body)
-			denseErr = fmt.Errorf("qdrant dense search status %d: %s", resp.StatusCode, string(bodyBytes))
-			return
-		}
-		var searchRes QdrantSearchResponse
-		if err := json.NewDecoder(resp.Body).Decode(&searchRes); err != nil {
-			denseErr = err
-			return
-		}
-		denseResults = searchRes.Result
 	}()
 
 	// 2. Sparse Search Routine
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		sparseReq := QdrantSearchRequest{
-			Vector: NamedSparseQuery{
-				Name:   s.SparseVectorsName,
-				Vector: querySparseVector,
-			},
-			Limit:       limit * 2, // Query double limit for better RRF coverage
-			WithPayload: true,
-			WithVector:  false,
+		sparseReq := &qdrant.SearchPoints{
+			CollectionName: s.Collection,
+			Vector:         sparseEmbedding.Values,
+			SparseIndices:  &qdrant.SparseIndices{Data: sparseEmbedding.Indices},
+			VectorName:     &s.SparseVectorsName,
+			Limit:          uint64(limit * 2), // Query double limit for better RRF coverage
+			WithPayload:    &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true}},
 		}
-		sparseBody, err := json.Marshal(sparseReq)
+		res, err := s.QdrantClient.Search(ctx, sparseReq)
 		if err != nil {
 			sparseErr = err
 			return
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, qdrantSearchURL, bytes.NewBuffer(sparseBody))
-		if err != nil {
-			sparseErr = err
-			return
+		for _, p := range res.Result {
+			sparseResults = append(sparseResults, QdrantPoint{
+				ID:      getPointID(p.Id),
+				Score:   float64(p.Score),
+				Payload: payloadToMap(p.Payload),
+			})
 		}
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := client.Do(req)
-		if err != nil {
-			sparseErr = err
-			return
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			bodyBytes, _ := io.ReadAll(resp.Body)
-			sparseErr = fmt.Errorf("qdrant sparse search status %d: %s", resp.StatusCode, string(bodyBytes))
-			return
-		}
-		var searchRes QdrantSearchResponse
-		if err := json.NewDecoder(resp.Body).Decode(&searchRes); err != nil {
-			sparseErr = err
-			return
-		}
-		sparseResults = searchRes.Result
 	}()
 
 	wg.Wait()
@@ -455,11 +440,11 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3. Apply Word Count Penalty Algorithm to Sparse Results
-	for i, p := range sparseResults {
-		textSnippet := getContentField(p.Payload)
-		penalty := computeTermCountPenalty(textSnippet, trimmedQuery)
-		sparseResults[i].Score = p.Score * penalty
-	}
+// 	for i, p := range sparseResults {
+// 		textSnippet := getContentField(p.Payload)
+// 		penalty := computeTermCountPenalty(textSnippet, trimmedQuery)
+// 		sparseResults[i].Score = p.Score * penalty
+// 	}
 
 	// Re-sort sparse results based on penalized scores
 	sort.Slice(sparseResults, func(i, j int) bool {

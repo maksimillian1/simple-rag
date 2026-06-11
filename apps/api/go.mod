@@ -1,6 +1,6 @@
 module github.com/maksimillian1/simple-rag/apps/api
 
-go 1.24
+go 1.25.0
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.9
@@ -22,4 +22,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.36.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.42.3 // indirect
 	github.com/aws/smithy-go v1.26.0 // indirect
+	github.com/qdrant/fastembed-go v0.0.0-00010101000000-000000000000 // indirect
+	github.com/qdrant/go-client v1.18.2 // indirect
+	golang.org/x/net v0.53.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260427160629-7cedc36a6bc4 // indirect
+	google.golang.org/grpc v1.80.0 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
+
+replace github.com/qdrant/fastembed-go => ./mocks/fastembed

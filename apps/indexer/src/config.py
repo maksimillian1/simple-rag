@@ -16,6 +16,10 @@ TEI_EMBEDDING_MODEL = os.getenv("TEI_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6334"))
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "demo_collection")
+SPLADE_MODEL_NAME = os.getenv("SPLADE_MODEL_NAME", "prithivida/Splade_PP_en_v1")
+QDRANT_PREFER_GRPC = os.getenv("QDRANT_PREFER_GRPC", "true").lower() == "true"
+DENSE_EMBEDDING_DIM = int(os.getenv("DENSE_EMBEDDING_DIM", "384"))
+TEI_API_TYPE = os.getenv("TEI_API_TYPE", "text_embeddings_inference")
 
 # Worker Loop Configuration
 FETCH_BATCH_SIZE = int(os.getenv("FETCH_BATCH_SIZE", "10"))

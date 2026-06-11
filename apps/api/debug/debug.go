@@ -2,19 +2,20 @@ package debug
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"hash/adler32"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/qdrant/fastembed-go"
+	"github.com/qdrant/go-client/qdrant"
 )
 
 //go:embed seed_data.json
@@ -28,9 +29,11 @@ type Service struct {
 	Collection           string
 	DenseVectorsName     string
 	SparseVectorsName    string
+	QdrantClient         *qdrant.Client
+	SparseModel          *fastembed.SparseEmbeddingModel
 }
 
-func NewService(environment, sqsQueueURL, qdrantURL, embeddingModelTeiURL, collection string, denseName, sparseName string) *Service {
+func NewService(environment, sqsQueueURL, qdrantURL, embeddingModelTeiURL, collection string, denseName, sparseName string, qdrantClient *qdrant.Client, sparseModel *fastembed.SparseEmbeddingModel) *Service {
 	return &Service{
 		Environment:          environment,
 		SQSQueueURL:          sqsQueueURL,
@@ -39,6 +42,8 @@ func NewService(environment, sqsQueueURL, qdrantURL, embeddingModelTeiURL, colle
 		Collection:           collection,
 		DenseVectorsName:     denseName,
 		SparseVectorsName:    sparseName,
+		QdrantClient:         qdrantClient,
+		SparseModel:          sparseModel,
 	}
 }
 
@@ -51,46 +56,6 @@ type SeedItem struct {
 type SparseVector struct {
 	Indices []uint32  `json:"indices"`
 	Values  []float64 `json:"values"`
-}
-
-func computeSparseVector(text string) SparseVector {
-	re := regexp.MustCompile(`\b[a-zA-Z0-9]{2,}\b`)
-	words := re.FindAllString(strings.ToLower(text), -1)
-	if len(words) == 0 {
-		return SparseVector{Indices: []uint32{}, Values: []float64{}}
-	}
-
-	counts := make(map[string]int)
-	for _, w := range words {
-		counts[w]++
-	}
-
-	type item struct {
-		index uint32
-		value float64
-	}
-	var items []item
-	totalWords := float64(len(words))
-
-	for w, count := range counts {
-		h := adler32.Checksum([]byte(w))
-		index := h & 0x7fffffff
-		value := float64(count) / totalWords
-		items = append(items, item{index: index, value: value})
-	}
-
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].index < items[j].index
-	})
-
-	indices := make([]uint32, len(items))
-	values := make([]float64, len(items))
-	for i, it := range items {
-		indices[i] = it.index
-		values[i] = it.value
-	}
-
-	return SparseVector{Indices: indices, Values: values}
 }
 
 type QdrantPoint struct {
@@ -198,13 +163,34 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 					results <- result{err: fmt.Errorf("item %d failed: %w", j.id, err)}
 					continue
 				}
-				sparseVec := computeSparseVector(j.item.Text)
+
+				// Generate sparse embedding using SPLADE
+				embeddings, err := s.SparseModel.Embed(context.Background(), []string{j.item.Text})
+				if err != nil {
+					results <- result{err: fmt.Errorf("item %d sparse embedding failed: %w", j.id, err)}
+					continue
+				}
+				if len(embeddings) == 0 {
+					results <- result{err: fmt.Errorf("item %d no sparse embedding generated", j.id)}
+					continue
+				}
+				sparseEmbedding := embeddings[0]
+
+				sparseIndices := sparseEmbedding.Indices
+				sparseValues := make([]float64, len(sparseEmbedding.Values))
+				for idx, val := range sparseEmbedding.Values {
+					sparseValues[idx] = float64(val)
+				}
+
 				results <- result{
 					point: QdrantPoint{
 						ID:     j.id,
 						Vector: map[string]interface{}{
-							s.DenseVectorsName:  vector,
-							s.SparseVectorsName: sparseVec,
+							s.DenseVectorsName: vector,
+							s.SparseVectorsName: map[string]interface{}{
+								"indices": sparseIndices,
+								"values":  sparseValues,
+							},
 						},
 						Payload: map[string]interface{}{
 							"text":     j.item.Text,

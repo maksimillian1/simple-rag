@@ -1,6 +1,6 @@
 import uuid
-import zlib
-from src.vector import generate_point_id, compute_sparse_vector, NAMESPACE_RAG
+import numpy as np
+from src.vector import generate_point_id, NAMESPACE_RAG
 
 def test_point_id_generation():
     file_name = "annual_report_2026.pdf"
@@ -12,55 +12,42 @@ def test_point_id_generation():
     actual_uuid = generate_point_id(file_name, chunk_idx)
     assert actual_uuid == expected_uuid
 
-def test_sparse_vector_computation():
-    text = "Financial growth growth Q1"
-    
-    res = compute_sparse_vector(text)
-    indices = res["indices"]
-    values = res["values"]
-    
-    assert len(indices) == 3
-    assert len(values) == 3
-    
-    h_financial = zlib.adler32(b"financial") & 0x7fffffff
-    h_growth = zlib.adler32(b"growth") & 0x7fffffff
-    h_q1 = zlib.adler32(b"q1") & 0x7fffffff
-    
-    expected_pairs = sorted([
-        (h_financial, 0.25),
-        (h_growth, 0.50),
-        (h_q1, 0.25)
-    ], key=lambda x: x[0])
-    
-    expected_indices = [p[0] for p in expected_pairs]
-    expected_values = [p[1] for p in expected_pairs]
-    
-    assert indices == expected_indices
-    assert values == expected_values
+class MockSparseEmbeddingResult:
+    def __init__(self, indices, values):
+        self.indices = np.array(indices)
+        self.values = np.array(values)
 
-def test_sparse_vector_empty_or_no_valid_words():
-    res = compute_sparse_vector("")
-    assert res == {"indices": [], "values": []}
+class MockSparseTextEmbedding:
+    def __init__(self, model_name):
+        self.model_name = model_name
 
-    res2 = compute_sparse_vector("a b c I")
-    assert res2 == {"indices": [], "values": []}
+    def embed(self, texts):
+        for i, _ in enumerate(texts):
+            yield MockSparseEmbeddingResult([100 + i, 200 + i], [0.1 + i, 0.2 + i])
 
-def test_sparse_vector_case_insensitivity_and_punctuation():
-    text = "Growth, growth! Growth."
-    res = compute_sparse_vector(text)
-    h_growth = zlib.adler32(b"growth") & 0x7fffffff
-    assert res["indices"] == [h_growth]
-    assert res["values"] == [1.0]
+def test_splade_document_processor(monkeypatch):
+    import fastembed
+    monkeypatch.setattr(fastembed, "SparseTextEmbedding", MockSparseTextEmbedding)
 
-def test_sparse_vector_collision_aggregation(monkeypatch):
-    import zlib
-    monkeypatch.setattr(zlib, "adler32", lambda data: 100)
-    
-    text = "word1 word2 word3"
-    res = compute_sparse_vector(text)
-    
-    assert res["indices"] == [100]
-    assert res["values"] == [1.0]
+    from src.haystack_pipeline import SpladeDocumentProcessor
+    from haystack import Document
+
+    processor = SpladeDocumentProcessor()
+    docs = [
+        Document(content="Hello world", meta={"file_name": "test.pdf", "chunk_index": 0}),
+        Document(content="Another text", meta={"file_name": "test.pdf", "chunk_index": 1})
+    ]
+
+    result = processor.run(docs)
+    processed_docs = result["documents"]
+
+    assert len(processed_docs) == 2
+    assert processed_docs[0].id == generate_point_id("test.pdf", 0)
+    assert processed_docs[0].sparse_embedding.indices == [100, 200]
+    assert processed_docs[0].sparse_embedding.values == [0.1, 0.2]
+    assert processed_docs[1].id == generate_point_id("test.pdf", 1)
+    assert processed_docs[1].sparse_embedding.indices == [101, 201]
+    assert processed_docs[1].sparse_embedding.values == [1.1, 1.2]
 
 def test_build_haystack_pipeline(monkeypatch):
     from src import config
@@ -69,8 +56,9 @@ def test_build_haystack_pipeline(monkeypatch):
     monkeypatch.setattr(config, "QDRANT_PORT", 6334)
     monkeypatch.setattr(config, "COLLECTION_NAME", "test_collection")
 
-    from src.main import build_haystack_pipeline
+    from src.haystack_pipeline import build_haystack_pipeline
     pipeline = build_haystack_pipeline()
     assert pipeline is not None
+    assert "splade_processor" in pipeline.graph.nodes
     assert "embedder" in pipeline.graph.nodes
     assert "writer" in pipeline.graph.nodes

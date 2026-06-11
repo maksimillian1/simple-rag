@@ -2,14 +2,18 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/maksimillian1/simple-rag/apps/api/core"
 	"github.com/maksimillian1/simple-rag/apps/api/debug"
 	"github.com/maksimillian1/simple-rag/apps/api/health"
 	"github.com/maksimillian1/simple-rag/apps/api/search"
 	"github.com/maksimillian1/simple-rag/apps/api/ui"
+	"github.com/qdrant/fastembed-go"
+	"github.com/qdrant/go-client/qdrant"
 )
 
 func main() {
@@ -60,8 +64,28 @@ func bootstrapServices(ctx context.Context, cfg core.Config) (*search.Service, *
 		return nil, nil, nil, nil, err
 	}
 
-	searchService := search.NewService(cfg.QdrantURL, cfg.Collection, cfg.EmbeddingModelTeiURL, llm, cfg.DenseVectorsName, cfg.SparseVectorsName)
-	debugService := debug.NewService(cfg.Environment, cfg.SQSQueueURL, cfg.QdrantURL, cfg.EmbeddingModelTeiURL, cfg.Collection, cfg.DenseVectorsName, cfg.SparseVectorsName)
+	// Initialize fastembed sparse model
+	sparseModel, err := fastembed.NewSparseEmbeddingModel(fastembed.WithModel(fastembed.SPLADE_PP_ED8R))
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to init fastembed sparse model: %w", err)
+	}
+
+	// Parse host for Qdrant gRPC client
+	host := "localhost"
+	if u, err := url.Parse(cfg.QdrantURL); err == nil && u.Hostname() != "" {
+		host = u.Hostname()
+	}
+
+	qClient, err := qdrant.NewClient(&qdrant.Config{
+		Host: host,
+		Port: 6334,
+	})
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to connect to Qdrant gRPC: %w", err)
+	}
+
+	searchService := search.NewService(cfg.QdrantURL, cfg.Collection, cfg.EmbeddingModelTeiURL, llm, cfg.DenseVectorsName, cfg.SparseVectorsName, sparseModel, qClient.GetPointsClient())
+	debugService := debug.NewService(cfg.Environment, cfg.SQSQueueURL, cfg.QdrantURL, cfg.EmbeddingModelTeiURL, cfg.Collection, cfg.DenseVectorsName, cfg.SparseVectorsName, qClient, sparseModel)
 	healthService := health.NewService(cfg.QdrantURL, cfg.EmbeddingModelTeiURL, cfg.Environment, cfg.Collection)
 	uiService := ui.NewService(cfg.Environment, cfg.Collection)
 
