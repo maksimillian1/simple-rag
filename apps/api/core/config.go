@@ -18,6 +18,7 @@ type Config struct {
 	SQSQueueURL          string
 	LLMProvider          string
 	AwsRegion            string
+	AwsBedrockRegion     string
 	ModelID              string
 	DenseVectorsName     string
 	SparseVectorsName    string
@@ -89,9 +90,10 @@ func LoadConfig() Config {
 		Collection:           GetEnv("COLLECTION_NAME", "demo_collection"),
 		EmbeddingModelTeiURL: GetEnv("EMBEDDING_MODEL_TEI_URL", "http://localhost:8081"),
 		Environment:          GetEnv("ENVIRONMENT", "production"),
-		SQSQueueURL:          GetEnv("AWS_SQS_STAGE_2_URL", "http://localhost:9324/000000000000/stage-2-indexing"),
+		SQSQueueURL:          GetEnv("AWS_SQS_STAGE_2_URL", "https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-2-indexing"),
 		LLMProvider:          GetEnv("LLM_PROVIDER", "mock"),
 		AwsRegion:            GetEnv("AWS_DEFAULT_REGION", "eu-central-1"),
+		AwsBedrockRegion:     GetEnv("AWS_BEDROCK_REGION", GetEnv("AWS_DEFAULT_REGION", "us-east-1")),
 		ModelID:              GetEnv("MODEL_ID", ""),
 		DenseVectorsName:     GetEnv("DENSE_VECTORS_NAME", "text-dense"),
 		SparseVectorsName:    GetEnv("SPARSE_VECTORS_NAME", "text-sparse"),

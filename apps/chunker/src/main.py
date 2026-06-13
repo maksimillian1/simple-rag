@@ -162,7 +162,7 @@ def _execute_processing_flow(
             logger.error(f"Critical error parsing and chunking file {file_name}: {e}")
             return
 
-        debug_dir = os.getenv("DEBUG_DIR")
+        debug_dir = os.getenv("CHUNKER_DEBUG_DIR")
         if debug_dir:
             write_debug_chunks(chunks, file_id, file_name, checksum, debug_dir)
 

@@ -10,7 +10,7 @@ def mock_env_vars(monkeypatch):
     monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-central-1")
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "mock-access-key")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "mock-secret-key")
-    monkeypatch.setenv("CONTINUOUS_POLL", "false")
+    monkeypatch.setenv("CHUNKER_CONTINUOUS_POLL", "false")
 
 class MockTokenizer:
     def encode(self, text: str) -> list:

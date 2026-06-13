@@ -8,13 +8,13 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
 # TEI Configuration
-EMBEDDING_MODEL_TEI_URL = os.getenv("EMBEDDING_MODEL_TEI_URL", "http://localhost:8080")
+EMBEDDING_MODEL_TEI_URL = os.getenv("INDEXER_EMBEDDING_MODEL_TEI_URL", "http://localhost:8080")
 TEI_MAX_BATCH_SIZE = int(os.getenv("TEI_MAX_BATCH_SIZE", "32"))
 TEI_EMBEDDING_MODEL = os.getenv("TEI_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 
 # Qdrant Configuration
-QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
-QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6334"))
+QDRANT_HOST = os.getenv("INDEXER_QDRANT_HOST", "localhost")
+QDRANT_PORT = int(os.getenv("INDEXER_QDRANT_PORT", "6334"))
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "demo_collection")
 SPLADE_MODEL_NAME = os.getenv("SPLADE_MODEL_NAME", "prithivida/Splade_PP_en_v1")
 QDRANT_PREFER_GRPC = os.getenv("QDRANT_PREFER_GRPC", "true").lower() == "true"
@@ -26,5 +26,5 @@ FETCH_BATCH_SIZE = int(os.getenv("FETCH_BATCH_SIZE", "10"))
 POLL_WAIT_TIME_SECONDS = int(os.getenv("POLL_WAIT_TIME_SECONDS", "10"))
 
 # DEBUG
-CONTINUOUS_POLL = os.getenv("CONTINUOUS_POLL", "false").lower() == "true"
+CONTINUOUS_POLL = os.getenv("INDEXER_CONTINUOUS_POLL", "false").lower() == "true"
 POLL_SLEEP_INTERVAL_SECONDS = int(os.getenv("POLL_SLEEP_INTERVAL_SECONDS", "5"))

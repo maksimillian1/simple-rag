@@ -5,11 +5,11 @@ services:
   # Vector DB Layer
   # ---------------------------------------------------------------------------
   qdrant:
-    image: qdrant/qdrant:v1.18.0
+    image: ${QDRANT_IMAGE}
     container_name: simple-rag-qdrant
     ports:
-      - "6333:6333" # HTTP REST API / Dashboard
-      - "6334:6334" # gRPC (Our Go API and Indexer target)
+      - "${QDRANT_REST_PORT}:6333" # HTTP REST API / Dashboard
+      - "${QDRANT_GRPC_PORT}:6334" # gRPC (Our Go API and Indexer target)
     volumes:
       - qdrant_data:/qdrant/storage
     environment:
@@ -19,13 +19,13 @@ services:
   # Shared AI Inference Layer (Rust-based TEI)
   # ---------------------------------------------------------------------------
   tei-embeddings:
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-arm64-sha-5bc4d88
+    image: ${TEI_IMAGE}
     container_name: simple-rag-tei
     ports:
-      - "8081:80"
+      - "${TEI_PORT}:80"
     volumes:
       - tei_cache:/data
-    command: --model-id BAAI/bge-small-en-v1.5 --revision main
+    command: --model-id ${TEI_MODEL_ID} --revision ${TEI_MODEL_REVISION}
 
   # ---------------------------------------------------------------------------
   # Ephemeral Application Mocking (For manual POC execution trigger)
@@ -35,15 +35,11 @@ services:
       context: ./apps/chunker
       dockerfile: Dockerfile
     container_name: simple-rag-chunker
+    env_file:
+      - .env
     environment:
-      # --- AWS Native Setup (configured for testing real S3/SQS) ---
-      - AWS_SQS_STAGE_1_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-1-parsing
-      - AWS_SQS_STAGE_2_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-2-indexing
-      - AWS_PROFILE=developer
-      - AWS_DEFAULT_REGION=eu-central-1
-      - AWS_REGION=eu-central-1
-      - CONTINUOUS_POLL=true
-      - DEBUG_DIR=/app/debug
+      - CONTINUOUS_POLL=${CHUNKER_CONTINUOUS_POLL}
+      - DEBUG_DIR=${CHUNKER_DEBUG_DIR}
     volumes:
       - .:/simple-rag
       - ./apps/chunker:/app
@@ -54,17 +50,13 @@ services:
       context: ./apps/indexer
       dockerfile: Dockerfile
     container_name: simple-rag-indexer
+    env_file:
+      - .env
     environment:
-      # --- AWS Native Setup (configured for testing real S3/SQS) ---
-      - AWS_SQS_STAGE_2_URL=https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-2-indexing
-      - AWS_PROFILE=developer
-      
-      - AWS_DEFAULT_REGION=eu-central-1
-      - AWS_REGION=eu-central-1
-      - EMBEDDING_MODEL_TEI_URL=http://tei-embeddings:80
-      - QDRANT_HOST=qdrant
-      - QDRANT_PORT=6333
-      - CONTINUOUS_POLL=true
+      - EMBEDDING_MODEL_TEI_URL=${INDEXER_EMBEDDING_MODEL_TEI_URL}
+      - QDRANT_HOST=${INDEXER_QDRANT_HOST}
+      - QDRANT_PORT=${INDEXER_QDRANT_PORT}
+      - CONTINUOUS_POLL=${INDEXER_CONTINUOUS_POLL}
     volumes:
       - ./apps/indexer:/app
       - ~/.aws:/root/.aws:ro
@@ -72,5 +64,3 @@ services:
 volumes:
   qdrant_data:
   tei_cache:
-
-

@@ -59,7 +59,7 @@ func main() {
 // bootstrapServices initializes all core service providers, adapters, and modular handlers
 func bootstrapServices(ctx context.Context, cfg core.Config) (*search.Service, *debug.Service, *health.Service, *ui.Service, error) {
 	// Initialize Llama LLM Provider via Bedrock Runtime or mock fallback
-	llm, err := core.NewLLMProvider(ctx, cfg.LLMProvider, cfg.AwsRegion, cfg.ModelID)
+	llm, err := core.NewLLMProvider(ctx, cfg.LLMProvider, cfg.AwsBedrockRegion, cfg.ModelID)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
