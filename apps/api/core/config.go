@@ -56,7 +56,9 @@ func LoadEnv() {
 					} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'") {
 						val = val[1 : len(val)-1]
 					}
-					os.Setenv(key, val)
+					if os.Getenv(key) == "" {
+						os.Setenv(key, val)
+					}
 				}
 			}
 			log.Printf("[INFO] Loaded environment variables from %s", envPath)
@@ -89,7 +91,7 @@ func LoadConfig() Config {
 		Environment:          GetEnv("ENVIRONMENT", "production"),
 		SQSQueueURL:          GetEnv("AWS_SQS_STAGE_2_URL", "http://localhost:9324/000000000000/stage-2-indexing"),
 		LLMProvider:          GetEnv("LLM_PROVIDER", "mock"),
-		AwsRegion:            GetEnv("AWS_DEFAULT_REGION", "us-east-1"),
+		AwsRegion:            GetEnv("AWS_DEFAULT_REGION", "eu-central-1"),
 		ModelID:              GetEnv("MODEL_ID", ""),
 		DenseVectorsName:     GetEnv("DENSE_VECTORS_NAME", "text-dense"),
 		SparseVectorsName:    GetEnv("SPARSE_VECTORS_NAME", "text-sparse"),

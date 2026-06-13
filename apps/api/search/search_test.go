@@ -195,7 +195,7 @@ func TestMockProvider(t *testing.T) {
 }
 
 func TestBedrockProvider_FallbackWhenModelIDEmpty(t *testing.T) {
-	provider, err := core.NewBedrockProvider(context.Background(), "us-east-1", "")
+	provider, err := core.NewBedrockProvider(context.Background(), "eu-central-1", "")
 	if err != nil {
 		t.Fatalf("failed to create bedrock provider: %v", err)
 	}

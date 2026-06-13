@@ -25,14 +25,12 @@ class MockSparseTextEmbedding:
         for i, _ in enumerate(texts):
             yield MockSparseEmbeddingResult([100 + i, 200 + i], [0.1 + i, 0.2 + i])
 
-def test_splade_document_processor(monkeypatch):
-    import fastembed
-    monkeypatch.setattr(fastembed, "SparseTextEmbedding", MockSparseTextEmbedding)
-
+def test_splade_document_processor():
     from src.haystack_pipeline import SpladeDocumentProcessor
     from haystack import Document
 
-    processor = SpladeDocumentProcessor()
+    mock_model = MockSparseTextEmbedding("test-model")
+    processor = SpladeDocumentProcessor(splade_model=mock_model)
     docs = [
         Document(content="Hello world", meta={"file_name": "test.pdf", "chunk_index": 0}),
         Document(content="Another text", meta={"file_name": "test.pdf", "chunk_index": 1})
@@ -57,7 +55,8 @@ def test_build_haystack_pipeline(monkeypatch):
     monkeypatch.setattr(config, "COLLECTION_NAME", "test_collection")
 
     from src.haystack_pipeline import build_haystack_pipeline
-    pipeline = build_haystack_pipeline()
+    mock_model = MockSparseTextEmbedding("test-model")
+    pipeline = build_haystack_pipeline(splade_model=mock_model)
     assert pipeline is not None
     assert "splade_processor" in pipeline.graph.nodes
     assert "embedder" in pipeline.graph.nodes

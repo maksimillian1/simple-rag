@@ -6,26 +6,16 @@ from haystack.dataclasses import SparseEmbedding
 from . import config
 from .vector import generate_point_id
 
-_SHARED_SPLADE_MODEL = None
-
-def get_splade_model(model_name: str) -> SparseTextEmbedding:
-    global _SHARED_SPLADE_MODEL
-    if _SHARED_SPLADE_MODEL is None:
-        _SHARED_SPLADE_MODEL = SparseTextEmbedding(model_name=model_name)
-    return _SHARED_SPLADE_MODEL
-
 @component
 class SpladeDocumentProcessor:
-    def __init__(self, model_name: str = config.SPLADE_MODEL_NAME):
-        self.model_name = model_name
+    def __init__(self, splade_model):
+        self.splade_model = splade_model
 
     @component.output_types(documents=List[Document])
     def run(self, documents: List[Document]) -> dict:
-        model = get_splade_model(self.model_name)
-
         texts = [doc.content for doc in documents if doc.content]
         if texts:
-            embeddings = list(model.embed(texts))
+            embeddings = list(self.splade_model.embed(texts))
             emb_iter = iter(embeddings)
         else:
             emb_iter = iter([])
@@ -57,14 +47,14 @@ class SpladeDocumentProcessor:
 
         return {"documents": processed_docs}
 
-def build_haystack_pipeline():
+def build_haystack_pipeline(splade_model):
     from haystack.components.embedders import HuggingFaceAPIDocumentEmbedder
     from haystack.components.writers import DocumentWriter
     from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
 
     pipeline = Pipeline()
 
-    pipeline.add_component("splade_processor", SpladeDocumentProcessor())
+    pipeline.add_component("splade_processor", SpladeDocumentProcessor(splade_model=splade_model))
 
     pipeline.add_component("embedder", HuggingFaceAPIDocumentEmbedder(
         api_type=config.TEI_API_TYPE,

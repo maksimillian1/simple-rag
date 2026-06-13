@@ -315,15 +315,16 @@
 
             try {
                 const res = await fetch(API_BASE + "/seed", { method: "POST" });
-                const data = await res.json();
                 
                 if (res.ok) {
+                    const data = await res.json();
                     output.innerText = data.message || "Seeding complete.";
                     showAlert("Seed Successful", "Collection populated with mock vectors.", "success");
                     await checkHealth();
                 } else {
-                    output.innerText = "Error: " + (data.error || "Internal Server Error");
-                    showAlert("Seed Failed", data.error || "Check logs", "error");
+                    const errText = await res.text();
+                    output.innerText = "Error: " + errText;
+                    showAlert("Seed Failed", errText || "Check logs", "error");
                 }
             } catch (err) {
                 output.innerText = "Fetch Error: " + err.message;
@@ -353,13 +354,14 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ text: text })
                 });
-                const data = await res.json();
 
                 if (res.ok) {
+                    const data = await res.json();
                     showAlert("Queued Successfully", "Chunk sent to SQS queue.", "success");
                     textEl.value = "";
                 } else {
-                    showAlert("Failed to Queue", data.message || "An error occurred", "error");
+                    const errText = await res.text();
+                    showAlert("Failed to Queue", errText || "An error occurred", "error");
                 }
             } catch (err) {
                 showAlert("Request Error", err.message, "error");

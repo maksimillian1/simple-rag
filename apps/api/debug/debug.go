@@ -9,11 +9,14 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/qdrant/fastembed-go"
 	"github.com/qdrant/go-client/qdrant"
 )
@@ -378,26 +381,27 @@ func (s *Service) IndexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("[INFO] [debug] Sending manual chunk payload to SQS Stage 2: %s", string(payloadBytes))
+	// Shield real SQS from local endpoint overrides if target queue is on AWS
+	if !strings.Contains(s.SQSQueueURL, "localhost") && !strings.Contains(s.SQSQueueURL, "127.0.0.1") {
+		os.Setenv("AWS_IGNORE_CONFIGURED_ENDPOINT_URLS", "true")
+		defer os.Unsetenv("AWS_IGNORE_CONFIGURED_ENDPOINT_URLS")
+	}
 
-	// Form URL encoded SQS query message payload
-	formData := url.Values{}
-	formData.Set("Action", "SendMessage")
-	formData.Set("MessageBody", string(payloadBytes))
-
-	client := http.Client{Timeout: 5 * time.Second}
-	resp, err := client.PostForm(s.SQSQueueURL, formData)
+	cfg, err := config.LoadDefaultConfig(r.Context())
 	if err != nil {
-		log.Printf("[ERROR] [debug] Failed to forward manual chunk message to SQS: %v", err)
-		http.Error(w, "Failed to contact SQS Queue Service: "+err.Error(), http.StatusServiceUnavailable)
+		log.Printf("[ERROR] [debug] Failed to load AWS config: %v", err)
+		http.Error(w, "Failed to load AWS configuration: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		log.Printf("[ERROR] [debug] SQS returned error code %d: %s", resp.StatusCode, string(bodyBytes))
-		http.Error(w, "SQS queue returned error response", http.StatusInternalServerError)
+	sqsClient := sqs.NewFromConfig(cfg)
+	_, err = sqsClient.SendMessage(r.Context(), &sqs.SendMessageInput{
+		QueueUrl:    aws.String(s.SQSQueueURL),
+		MessageBody: aws.String(string(payloadBytes)),
+	})
+	if err != nil {
+		log.Printf("[ERROR] [debug] Failed to send message to SQS: %v", err)
+		http.Error(w, "Failed to send message to SQS queue: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

@@ -122,10 +122,10 @@ def main():
 
             if pipeline is None:
                 logger.info("Building Haystack pipeline (lazy loading)...")
-                pipeline = build_haystack_pipeline()
-                from .haystack_pipeline import get_splade_model
-                get_splade_model(config.SPLADE_MODEL_NAME)
-                logger.info("SPLADE model is fully loaded into memory and ready.")
+                from fastembed import SparseTextEmbedding
+                model = SparseTextEmbedding(model_name=config.SPLADE_MODEL_NAME)
+                pipeline = build_haystack_pipeline(splade_model=model)
+                logger.info("SPLADE model and Haystack pipeline are fully loaded and ready.")
 
             for msg in messages:
                 if graceful_exit:
