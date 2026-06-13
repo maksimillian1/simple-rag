@@ -26,7 +26,6 @@ type SparseModel interface {
 	Embed(ctx context.Context, texts []string) ([]fastembed.SparseEmbedding, error)
 }
 
-// Service encapsulates synchronous hybrid search retrieval configurations
 type Service struct {
 	QdrantURL            string
 	Collection           string
@@ -38,7 +37,6 @@ type Service struct {
 	QdrantClient         QdrantClient
 }
 
-// NewService instantiates a new Service with standard dependencies
 func NewService(qdrantURL, collection, embeddingModelTeiURL string, llm core.LLMProvider, denseName, sparseName string, sparseModel SparseModel, qdrantClient QdrantClient) *Service {
 	return &Service{
 		QdrantURL:            qdrantURL,
@@ -174,20 +172,17 @@ func getPointID(id *qdrant.PointId) interface{} {
 
 
 
-// QdrantPoint matches Qdrant raw point payload
 type QdrantPoint struct {
 	ID      interface{}            `json:"id"`
 	Score   float64                `json:"score"`
 	Payload map[string]interface{} `json:"payload"`
 }
 
-// QdrantSearchResponse matches Qdrant query response
 type QdrantSearchResponse struct {
 	Result []QdrantPoint `json:"result"`
 	Status string        `json:"status"`
 }
 
-// QueryHandler executes the built-in hybrid retrieval and LLM synthesis flow
 func (s *Service) QueryHandler(c echo.Context) error {
 	startTime := time.Now()
 
@@ -337,6 +332,8 @@ func (s *Service) queryQdrant(ctx context.Context, dense []float32, sparse faste
 	rrfK := uint32(60)
 	uint64Limit := uint64(limit)
 
+	// Execute Qdrant Query with Reciprocal Rank Fusion (RRF) algorithm to merge dense and sparse results:
+	// Score(p) = sum_{m in Models} 1 / (k + rank_m(p)) where k = 60
 	queryPointsReq := &qdrant.QueryPoints{
 		CollectionName: s.Collection,
 		Prefetch: []*qdrant.PrefetchQuery{
