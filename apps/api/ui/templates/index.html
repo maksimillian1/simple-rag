@@ -166,57 +166,94 @@
             <!-- Query Input Bar -->
             <div class="minimal-card p-6 shadow-sm">
                 <div class="flex flex-col gap-4">
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <!-- Search Input Row with Submit Button -->
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <div class="relative flex-grow">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input id="search-input" type="text" onkeydown="handleSearchKey(event)" placeholder="Search the vector database..." class="w-full bg-white border border-neutral-200 rounded-lg pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 placeholder-neutral-400 text-neutral-800 transition-all">
+                        </div>
+                        <button onclick="performSearch()" class="py-3 px-6 btn-primary text-sm flex items-center justify-center gap-2 font-medium shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                        </div>
-                        <input id="search-input" type="text" onkeydown="handleSearchKey(event)" placeholder="Search the vector database..." class="w-full bg-white border border-neutral-200 rounded-lg pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 placeholder-neutral-400 text-neutral-800 transition-all">
+                            <span>Search</span>
+                        </button>
                     </div>
                     
-                    <div class="flex items-center justify-between text-xs flex-wrap gap-3">
-                        <div class="flex items-center gap-4 flex-wrap">
-                            <div class="flex items-center gap-2">
-                                <label for="search-limit" class="text-neutral-500 font-medium">Limit results:</label>
-                                <select id="search-limit" class="bg-white border border-neutral-200 rounded px-2.5 py-1 text-neutral-700 focus:outline-none focus:border-neutral-900">
-                                    <option value="3" selected>3</option>
-                                    <option value="5">5</option>
-                                    <option value="10">10</option>
+                    <!-- Parameters Grid -->
+                    <div class="border-t border-neutral-100 pt-4">
+                        <div class="flex items-center gap-1.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-3 select-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            <span>Advanced Configuration</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 text-xs">
+                            <!-- Limit -->
+                            <div class="flex flex-col gap-1.5">
+                                <label for="search-limit" class="text-neutral-500 font-medium">Limit Results</label>
+                                <select id="search-limit" class="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-neutral-700 focus:outline-none focus:border-neutral-900 focus:bg-white transition-colors">
+                                    <option value="3" selected>3 results</option>
+                                    <option value="5">5 results</option>
+                                    <option value="10">10 results</option>
                                 </select>
                             </div>
-                            <div class="flex items-center gap-3 bg-neutral-50 border border-neutral-200 rounded px-2.5 py-1 select-none">
-                                <label class="flex items-center gap-1.5 cursor-pointer">
-                                    <input id="search-dense" type="checkbox" checked onchange="handleSearchModesChange()" class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 h-3.5 w-3.5">
-                                    <span class="text-neutral-700 font-medium">Dense Vector</span>
-                                </label>
-                                <span class="text-neutral-300">|</span>
-                                <label class="flex items-center gap-1.5 cursor-pointer">
-                                    <input id="search-sparse" type="checkbox" checked onchange="handleSearchModesChange()" class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 h-3.5 w-3.5">
-                                    <span class="text-neutral-700 font-medium">Sparse Vector</span>
-                                </label>
+
+                            <!-- Modes -->
+                            <div class="flex flex-col gap-1.5">
+                                <span class="text-neutral-500 font-medium">Search Modes</span>
+                                <div class="flex items-center justify-between bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-1.5 select-none h-[38px]">
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input id="search-dense" type="checkbox" checked onchange="handleSearchModesChange()" class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 h-3.5 w-3.5">
+                                        <span class="text-neutral-700 font-medium">Dense</span>
+                                    </label>
+                                    <span class="text-neutral-300">|</span>
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input id="search-sparse" type="checkbox" checked onchange="handleSearchModesChange()" class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 h-3.5 w-3.5">
+                                        <span class="text-neutral-700 font-medium">Sparse</span>
+                                    </label>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <label for="search-alpha" class="text-neutral-500 font-medium">Dense Weight (Alpha):</label>
-                                <select id="search-alpha" class="bg-white border border-neutral-200 rounded px-2.5 py-1 text-neutral-700 focus:outline-none focus:border-neutral-900">
+
+                            <!-- Pool Alpha -->
+                            <div class="flex flex-col gap-1.5">
+                                <label for="search-pool-alpha" class="text-neutral-500 font-medium">Pool Alpha (Prefetch)</label>
+                                <select id="search-pool-alpha" class="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-neutral-700 focus:outline-none focus:border-neutral-900 focus:bg-white transition-colors">
                                     <option value="0.0">0.0 (Pure Sparse)</option>
                                     <option value="0.2">0.2</option>
                                     <option value="0.4">0.4</option>
-                                    <option value="0.5" selected>0.5 (Hybrid)</option>
+                                    <option value="0.5" selected>0.5 (Balanced)</option>
                                     <option value="0.6">0.6</option>
                                     <option value="0.8">0.8</option>
                                     <option value="1.0">1.0 (Pure Dense)</option>
                                 </select>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <label for="search-rrf-k" class="text-neutral-500 font-medium">RRF K:</label>
-                                <input id="search-rrf-k" type="number" min="1" max="1000" value="60" class="w-14 bg-white border border-neutral-200 rounded px-2 py-0.5 text-neutral-700 focus:outline-none focus:border-neutral-900">
+
+                            <!-- RRF Merge Alpha -->
+                            <div class="flex flex-col gap-1.5">
+                                <label for="search-rrf-merge-priority-alpha" class="text-neutral-500 font-medium">Merge Alpha (RRF)</label>
+                                <select id="search-rrf-merge-priority-alpha" class="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-neutral-700 focus:outline-none focus:border-neutral-900 focus:bg-white transition-colors">
+                                    <option value="0.0">0.0 (Pure Sparse)</option>
+                                    <option value="0.2">0.2</option>
+                                    <option value="0.4">0.4</option>
+                                    <option value="0.5" selected>0.5 (Balanced)</option>
+                                    <option value="0.6">0.6</option>
+                                    <option value="0.8">0.8</option>
+                                    <option value="1.0">1.0 (Pure Dense)</option>
+                                </select>
+                            </div>
+
+                            <!-- RRF K -->
+                            <div class="flex flex-col gap-1.5">
+                                <label for="search-rrf-k" class="text-neutral-500 font-medium">RRF K Constant</label>
+                                <input id="search-rrf-k" type="number" min="1" max="1000" value="60" class="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-neutral-700 focus:outline-none focus:border-neutral-900 focus:bg-white transition-colors">
                             </div>
                         </div>
-
-                        <button onclick="performSearch()" class="py-2 px-5 btn-primary text-xs">
-                            Execute Search
-                        </button>
                     </div>
                 </div>
             </div>
@@ -407,15 +444,23 @@
         function handleSearchModesChange() {
             const dense = document.getElementById("search-dense").checked;
             const sparse = document.getElementById("search-sparse").checked;
-            const alphaSelect = document.getElementById("search-alpha");
+            const poolAlphaSelect = document.getElementById("search-pool-alpha");
+            const rrfMergeAlphaSelect = document.getElementById("search-rrf-merge-priority-alpha");
             const rrfKInput = document.getElementById("search-rrf-k");
 
-            if (dense && sparse) {
-                alphaSelect.disabled = false;
-                rrfKInput.disabled = false;
+            const isHybrid = dense && sparse;
+            poolAlphaSelect.disabled = !isHybrid;
+            rrfMergeAlphaSelect.disabled = !isHybrid;
+            rrfKInput.disabled = !isHybrid;
+
+            if (!isHybrid) {
+                poolAlphaSelect.classList.add("opacity-50", "cursor-not-allowed");
+                rrfMergeAlphaSelect.classList.add("opacity-50", "cursor-not-allowed");
+                rrfKInput.classList.add("opacity-50", "cursor-not-allowed");
             } else {
-                alphaSelect.disabled = true;
-                rrfKInput.disabled = true;
+                poolAlphaSelect.classList.remove("opacity-50", "cursor-not-allowed");
+                rrfMergeAlphaSelect.classList.remove("opacity-50", "cursor-not-allowed");
+                rrfKInput.classList.remove("opacity-50", "cursor-not-allowed");
             }
 
             if (!dense && !sparse) {
@@ -428,7 +473,8 @@
         async function performSearch() {
             const query = document.getElementById("search-input").value.trim();
             const limit = parseInt(document.getElementById("search-limit").value) || 3;
-            const alpha = parseFloat(document.getElementById("search-alpha").value);
+            const poolAlpha = parseFloat(document.getElementById("search-pool-alpha").value);
+            const rrfMergePriorityAlpha = parseFloat(document.getElementById("search-rrf-merge-priority-alpha").value);
             const rrfK = parseInt(document.getElementById("search-rrf-k").value) || 60;
             const searchDense = document.getElementById("search-dense").checked;
             const searchSparse = document.getElementById("search-sparse").checked;
@@ -462,7 +508,8 @@
                     body: JSON.stringify({
                         query: query,
                         top_k: limit,
-                        alpha: alpha,
+                        pool_alpha: poolAlpha,
+                        rrf_merge_priority_alpha: rrfMergePriorityAlpha,
                         rrf_k: rrfK,
                         dense: searchDense,
                         sparse: searchSparse

@@ -239,9 +239,18 @@ func (s *Service) QueryHandler(c echo.Context) error {
 		}
 	}
 
-	alpha := 0.5
-	if req.Alpha != nil {
-		alpha = *req.Alpha
+	poolAlpha := 0.5
+	if req.PoolAlpha != nil {
+		poolAlpha = *req.PoolAlpha
+	} else if req.Alpha != nil {
+		poolAlpha = *req.Alpha
+	}
+
+	rrfMergePriorityAlpha := 0.5
+	if req.RrfMergePriorityAlpha != nil {
+		rrfMergePriorityAlpha = *req.RrfMergePriorityAlpha
+	} else if req.Alpha != nil {
+		rrfMergePriorityAlpha = *req.Alpha
 	}
 
 	rrfK := 60
@@ -249,7 +258,7 @@ func (s *Service) QueryHandler(c echo.Context) error {
 		rrfK = req.RrfK
 	}
 
-	results, err := s.queryQdrant(ctx, denseQueryVector, sparseEmbedding, limit, alpha, rrfK, searchDense, searchSparse)
+	results, err := s.queryQdrant(ctx, denseQueryVector, sparseEmbedding, limit, poolAlpha, rrfMergePriorityAlpha, rrfK, searchDense, searchSparse)
 	if err != nil {
 		log.Printf("[ERROR] [query] Qdrant query failed: %v", err)
 		return c.String(http.StatusInternalServerError, "Qdrant query error: "+err.Error())
@@ -352,7 +361,7 @@ func (s *Service) getSparseEmbedding(ctx context.Context, query string) (fastemb
 	return embeddings[0], nil
 }
 
-func (s *Service) queryQdrant(ctx context.Context, dense []float32, sparse fastembed.SparseEmbedding, limit int, alpha float64, rrfKVal int, searchDense bool, searchSparse bool) ([]*qdrant.ScoredPoint, error) {
+func (s *Service) queryQdrant(ctx context.Context, dense []float32, sparse fastembed.SparseEmbedding, limit int, poolAlpha float64, rrfMergePriorityAlpha float64, rrfKVal int, searchDense bool, searchSparse bool) ([]*qdrant.ScoredPoint, error) {
 	uint64Limit := uint64(limit)
 
 	queryPointsReq := &qdrant.QueryPoints{
@@ -365,28 +374,34 @@ func (s *Service) queryQdrant(ctx context.Context, dense []float32, sparse faste
 
 	switch {
 	case searchDense && searchSparse:
-		densePrefetchLimit := uint64(limit * 3)
-		sparsePrefetchLimit := uint64(limit / 2)
-		if sparsePrefetchLimit < 2 {
-			sparsePrefetchLimit = 2
+		totalPrefetch := float64(limit) * 4.0
+		if totalPrefetch < 20 {
+			totalPrefetch = 20
 		}
+
+		densePrefetchLimit := uint64(totalPrefetch * poolAlpha)
+		sparsePrefetchLimit := uint64(totalPrefetch * (1.0 - poolAlpha))
+
 		rrfK := uint32(rrfKVal)
 
-		queryPointsReq.Prefetch = []*qdrant.PrefetchQuery{
-			{
+		queryPointsReq.Prefetch = make([]*qdrant.PrefetchQuery, 0, 2)
+		if densePrefetchLimit > 0 {
+			queryPointsReq.Prefetch = append(queryPointsReq.Prefetch, &qdrant.PrefetchQuery{
 				Query: qdrant.NewQueryDense(dense),
 				Using: &s.DenseVectorsName,
 				Limit: &densePrefetchLimit,
-			},
-			{
+			})
+		}
+		if sparsePrefetchLimit > 0 {
+			queryPointsReq.Prefetch = append(queryPointsReq.Prefetch, &qdrant.PrefetchQuery{
 				Query: qdrant.NewQuerySparse(sparse.Indices, sparse.Values),
 				Using: &s.SparseVectorsName,
 				Limit: &sparsePrefetchLimit,
-			},
+			})
 		}
 		queryPointsReq.Query = qdrant.NewQueryRRF(&qdrant.Rrf{
 			K:       &rrfK,
-			Weights: []float32{float32(alpha), float32(1.0 - alpha)},
+			Weights: []float32{float32(rrfMergePriorityAlpha), float32(1.0 - rrfMergePriorityAlpha)},
 		})
 
 	case searchDense:

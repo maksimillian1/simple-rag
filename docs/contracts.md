@@ -125,10 +125,12 @@ def generate_point_id(file_name: str, global_chunk_index: int) -> str:
 {
   "query": "What were the cost optimizations for infrastructure in Q1?",
   "top_k": 5,
-  "alpha": 0.4
+  "pool_alpha": 0.5,
+  "rrf_merge_priority_alpha": 0.5,
+  "alpha": 0.5
 }
 ```
-*Note: `alpha` controls the hybrid search balance between Dense (1.0) and Sparse (0.0) vector retrieval inside Qdrant.*
+*Note: `pool_alpha` controls the prefetch vector retrieval pool allocation (Dense vs Sparse ratio), `rrf_merge_priority_alpha` controls the RRF weights (dense vs sparse scoring), and `alpha` is supported as a fallback parameter.*
 
 ### POST /api/v1/query (Response)
 Returns the generated text from Llama 3 along with explicit citations and confidence metadata mapped from Qdrant vectors.
