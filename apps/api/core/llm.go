@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 )
 
-// Llama3Request represents the prompt payload for Bedrock Llama 3.2 3B Instruct model
 type Llama3Request struct {
 	Prompt       string  `json:"prompt"`
 	MaxGenLen    int     `json:"max_gen_len,omitempty"`
@@ -21,7 +20,6 @@ type Llama3Request struct {
 	TopP         float64 `json:"top_p,omitempty"`
 }
 
-// Llama3Response represents the generation response from Bedrock Llama 3.2 3B Instruct model
 type Llama3Response struct {
 	Generation           string `json:"generation"`
 	PromptTokenCount     int    `json:"prompt_token_count"`
@@ -29,7 +27,6 @@ type Llama3Response struct {
 	StopReason           string `json:"stop_reason"`
 }
 
-// MockProvider is a local mock provider for test isolation
 type MockProvider struct{}
 
 func NewMockProvider() *MockProvider {
@@ -40,7 +37,6 @@ func (m *MockProvider) GenerateAnswer(ctx context.Context, query string, citatio
 	return SynthesizeAnswerPlaceholder(query, citations), nil
 }
 
-// BedrockProvider is the production provider using AWS Bedrock Runtime
 type BedrockProvider struct {
 	client  *bedrockruntime.Client
 	modelID string
@@ -68,7 +64,6 @@ func NewBedrockProvider(ctx context.Context, region string, modelID string) (*Be
 }
 
 func (b *BedrockProvider) GenerateAnswer(ctx context.Context, query string, citations []Citation) (string, error) {
-	// If MODEL_ID is not configured, fall back to basic placeholder citation synthesis
 	if b.modelID == "" {
 		log.Println("[INFO] [bedrock-provider] MODEL_ID is empty. Falling back to local placeholder citation synthesis.")
 		return SynthesizeAnswerPlaceholder(query, citations), nil
@@ -78,7 +73,6 @@ func (b *BedrockProvider) GenerateAnswer(ctx context.Context, query string, cita
 		return "I searched the vector database but could not find any direct references to your query. Please make sure you have successfully indexed documents or run the seeder script.", nil
 	}
 
-	// Construct Llama 3 prompt compiled with context chunks
 	var chunksBuilder strings.Builder
 	for i, cit := range citations {
 		fmt.Fprintf(&chunksBuilder, "[Chunk %d] Source: %s, Page: %d, Score: %.4f\nContent: %s\n\n", i+1, cit.FileName, cit.PageNumber, cit.Score, cit.TextSnippet)
@@ -134,7 +128,6 @@ func (b *BedrockProvider) GenerateAnswer(ctx context.Context, query string, cita
 	return respPayload.Generation, nil
 }
 
-// NewLLMProvider constructs the appropriate LLMProvider based on configuration
 func NewLLMProvider(ctx context.Context, providerType string, region string, modelID string) (LLMProvider, error) {
 	if strings.ToLower(providerType) == "bedrock" {
 		return NewBedrockProvider(ctx, region, modelID)
@@ -142,7 +135,6 @@ func NewLLMProvider(ctx context.Context, providerType string, region string, mod
 	return NewMockProvider(), nil
 }
 
-// SynthesizeAnswerPlaceholder builds a readable bullet point summary from retrieved citations
 func SynthesizeAnswerPlaceholder(query string, citations []Citation) string {
 	if len(citations) == 0 {
 		return "I searched the vector database but could not find any direct references to your query. Please make sure you have successfully indexed documents or run the seeder script."
@@ -151,10 +143,9 @@ func SynthesizeAnswerPlaceholder(query string, citations []Citation) string {
 	var sb strings.Builder
 	sb.WriteString("Based on the retrieved document chunks, here is the synthesized answer:\n\n")
 
-	// Create cohesive bullet points from matching chunks
 	for i, cit := range citations {
 		if i >= 3 {
-			break // Only summarize top-3
+			break
 		}
 		sb.WriteString("• ")
 		text := strings.TrimSpace(cit.TextSnippet)

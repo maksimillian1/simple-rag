@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "indexer"
+version = "0.1.0"
+description = "Stage 2: Ephemeral indexing job for simple-rag"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "haystack-ai>=2.0.0",
+    "qdrant-haystack",
+    "qdrant-client>=1.9.0",
+    "boto3>=1.28.0",
+    "huggingface-hub>=0.27.0",
+    "fastembed>=0.3.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-mock>=3.6.0"
+]
+
+[project.scripts]
+indexer = "src.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

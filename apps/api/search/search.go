@@ -5,258 +5,282 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"hash/adler32"
 	"io"
 	"log"
-	"math"
 	"net/http"
-	"regexp"
-	"sort"
 	"strings"
-	"sync"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/maksimillian1/simple-rag/apps/api/core"
+	"github.com/qdrant/fastembed-go"
+	"github.com/qdrant/go-client/qdrant"
+	"google.golang.org/grpc"
 )
 
-// Service encapsulates synchronous hybrid search retrieval configurations
+type QdrantClient interface {
+	Query(ctx context.Context, in *qdrant.QueryPoints, opts ...grpc.CallOption) (*qdrant.QueryResponse, error)
+}
+
+type SparseModel interface {
+	Embed(ctx context.Context, texts []string) ([]fastembed.SparseEmbedding, error)
+}
+
 type Service struct {
 	QdrantURL            string
 	Collection           string
 	EmbeddingModelTeiURL string
 	LLM                  core.LLMProvider
+	DenseVectorsName     string
+	SparseVectorsName    string
+	SparseModel          SparseModel
+	QdrantClient         QdrantClient
 }
 
-// NewService instantiates a new Service with standard dependencies
-func NewService(qdrantURL, collection, embeddingModelTeiURL string, llm core.LLMProvider) *Service {
+func NewService(qdrantURL, collection, embeddingModelTeiURL string, llm core.LLMProvider, denseName, sparseName string, sparseModel SparseModel, qdrantClient QdrantClient) *Service {
 	return &Service{
 		QdrantURL:            qdrantURL,
 		Collection:           collection,
 		EmbeddingModelTeiURL: embeddingModelTeiURL,
 		LLM:                  llm,
+		DenseVectorsName:     denseName,
+		SparseVectorsName:    sparseName,
+		SparseModel:          sparseModel,
+		QdrantClient:         qdrantClient,
 	}
 }
 
-// SparseVector represents Qdrant sparse vector structure
-type SparseVector struct {
-	Indices []uint32  `json:"indices"`
-	Values  []float64 `json:"values"`
-}
 
-// NamedDenseQuery represents named dense vector search payload
-type NamedDenseQuery struct {
-	Name   string    `json:"name"`
-	Vector []float64 `json:"vector"`
-}
 
-// NamedSparseQuery represents named sparse vector search payload
-type NamedSparseQuery struct {
-	Name   string       `json:"name"`
-	Vector SparseVector `json:"vector"`
-}
-
-// QdrantSearchRequest matches Qdrant's REST search API schema (named dense/sparse)
-type QdrantSearchRequest struct {
-	Vector      interface{} `json:"vector"`
-	Limit       int         `json:"limit"`
-	WithPayload bool        `json:"with_payload"`
-	WithVector  bool        `json:"with_vector"`
-}
-
-func computeSparseVector(text string) SparseVector {
-	re := regexp.MustCompile(`\b[a-zA-Z0-9]{2,}\b`)
-	words := re.FindAllString(strings.ToLower(text), -1)
-	if len(words) == 0 {
-		return SparseVector{Indices: []uint32{}, Values: []float64{}}
-	}
-
-	counts := make(map[string]int)
-	for _, w := range words {
-		counts[w]++
-	}
-
-	type item struct {
-		index uint32
-		value float64
-	}
-	var items []item
-	totalWords := float64(len(words))
-
-	for w, count := range counts {
-		h := adler32.Checksum([]byte(w))
-		index := h & 0x7fffffff
-		value := float64(count) / totalWords
-		items = append(items, item{index: index, value: value})
-	}
-
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].index < items[j].index
-	})
-
-	indices := make([]uint32, len(items))
-	values := make([]float64, len(items))
-	for i, it := range items {
-		indices[i] = it.index
-		values[i] = it.value
-	}
-
-	return SparseVector{Indices: indices, Values: values}
-}
-
-func computeTermCountPenalty(text string, query string) float64 {
-	re := regexp.MustCompile(`\b[a-zA-Z0-9]{2,}\b`)
-	queryWords := re.FindAllString(strings.ToLower(query), -1)
-	if len(queryWords) == 0 {
-		return 1.0
-	}
-
-	textWords := re.FindAllString(strings.ToLower(text), -1)
-	textCounts := make(map[string]int)
-	for _, w := range textWords {
-		textCounts[w]++
-	}
-
-	totalCount := 0
-	for _, qw := range queryWords {
-		totalCount += textCounts[qw]
-	}
-
-	if totalCount == 0 {
-		return 1.0
-	}
-
-	return 1.0 / math.Log10(float64(totalCount)+10.0)
-}
-
-func performRRF(densePoints, sparsePoints []QdrantPoint, k float64) []QdrantPoint {
-	type rrfItem struct {
-		point    QdrantPoint
-		rrfScore float64
-	}
-	rrfMap := make(map[string]*rrfItem)
-
-	// Process dense rank
-	for rank, p := range densePoints {
-		idStr := fmt.Sprintf("%v", p.ID)
-		if _, exists := rrfMap[idStr]; !exists {
-			rrfMap[idStr] = &rrfItem{point: p, rrfScore: 0.0}
+func getStringField(payload map[string]interface{}, key string) string {
+	if val, ok := payload[key]; ok {
+		if strVal, ok := val.(string); ok && strVal != "" {
+			return strVal
 		}
-		rrfMap[idStr].rrfScore += 1.0 / (k + float64(rank+1))
 	}
-
-	// Process sparse rank
-	for rank, p := range sparsePoints {
-		idStr := fmt.Sprintf("%v", p.ID)
-		if _, exists := rrfMap[idStr]; !exists {
-			rrfMap[idStr] = &rrfItem{point: p, rrfScore: 0.0}
+	if metaVal, ok := payload["meta"]; ok {
+		if metaMap, ok := metaVal.(map[string]interface{}); ok {
+			if val, ok := metaMap[key]; ok {
+				if strVal, ok := val.(string); ok && strVal != "" {
+					return strVal
+				}
+			}
 		}
-		rrfMap[idStr].rrfScore += 1.0 / (k + float64(rank+1))
 	}
-
-	var sortedItems []*rrfItem
-	for _, item := range rrfMap {
-		sortedItems = append(sortedItems, item)
-	}
-
-	sort.Slice(sortedItems, func(i, j int) bool {
-		return sortedItems[i].rrfScore > sortedItems[j].rrfScore
-	})
-
-	var finalPoints []QdrantPoint
-	for _, item := range sortedItems {
-		p := item.point
-		p.Score = item.rrfScore
-		finalPoints = append(finalPoints, p)
-	}
-
-	return finalPoints
+	return ""
 }
 
-// QdrantPoint matches Qdrant raw point payload
+func getIntField(payload map[string]interface{}, key string, defaultVal int) int {
+	if val, ok := payload[key]; ok {
+		switch v := val.(type) {
+		case float64:
+			return int(v)
+		case int:
+			return v
+		case int32:
+			return int(v)
+		case int64:
+			return int(v)
+		}
+	}
+	if metaVal, ok := payload["meta"]; ok {
+		if metaMap, ok := metaVal.(map[string]interface{}); ok {
+			if val, ok := metaMap[key]; ok {
+				switch v := val.(type) {
+				case float64:
+					return int(v)
+				case int:
+					return v
+				case int32:
+					return int(v)
+				case int64:
+					return int(v)
+				}
+			}
+		}
+	}
+	return defaultVal
+}
+
+func getContentField(payload map[string]interface{}) string {
+	if val := getStringField(payload, "text"); val != "" {
+		return val
+	}
+	if val := getStringField(payload, "content"); val != "" {
+		return val
+	}
+	return ""
+}
+
+func qdrantValueToInterface(val *qdrant.Value) interface{} {
+	if val == nil {
+		return nil
+	}
+	switch k := val.Kind.(type) {
+	case *qdrant.Value_NullValue:
+		return nil
+	case *qdrant.Value_DoubleValue:
+		return k.DoubleValue
+	case *qdrant.Value_IntegerValue:
+		return k.IntegerValue
+	case *qdrant.Value_StringValue:
+		return k.StringValue
+	case *qdrant.Value_BoolValue:
+		return k.BoolValue
+	case *qdrant.Value_StructValue:
+		if k.StructValue == nil {
+			return nil
+		}
+		m := make(map[string]interface{})
+		for key, value := range k.StructValue.Fields {
+			m[key] = qdrantValueToInterface(value)
+		}
+		return m
+	case *qdrant.Value_ListValue:
+		if k.ListValue == nil {
+			return nil
+		}
+		l := make([]interface{}, len(k.ListValue.Values))
+		for idx, value := range k.ListValue.Values {
+			l[idx] = qdrantValueToInterface(value)
+		}
+		return l
+	}
+	return nil
+}
+
+func payloadToMap(payload map[string]*qdrant.Value) map[string]interface{} {
+	m := make(map[string]interface{})
+	for k, v := range payload {
+		m[k] = qdrantValueToInterface(v)
+	}
+	return m
+}
+
+func getPointID(id *qdrant.PointId) interface{} {
+	if id == nil {
+		return nil
+	}
+	switch opt := id.PointIdOptions.(type) {
+	case *qdrant.PointId_Uuid:
+		return opt.Uuid
+	case *qdrant.PointId_Num:
+		return opt.Num
+	}
+	return nil
+}
+
+
+
 type QdrantPoint struct {
 	ID      interface{}            `json:"id"`
 	Score   float64                `json:"score"`
 	Payload map[string]interface{} `json:"payload"`
 }
 
-// QdrantSearchResponse matches Qdrant query response
 type QdrantSearchResponse struct {
 	Result []QdrantPoint `json:"result"`
 	Status string        `json:"status"`
 }
 
-// QueryHandler executes the two-stage hybrid retrieval, Reciprocal Rank Fusion, and LLM synthesis flow
-func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) QueryHandler(c echo.Context) error {
 	startTime := time.Now()
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// 1. Enforce Timeout of 4500ms using Context
-	ctx, cancel := context.WithTimeout(r.Context(), 4500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 4500*time.Millisecond)
 	defer cancel()
 
-	// Decode client query request
 	var req core.QueryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid Request Body: "+err.Error(), http.StatusBadRequest)
-		return
+	if err := c.Bind(&req); err != nil {
+		return c.String(http.StatusBadRequest, "invalid request body: "+err.Error())
 	}
 
-	// Check if debug parameter is requested via URL query string or JSON payload
-	isDebug := req.Debug || r.URL.Query().Get("debug") == "true"
-
-	// 2. Perform Request Validation
 	trimmedQuery := strings.TrimSpace(req.Query)
 	if len(trimmedQuery) < 3 || len(trimmedQuery) > 1000 {
-		http.Error(w, "Validation Error: query must be between 3 and 1000 characters (trimmed)", http.StatusBadRequest)
-		return
+		return c.String(http.StatusBadRequest, "validation error: query must be between 3 and 1000 characters")
 	}
 
 	limit := req.TopK
 	if limit <= 0 {
-		limit = 5 // Default search limit
+		limit = 5
 	}
 
-	// 3. Request dense vector embedding from TEI
-	log.Printf("[INFO] [query] Requesting vector embedding from TEI for: %q", trimmedQuery)
-	teiPayload, err := json.Marshal(map[string]string{"inputs": trimmedQuery})
+	isDebug := req.Debug || c.QueryParam("debug") == "true"
+
+	denseQueryVector, err := s.getDenseEmbedding(ctx, trimmedQuery)
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+		log.Printf("[ERROR] [query] TEI embedding failed: %v", err)
+		return c.String(http.StatusInternalServerError, "Embedding Generator (TEI) error: "+err.Error())
+	}
+
+	sparseEmbedding, err := s.getSparseEmbedding(ctx, trimmedQuery)
+	if err != nil {
+		log.Printf("[ERROR] [query] Sparse embedding failed: %v", err)
+		return c.String(http.StatusInternalServerError, "Sparse embedding error: "+err.Error())
+	}
+
+	results, err := s.queryQdrant(ctx, denseQueryVector, sparseEmbedding, limit)
+	if err != nil {
+		log.Printf("[ERROR] [query] Qdrant query failed: %v", err)
+		return c.String(http.StatusInternalServerError, "Qdrant query error: "+err.Error())
+	}
+
+	citations, debugResults := buildCitationsAndDebug(results, isDebug)
+
+	answer, err := s.LLM.GenerateAnswer(ctx, trimmedQuery, citations)
+	if err != nil {
+		log.Printf("[ERROR] [query] LLM answer generation failed: %v", err)
+		return c.String(http.StatusInternalServerError, "Failed to generate answer from LLM: "+err.Error())
+	}
+
+	response := core.QueryResponse{
+		Answer:          answer,
+		ExecutionTimeMS: time.Since(startTime).Milliseconds(),
+		Citations:       citations,
+	}
+
+	if isDebug {
+		response.Debug = &core.DebugBlock{
+			Results: debugResults,
+			Count:   len(debugResults),
+		}
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
+
+func (s *Service) getDenseEmbedding(ctx context.Context, query string) ([]float32, error) {
+	teiPayload, err := json.Marshal(map[string]string{"inputs": query})
+	if err != nil {
+		return nil, err
 	}
 
 	reqTei, err := http.NewRequestWithContext(ctx, http.MethodPost, s.EmbeddingModelTeiURL+"/embed", bytes.NewBuffer(teiPayload))
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 	reqTei.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	teiResp, err := client.Do(reqTei)
 	if err != nil {
-		log.Printf("[ERROR] [query] Failed to contact TEI: %v", err)
-		http.Error(w, "Embedding Generator (TEI) is currently unreachable", http.StatusServiceUnavailable)
-		return
+		return nil, fmt.Errorf("TEI unreachable: %w", err)
 	}
 	defer teiResp.Body.Close()
 
 	if teiResp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(teiResp.Body)
-		log.Printf("[ERROR] [query] TEI embedding request failed with status %d: %s", teiResp.StatusCode, string(bodyBytes))
-		http.Error(w, "Embedding Generator returned error response", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("TEI failed with status %d: %s", teiResp.StatusCode, string(bodyBytes))
 	}
 
 	var embedRes interface{}
 	if err := json.NewDecoder(teiResp.Body).Decode(&embedRes); err != nil {
-		http.Error(w, "Failed to decode TEI response", http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
+	return parseTEIResponse(embedRes)
+}
+
+func parseTEIResponse(embedRes interface{}) ([]float32, error) {
 	var queryVector []float64
 	switch val := embedRes.(type) {
 	case []interface{}:
@@ -276,226 +300,111 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(queryVector) == 0 {
-		log.Printf("[ERROR] [query] Failed to parse generated vector from TEI: %+v", embedRes)
-		http.Error(w, "Failed to generate vector embedding from query text", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("failed to parse generated vector from TEI")
 	}
 
-	// Calculate sparse vector for query
-	querySparseVector := computeSparseVector(trimmedQuery)
+	denseQueryVector := make([]float32, len(queryVector))
+	for i, v := range queryVector {
+		denseQueryVector[i] = float32(v)
+	}
+	return denseQueryVector, nil
+}
 
-	// Execute concurrent Dense and Sparse searches in Qdrant
-	var wg sync.WaitGroup
-	var denseResults, sparseResults []QdrantPoint
-	var denseErr, sparseErr error
+func (s *Service) getSparseEmbedding(ctx context.Context, query string) (fastembed.SparseEmbedding, error) {
+	embeddings, err := s.SparseModel.Embed(ctx, []string{query})
+	if err != nil {
+		return fastembed.SparseEmbedding{}, err
+	}
+	if len(embeddings) == 0 {
+		return fastembed.SparseEmbedding{}, fmt.Errorf("no sparse embeddings generated")
+	}
+	return embeddings[0], nil
+}
 
-	qdrantSearchURL := fmt.Sprintf("%s/collections/%s/points/search", s.QdrantURL, s.Collection)
+func (s *Service) queryQdrant(ctx context.Context, dense []float32, sparse fastembed.SparseEmbedding, limit int) ([]*qdrant.ScoredPoint, error) {
+	densePrefetchLimit := uint64(limit * 3)
 
-	// 1. Dense Search Routine
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		denseReq := QdrantSearchRequest{
-			Vector: NamedDenseQuery{
-				Name:   "dense",
-				Vector: queryVector,
+	sparsePrefetchLimit := uint64(limit / 2)
+	if sparsePrefetchLimit < 2 {
+		sparsePrefetchLimit = 2
+	}
+
+	rrfK := uint32(60)
+	uint64Limit := uint64(limit)
+
+	// Execute Qdrant Query with Reciprocal Rank Fusion (RRF) algorithm to merge dense and sparse results:
+	// Score(p) = sum_{m in Models} 1 / (k + rank_m(p)) where k = 60
+	queryPointsReq := &qdrant.QueryPoints{
+		CollectionName: s.Collection,
+		Prefetch: []*qdrant.PrefetchQuery{
+			{
+				Query: qdrant.NewQueryDense(dense),
+				Using: &s.DenseVectorsName,
+				Limit: &densePrefetchLimit,
 			},
-			Limit:       limit * 2, // Query double limit for better RRF coverage
-			WithPayload: true,
-			WithVector:  false,
-		}
-		denseBody, err := json.Marshal(denseReq)
-		if err != nil {
-			denseErr = err
-			return
-		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, qdrantSearchURL, bytes.NewBuffer(denseBody))
-		if err != nil {
-			denseErr = err
-			return
-		}
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := client.Do(req)
-		if err != nil {
-			denseErr = err
-			return
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			bodyBytes, _ := io.ReadAll(resp.Body)
-			denseErr = fmt.Errorf("qdrant dense search status %d: %s", resp.StatusCode, string(bodyBytes))
-			return
-		}
-		var searchRes QdrantSearchResponse
-		if err := json.NewDecoder(resp.Body).Decode(&searchRes); err != nil {
-			denseErr = err
-			return
-		}
-		denseResults = searchRes.Result
-	}()
-
-	// 2. Sparse Search Routine
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		sparseReq := QdrantSearchRequest{
-			Vector: NamedSparseQuery{
-				Name:   "sparse",
-				Vector: querySparseVector,
+			{
+				Query: qdrant.NewQuerySparse(sparse.Indices, sparse.Values),
+				Using: &s.SparseVectorsName,
+				Limit: &sparsePrefetchLimit,
 			},
-			Limit:       limit * 2, // Query double limit for better RRF coverage
-			WithPayload: true,
-			WithVector:  false,
-		}
-		sparseBody, err := json.Marshal(sparseReq)
-		if err != nil {
-			sparseErr = err
-			return
-		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, qdrantSearchURL, bytes.NewBuffer(sparseBody))
-		if err != nil {
-			sparseErr = err
-			return
-		}
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := client.Do(req)
-		if err != nil {
-			sparseErr = err
-			return
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			bodyBytes, _ := io.ReadAll(resp.Body)
-			sparseErr = fmt.Errorf("qdrant sparse search status %d: %s", resp.StatusCode, string(bodyBytes))
-			return
-		}
-		var searchRes QdrantSearchResponse
-		if err := json.NewDecoder(resp.Body).Decode(&searchRes); err != nil {
-			sparseErr = err
-			return
-		}
-		sparseResults = searchRes.Result
-	}()
-
-	wg.Wait()
-
-	if denseErr != nil {
-		log.Printf("[ERROR] [query] Dense search failed: %v", denseErr)
-		http.Error(w, "Failed to query Dense Vector Database: "+denseErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	if sparseErr != nil {
-		log.Printf("[ERROR] [query] Sparse search failed: %v", sparseErr)
-		http.Error(w, "Failed to query Sparse Vector Database: "+sparseErr.Error(), http.StatusInternalServerError)
-		return
+		},
+		Query:       qdrant.NewQueryRRF(&qdrant.Rrf{K: &rrfK}),
+		Limit:       &uint64Limit,
+		WithPayload: &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true}},
 	}
 
-	// 3. Apply Word Count Penalty Algorithm to Sparse Results
-	for i, p := range sparseResults {
-		textSnippet, _ := p.Payload["text"].(string)
-		penalty := computeTermCountPenalty(textSnippet, trimmedQuery)
-		sparseResults[i].Score = p.Score * penalty
+	res, err := s.QdrantClient.Query(ctx, queryPointsReq)
+	if err != nil {
+		return nil, err
 	}
+	return res.Result, nil
+}
 
-	// Re-sort sparse results based on penalized scores
-	sort.Slice(sparseResults, func(i, j int) bool {
-		return sparseResults[i].Score > sparseResults[j].Score
-	})
+func buildCitationsAndDebug(results []*qdrant.ScoredPoint, isDebug bool) ([]core.Citation, []core.DebugResult) {
+	citations := make([]core.Citation, 0, len(results))
+	debugResults := make([]core.DebugResult, 0, len(results))
 
-	// 4. Merge dense & sparse results via Reciprocal Rank Fusion (RRF with k=60)
-	rrfPoints := performRRF(denseResults, sparseResults, 60.0)
-
-	// Slice down to top_k limit
-	if len(rrfPoints) > limit {
-		rrfPoints = rrfPoints[:limit]
-	}
-
-	// Convert RRF points to final QdrantSearchResponse schema for compatibility
-	var qdrantRes QdrantSearchResponse
-	qdrantRes.Result = rrfPoints
-	qdrantRes.Status = "ok"
-
-	// 5. Structure Citations and Debug blocks
-	citations := make([]core.Citation, 0, len(qdrantRes.Result))
-	debugResults := make([]core.DebugResult, 0, len(qdrantRes.Result))
-
-	for _, point := range qdrantRes.Result {
-		// Parse structured fields from point payload
-		fileID, _ := point.Payload["file_id"].(string)
+	for _, point := range results {
+		payloadMap := payloadToMap(point.Payload)
+		fileID := getStringField(payloadMap, "file_id")
 		if fileID == "" {
 			fileID = "unknown"
 		}
-		fileName, _ := point.Payload["file_name"].(string)
+		fileName := getStringField(payloadMap, "file_name")
 		if fileName == "" {
 			fileName = "unknown"
 		}
 		
-		// page_number might be decoded as float64 from JSON
-		pageNumber := 1
-		if pVal, ok := point.Payload["page_number"]; ok {
-			if fVal, ok := pVal.(float64); ok {
-				pageNumber = int(fVal)
-			}
-		}
-
-		textSnippet, _ := point.Payload["text"].(string)
+		pageNumber := getIntField(payloadMap, "page_number", 1)
+		textSnippet := getContentField(payloadMap)
 
 		citations = append(citations, core.Citation{
 			DocumentID:  fileID,
 			FileName:    fileName,
 			PageNumber:  pageNumber,
-			Score:       point.Score,
+			Score:       float64(point.Score),
 			TextSnippet: textSnippet,
 		})
 
 		if isDebug {
-			// Backwards compatibility metadata mapping for the dashboard rendering
 			metadata := make(map[string]interface{})
 			metadata["file_id"] = fileID
 			metadata["file_name"] = fileName
 			metadata["page_number"] = pageNumber
 			
-			if chunkIdxVal, ok := point.Payload["chunk_index"]; ok {
-				if fIdx, ok := chunkIdxVal.(float64); ok {
-					metadata["chunk_index"] = int(fIdx)
-				}
+			if chunkIdx := getIntField(payloadMap, "chunk_index", -1); chunkIdx != -1 {
+				metadata["chunk_index"] = chunkIdx
 			}
 
 			debugResults = append(debugResults, core.DebugResult{
-				ID:       point.ID,
-				Score:    point.Score,
+				ID:       getPointID(point.Id),
+				Score:    float64(point.Score),
 				Text:     textSnippet,
 				Metadata: metadata,
 			})
 		}
 	}
-
-	// 6. Synthesize RAG Answer
-	answer, err := s.LLM.GenerateAnswer(ctx, trimmedQuery, citations)
-	if err != nil {
-		log.Printf("[ERROR] [query] LLM answer generation failed: %v", err)
-		http.Error(w, "Failed to generate answer from LLM: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	duration := time.Since(startTime).Milliseconds()
-
-	response := core.QueryResponse{
-		Answer:          answer,
-		ExecutionTimeMS: duration,
-		Citations:       citations,
-	}
-
-	if isDebug {
-		response.Debug = &core.DebugBlock{
-			Results: debugResults,
-			Count:   len(debugResults),
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	return citations, debugResults
 }
 
 func synthesizeAnswer(query string, citations []core.Citation) string {
@@ -506,10 +415,9 @@ func synthesizeAnswer(query string, citations []core.Citation) string {
 	var sb strings.Builder
 	sb.WriteString("Based on the retrieved document chunks, here is the synthesized answer:\n\n")
 
-	// Create cohesive bullet points from matching chunks
 	for i, cit := range citations {
 		if i >= 3 {
-			break // Only summarize top-3
+			break
 		}
 		sb.WriteString("• ")
 		text := strings.TrimSpace(cit.TextSnippet)
