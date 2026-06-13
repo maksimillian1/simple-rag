@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/labstack/echo/v4"
 	"github.com/maksimillian1/simple-rag/apps/api/core"
 	"github.com/qdrant/fastembed-go"
 	"github.com/qdrant/go-client/qdrant"
@@ -146,9 +147,16 @@ func TestQueryHandler_SparseDenseHybridSearch(t *testing.T) {
 	}
 	reqBody, _ := json.Marshal(queryReq)
 	req := httptest.NewRequest("POST", "/api/v1/query", bytes.NewBuffer(reqBody))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	w := httptest.NewRecorder()
 
-	svc.QueryHandler(w, req)
+	e := echo.New()
+	c := e.NewContext(req, w)
+
+	err := svc.QueryHandler(c)
+	if err != nil {
+		t.Fatalf("unexpected error in QueryHandler: %v", err)
+	}
 
 	resp := w.Result()
 	if resp.StatusCode != http.StatusOK {

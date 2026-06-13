@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-// Config represents all central environment parameters
 type Config struct {
 	Port                 string
 	QdrantURL            string
@@ -24,7 +23,6 @@ type Config struct {
 	SparseVectorsName    string
 }
 
-// LoadEnv walks up from the current working directory to locate and parse the nearest .env file
 func LoadEnv() {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -73,7 +71,6 @@ func LoadEnv() {
 	}
 }
 
-// GetEnv resolves an environment variable or falls back to a default value
 func GetEnv(key, defaultVal string) string {
 	if val, exists := os.LookupEnv(key); exists {
 		return val
@@ -81,7 +78,6 @@ func GetEnv(key, defaultVal string) string {
 	return defaultVal
 }
 
-// LoadConfig initializes the environment configurations and parses them with sensible defaults
 func LoadConfig() Config {
 	LoadEnv()
 	return Config{

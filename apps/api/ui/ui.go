@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"net/http"
 	"strings"
+
+	"github.com/labstack/echo/v4"
 )
 
 //go:embed templates/index.html
@@ -24,15 +26,9 @@ func NewService(environment, collection string) *Service {
 }
 
 // Handler serves the embedded dashboard HTML resolving configuration mappings
-func (s *Service) Handler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
+func (s *Service) Handler(c echo.Context) error {
 	// Render dashboard embedding current environment details dynamically
 	html := strings.Replace(indexHTML, "{{.Environment}}", s.Environment, -1)
 	html = strings.Replace(html, "{{.Collection}}", s.Collection, -1)
-	w.Write([]byte(html))
+	return c.HTML(http.StatusOK, html)
 }

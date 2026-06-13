@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/labstack/echo/v4"
 	"github.com/qdrant/fastembed-go"
 	"github.com/qdrant/go-client/qdrant"
 )
@@ -71,31 +72,23 @@ type QdrantUpsertRequest struct {
 	Points []QdrantPoint `json:"points"`
 }
 
-func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) SeedHandler(c echo.Context) error {
 	if s.Environment != "dev" {
-		http.Error(w, "Forbidden in non-dev environment", http.StatusForbidden)
-		return
-	}
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
+		return c.String(http.StatusForbidden, "Forbidden in non-dev environment")
 	}
 
 	log.Println("[INFO] [debug] Starting native Go-based database seeder...")
 
-	// 1. Parse embedded JSON items
 	var items []SeedItem
 	if err := json.Unmarshal(seedDataJSON, &items); err != nil {
 		log.Printf("[ERROR] [debug] Failed to parse embedded seed_data.json: %v", err)
-		http.Error(w, "Failed to parse seed data: "+err.Error(), http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Failed to parse seed data: "+err.Error())
 	}
 
 	log.Printf("[INFO] [debug] Loaded %d items from seed_data.json", len(items))
 
 	client := http.Client{Timeout: 10 * time.Second}
 
-	// 2. Delete collection if exists (idempotency)
 	reqDel, _ := http.NewRequest(http.MethodDelete, s.QdrantURL+"/collections/"+s.Collection, nil)
 	respDel, err := client.Do(reqDel)
 	if err == nil {
@@ -103,7 +96,6 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[INFO] [debug] Cleaned up existing collection '%s'", s.Collection)
 	}
 
-	// 3. Create collection with vector dimensions=384 and Cosine distance
 	createPayload := map[string]interface{}{
 		"vectors": map[string]interface{}{
 			s.DenseVectorsName: map[string]interface{}{
@@ -119,26 +111,22 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 	reqCreate, err := http.NewRequest(http.MethodPut, s.QdrantURL+"/collections/"+s.Collection, bytes.NewBuffer(createBytes))
 	if err != nil {
 		log.Printf("[ERROR] [debug] Failed to create collection request: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Internal Server Error")
 	}
 	reqCreate.Header.Set("Content-Type", "application/json")
 	respCreate, err := client.Do(reqCreate)
 	if err != nil {
 		log.Printf("[ERROR] [debug] Failed to connect to Qdrant to create collection: %v", err)
-		http.Error(w, "Failed to connect to Qdrant: "+err.Error(), http.StatusServiceUnavailable)
-		return
+		return c.String(http.StatusServiceUnavailable, "Failed to connect to Qdrant: "+err.Error())
 	}
 	defer respCreate.Body.Close()
 	if respCreate.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(respCreate.Body)
 		log.Printf("[ERROR] [debug] Qdrant collection creation failed with status %d: %s", respCreate.StatusCode, string(body))
-		http.Error(w, "Failed to create Qdrant collection: "+string(body), http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Failed to create Qdrant collection: "+string(body))
 	}
 	log.Printf("[INFO] [debug] Successfully created collection '%s'", s.Collection)
 
-	// 4. Generate embeddings from TEI concurrently using a worker pool
 	log.Println("[INFO] [debug] Generating embeddings from TEI concurrently...")
 	type job struct {
 		id   int
@@ -153,7 +141,6 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 	jobs := make(chan job, numJobs)
 	results := make(chan result, numJobs)
 
-	// Start 5 concurrent embedding workers
 	var wg sync.WaitGroup
 	numWorkers := 5
 	for w := 1; w <= numWorkers; w++ {
@@ -167,7 +154,6 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 
-				// Generate sparse embedding using SPLADE
 				embeddings, err := s.SparseModel.Embed(context.Background(), []string{j.item.Text})
 				if err != nil {
 					results <- result{err: fmt.Errorf("item %d sparse embedding failed: %w", j.id, err)}
@@ -206,19 +192,16 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 		}()
 	}
 
-	// Enqueue all items as jobs
 	for i, item := range items {
 		jobs <- job{id: i + 1, item: item}
 	}
 	close(jobs)
 
-	// Wait for workers to finish and close results
 	go func() {
 		wg.Wait()
 		close(results)
 	}()
 
-	// Collect points and verify no errors
 	var points []QdrantPoint
 	var firstErr error
 	for res := range results {
@@ -234,46 +217,38 @@ func (s *Service) SeedHandler(w http.ResponseWriter, r *http.Request) {
 
 	if firstErr != nil {
 		log.Printf("[ERROR] [debug] Seeding aborted because one or more embeddings failed: %v", firstErr)
-		http.Error(w, "Seeding failed during embedding generation: "+firstErr.Error(), http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Seeding failed during embedding generation: "+firstErr.Error())
 	}
 
 	log.Printf("[INFO] [debug] Generated embeddings for %d points. Upserting to Qdrant...", len(points))
 
-	// 5. Batch upsert points to Qdrant
 	upsertPayload := QdrantUpsertRequest{Points: points}
 	upsertBytes, err := json.Marshal(upsertPayload)
 	if err != nil {
 		log.Printf("[ERROR] [debug] Failed to marshal upsert payload: %v", err)
-		http.Error(w, "Failed to build Qdrant upsert payload", http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Failed to build Qdrant upsert payload")
 	}
 
 	reqUpsert, err := http.NewRequest(http.MethodPut, s.QdrantURL+"/collections/"+s.Collection+"/points?wait=true", bytes.NewBuffer(upsertBytes))
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Internal Server Error")
 	}
 	reqUpsert.Header.Set("Content-Type", "application/json")
 	respUpsert, err := client.Do(reqUpsert)
 	if err != nil {
 		log.Printf("[ERROR] [debug] Failed to connect to Qdrant for upsert: %v", err)
-		http.Error(w, "Failed to upsert points: "+err.Error(), http.StatusServiceUnavailable)
-		return
+		return c.String(http.StatusServiceUnavailable, "Failed to upsert points: "+err.Error())
 	}
 	defer respUpsert.Body.Close()
 
 	if respUpsert.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(respUpsert.Body)
 		log.Printf("[ERROR] [debug] Qdrant points upsert failed with status %d: %s", respUpsert.StatusCode, string(body))
-		http.Error(w, "Failed to upsert points into Qdrant collection", http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Failed to upsert points into Qdrant collection")
 	}
 
 	log.Printf("[INFO] [debug] Database seeding completed successfully! Inserted %d points.", len(points))
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status":  "ok",
 		"message": fmt.Sprintf("Successfully seeded %d items into Qdrant collection '%s' using TEI embeddings.", len(points), s.Collection),
 	})
@@ -329,14 +304,9 @@ func (s *Service) getEmbedding(text string) ([]float32, error) {
 	return vector, nil
 }
 
-func (s *Service) IndexHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) IndexHandler(c echo.Context) error {
 	if s.Environment != "dev" {
-		http.Error(w, "Forbidden in non-dev environment", http.StatusForbidden)
-		return
-	}
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
+		return c.String(http.StatusForbidden, "Forbidden in non-dev environment")
 	}
 
 	type IndexRequest struct {
@@ -344,18 +314,15 @@ func (s *Service) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req IndexRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid Request Body: "+err.Error(), http.StatusBadRequest)
-		return
+	if err := c.Bind(&req); err != nil {
+		return c.String(http.StatusBadRequest, "Invalid Request Body: "+err.Error())
 	}
 
 	reqText := strings.TrimSpace(req.Text)
 	if reqText == "" {
-		http.Error(w, "Text content cannot be empty", http.StatusBadRequest)
-		return
+		return c.String(http.StatusBadRequest, "Text content cannot be empty")
 	}
 
-	// Prepare standard payload that Indexer app expects in Stage 2 indexing matching contracts.md
 	payload := map[string]interface{}{
 		"trace_id": "manual-debug-trace-id",
 		"document": map[string]interface{}{
@@ -377,37 +344,31 @@ func (s *Service) IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		http.Error(w, "Failed to marshal payload", http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Failed to marshal payload")
 	}
 
-	// Shield real SQS from local endpoint overrides if target queue is on AWS
 	if !strings.Contains(s.SQSQueueURL, "localhost") && !strings.Contains(s.SQSQueueURL, "127.0.0.1") {
 		os.Setenv("AWS_IGNORE_CONFIGURED_ENDPOINT_URLS", "true")
 		defer os.Unsetenv("AWS_IGNORE_CONFIGURED_ENDPOINT_URLS")
 	}
 
-	cfg, err := config.LoadDefaultConfig(r.Context())
+	cfg, err := config.LoadDefaultConfig(c.Request().Context())
 	if err != nil {
 		log.Printf("[ERROR] [debug] Failed to load AWS config: %v", err)
-		http.Error(w, "Failed to load AWS configuration: "+err.Error(), http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Failed to load AWS configuration: "+err.Error())
 	}
 
 	sqsClient := sqs.NewFromConfig(cfg)
-	_, err = sqsClient.SendMessage(r.Context(), &sqs.SendMessageInput{
+	_, err = sqsClient.SendMessage(c.Request().Context(), &sqs.SendMessageInput{
 		QueueUrl:    aws.String(s.SQSQueueURL),
 		MessageBody: aws.String(string(payloadBytes)),
 	})
 	if err != nil {
 		log.Printf("[ERROR] [debug] Failed to send message to SQS: %v", err)
-		http.Error(w, "Failed to send message to SQS queue: "+err.Error(), http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Failed to send message to SQS queue: "+err.Error())
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
+	return c.JSON(http.StatusOK, map[string]string{
 		"status":  "ok",
 		"message": "Manual chunk successfully sent to SQS queue. The continuous indexer worker will pull and process it in a few seconds.",
 	})

@@ -1,10 +1,11 @@
 package health
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/labstack/echo/v4"
 )
 
 // Service coordinates health and diagnostics checks for backend dependencies
@@ -26,12 +27,7 @@ func NewService(qdrantURL, embeddingModelTeiURL, environment, collection string)
 }
 
 // Handler performs active readiness verification against vector store and embedding engines
-func (s *Service) Handler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (s *Service) Handler(c echo.Context) error {
 	client := http.Client{Timeout: 3 * time.Second}
 
 	// 1. Validate Qdrant connection via readyz endpoint
@@ -54,14 +50,12 @@ func (s *Service) Handler(w http.ResponseWriter, r *http.Request) {
 		teiResp.Body.Close()
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	status := http.StatusOK
 	if qdrantStatus == "disconnected" || teiStatus == "disconnected" {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	} else {
-		w.WriteHeader(http.StatusOK)
+		status = http.StatusServiceUnavailable
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	return c.JSON(status, map[string]interface{}{
 		"status":        "ok",
 		"qdrant_status": qdrantStatus,
 		"tei_status":    teiStatus,

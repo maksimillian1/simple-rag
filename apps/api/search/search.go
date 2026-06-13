@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/maksimillian1/simple-rag/apps/api/core"
 	"github.com/qdrant/fastembed-go"
 	"github.com/qdrant/go-client/qdrant"
@@ -187,44 +188,45 @@ type QdrantSearchResponse struct {
 }
 
 // QueryHandler executes the built-in hybrid retrieval and LLM synthesis flow
-func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) QueryHandler(c echo.Context) error {
 	startTime := time.Now()
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), 4500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 4500*time.Millisecond)
 	defer cancel()
 
-	req, trimmedQuery, limit, err := decodeAndValidateRequest(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	var req core.QueryRequest
+	if err := c.Bind(&req); err != nil {
+		return c.String(http.StatusBadRequest, "invalid request body: "+err.Error())
 	}
 
-	isDebug := req.Debug || r.URL.Query().Get("debug") == "true"
+	trimmedQuery := strings.TrimSpace(req.Query)
+	if len(trimmedQuery) < 3 || len(trimmedQuery) > 1000 {
+		return c.String(http.StatusBadRequest, "validation error: query must be between 3 and 1000 characters")
+	}
+
+	limit := req.TopK
+	if limit <= 0 {
+		limit = 5
+	}
+
+	isDebug := req.Debug || c.QueryParam("debug") == "true"
 
 	denseQueryVector, err := s.getDenseEmbedding(ctx, trimmedQuery)
 	if err != nil {
 		log.Printf("[ERROR] [query] TEI embedding failed: %v", err)
-		http.Error(w, "Embedding Generator (TEI) error: "+err.Error(), http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Embedding Generator (TEI) error: "+err.Error())
 	}
 
 	sparseEmbedding, err := s.getSparseEmbedding(ctx, trimmedQuery)
 	if err != nil {
 		log.Printf("[ERROR] [query] Sparse embedding failed: %v", err)
-		http.Error(w, "Sparse embedding error: "+err.Error(), http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Sparse embedding error: "+err.Error())
 	}
 
 	results, err := s.queryQdrant(ctx, denseQueryVector, sparseEmbedding, limit)
 	if err != nil {
 		log.Printf("[ERROR] [query] Qdrant query failed: %v", err)
-		http.Error(w, "Qdrant query error: "+err.Error(), http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Qdrant query error: "+err.Error())
 	}
 
 	citations, debugResults := buildCitationsAndDebug(results, isDebug)
@@ -232,8 +234,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	answer, err := s.LLM.GenerateAnswer(ctx, trimmedQuery, citations)
 	if err != nil {
 		log.Printf("[ERROR] [query] LLM answer generation failed: %v", err)
-		http.Error(w, "Failed to generate answer from LLM: "+err.Error(), http.StatusInternalServerError)
-		return
+		return c.String(http.StatusInternalServerError, "Failed to generate answer from LLM: "+err.Error())
 	}
 
 	response := core.QueryResponse{
@@ -249,27 +250,7 @@ func (s *Service) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
-}
-
-func decodeAndValidateRequest(r *http.Request) (core.QueryRequest, string, int, error) {
-	var req core.QueryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return req, "", 0, fmt.Errorf("invalid request body: %w", err)
-	}
-
-	trimmedQuery := strings.TrimSpace(req.Query)
-	if len(trimmedQuery) < 3 || len(trimmedQuery) > 1000 {
-		return req, "", 0, fmt.Errorf("validation error: query must be between 3 and 1000 characters")
-	}
-
-	limit := req.TopK
-	if limit <= 0 {
-		limit = 5
-	}
-	return req, trimmedQuery, limit, nil
+	return c.JSON(http.StatusOK, response)
 }
 
 func (s *Service) getDenseEmbedding(ctx context.Context, query string) ([]float32, error) {
@@ -346,7 +327,13 @@ func (s *Service) getSparseEmbedding(ctx context.Context, query string) (fastemb
 }
 
 func (s *Service) queryQdrant(ctx context.Context, dense []float32, sparse fastembed.SparseEmbedding, limit int) ([]*qdrant.ScoredPoint, error) {
-	prefetchLimit := uint64(limit * 2)
+	densePrefetchLimit := uint64(limit * 3)
+
+	sparsePrefetchLimit := uint64(limit / 2)
+	if sparsePrefetchLimit < 2 {
+		sparsePrefetchLimit = 2
+	}
+
 	rrfK := uint32(60)
 	uint64Limit := uint64(limit)
 
@@ -356,12 +343,12 @@ func (s *Service) queryQdrant(ctx context.Context, dense []float32, sparse faste
 			{
 				Query: qdrant.NewQueryDense(dense),
 				Using: &s.DenseVectorsName,
-				Limit: &prefetchLimit,
+				Limit: &densePrefetchLimit,
 			},
 			{
 				Query: qdrant.NewQuerySparse(sparse.Indices, sparse.Values),
 				Using: &s.SparseVectorsName,
-				Limit: &prefetchLimit,
+				Limit: &sparsePrefetchLimit,
 			},
 		},
 		Query:       qdrant.NewQueryRRF(&qdrant.Rrf{K: &rrfK}),
@@ -431,10 +418,9 @@ func synthesizeAnswer(query string, citations []core.Citation) string {
 	var sb strings.Builder
 	sb.WriteString("Based on the retrieved document chunks, here is the synthesized answer:\n\n")
 
-	// Create cohesive bullet points from matching chunks
 	for i, cit := range citations {
 		if i >= 3 {
-			break // Only summarize top-3
+			break
 		}
 		sb.WriteString("• ")
 		text := strings.TrimSpace(cit.TextSnippet)
