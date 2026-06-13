@@ -11,10 +11,13 @@ type Citation struct {
 }
 
 type QueryRequest struct {
-	Query string  `json:"query"`
-	TopK  int     `json:"top_k"`
-	Alpha float64 `json:"alpha"`
-	Debug bool    `json:"debug"`
+	Query  string   `json:"query"`
+	TopK   int      `json:"top_k"`
+	Alpha  *float64 `json:"alpha,omitempty"`
+	RrfK   int      `json:"rrf_k,omitempty"`
+	Dense  *bool    `json:"dense,omitempty"`
+	Sparse *bool    `json:"sparse,omitempty"`
+	Debug  bool     `json:"debug"`
 }
 
 type DebugResult struct {

@@ -176,14 +176,41 @@
                     </div>
                     
                     <div class="flex items-center justify-between text-xs flex-wrap gap-3">
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-4 flex-wrap">
                             <div class="flex items-center gap-2">
-                                <label for="search-limit" class="text-neutral-500">Limit results:</label>
+                                <label for="search-limit" class="text-neutral-500 font-medium">Limit results:</label>
                                 <select id="search-limit" class="bg-white border border-neutral-200 rounded px-2.5 py-1 text-neutral-700 focus:outline-none focus:border-neutral-900">
                                     <option value="3" selected>3</option>
                                     <option value="5">5</option>
                                     <option value="10">10</option>
                                 </select>
+                            </div>
+                            <div class="flex items-center gap-3 bg-neutral-50 border border-neutral-200 rounded px-2.5 py-1 select-none">
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input id="search-dense" type="checkbox" checked onchange="handleSearchModesChange()" class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 h-3.5 w-3.5">
+                                    <span class="text-neutral-700 font-medium">Dense Vector</span>
+                                </label>
+                                <span class="text-neutral-300">|</span>
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input id="search-sparse" type="checkbox" checked onchange="handleSearchModesChange()" class="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 h-3.5 w-3.5">
+                                    <span class="text-neutral-700 font-medium">Sparse Vector</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="search-alpha" class="text-neutral-500 font-medium">Dense Weight (Alpha):</label>
+                                <select id="search-alpha" class="bg-white border border-neutral-200 rounded px-2.5 py-1 text-neutral-700 focus:outline-none focus:border-neutral-900">
+                                    <option value="0.0">0.0 (Pure Sparse)</option>
+                                    <option value="0.2">0.2</option>
+                                    <option value="0.4">0.4</option>
+                                    <option value="0.5" selected>0.5 (Hybrid)</option>
+                                    <option value="0.6">0.6</option>
+                                    <option value="0.8">0.8</option>
+                                    <option value="1.0">1.0 (Pure Dense)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="search-rrf-k" class="text-neutral-500 font-medium">RRF K:</label>
+                                <input id="search-rrf-k" type="number" min="1" max="1000" value="60" class="w-14 bg-white border border-neutral-200 rounded px-2 py-0.5 text-neutral-700 focus:outline-none focus:border-neutral-900">
                             </div>
                         </div>
 
@@ -215,7 +242,7 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-semibold text-neutral-800">Query Sandbox Ready</h3>
-                    <p class="text-xs text-neutral-400 max-w-sm mx-auto mt-1">Submit a query above to fetch context chunks with real-time similarity scores from Qdrant.</p>
+                    <p class="text-xs text-neutral-400 max-w-sm mx-auto mt-1">Submit a query above to fetch context chunks with real-time RRF scores from Qdrant.</p>
                 </div>
             </div>
 
@@ -377,9 +404,34 @@
             }
         }
 
+        function handleSearchModesChange() {
+            const dense = document.getElementById("search-dense").checked;
+            const sparse = document.getElementById("search-sparse").checked;
+            const alphaSelect = document.getElementById("search-alpha");
+            const rrfKInput = document.getElementById("search-rrf-k");
+
+            if (dense && sparse) {
+                alphaSelect.disabled = false;
+                rrfKInput.disabled = false;
+            } else {
+                alphaSelect.disabled = true;
+                rrfKInput.disabled = true;
+            }
+
+            if (!dense && !sparse) {
+                document.getElementById("search-dense").checked = true;
+                handleSearchModesChange();
+                showAlert("Search Mode Required", "At least one search method must be selected.", "error");
+            }
+        }
+
         async function performSearch() {
             const query = document.getElementById("search-input").value.trim();
             const limit = parseInt(document.getElementById("search-limit").value) || 3;
+            const alpha = parseFloat(document.getElementById("search-alpha").value);
+            const rrfK = parseInt(document.getElementById("search-rrf-k").value) || 60;
+            const searchDense = document.getElementById("search-dense").checked;
+            const searchSparse = document.getElementById("search-sparse").checked;
 
             if (!query) {
                 showAlert("Query Required", "Please type something in the search bar", "error");
@@ -407,7 +459,14 @@
                 const res = await fetch(API_BASE + "/api/v1/query?debug=true", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ query: query, top_k: limit })
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: limit,
+                        alpha: alpha,
+                        rrf_k: rrfK,
+                        dense: searchDense,
+                        sparse: searchSparse
+                    })
                 });
 
                 if (!res.ok) {
@@ -454,7 +513,16 @@
                 }
 
                 debugResults.forEach(function(item) {
-                    const confidence = (item.score * 100).toFixed(1);
+                    let scoreLabel = "RRF Score";
+                    let scoreValue = item.score.toFixed(4);
+
+                    if (searchDense && !searchSparse) {
+                        scoreLabel = "Similarity";
+                        scoreValue = (item.score * 100).toFixed(1) + "%";
+                    } else if (!searchDense && searchSparse) {
+                        scoreLabel = "Sparse Score";
+                        scoreValue = item.score.toFixed(2);
+                    }
                     
                     // Format metadata tags
                     let tagsHTML = "";
@@ -484,10 +552,10 @@
                         '        </div>',
                         tagsHTML,
                         '    </div>',
-                        '    <!-- Confidence badge -->',
+                        '    <!-- Score badge -->',
                         '    <div class="flex items-center gap-1">',
-                        '        <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mr-1">Similarity:</span>',
-                        '        <span class="text-xs font-bold text-neutral-900">' + confidence + '%</span>',
+                        '        <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mr-1">' + scoreLabel + ':</span>',
+                        '        <span class="text-xs font-bold text-neutral-900">' + scoreValue + '</span>',
                         '    </div>',
                         '</div>'
                     ].join('\n');
