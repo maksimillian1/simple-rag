@@ -63,7 +63,5 @@ When generating or interacting with infrastructure configuration or deployment m
 ## 6. Current Phase & Engineering Tasks
 * **[Task-01] Terraform: VPC Networking with PrivateLink Base**
   * Description: Provision private/public subnets and NAT Gateways. Configure AWS Bedrock VPC Interface Endpoints (AWS PrivateLink) inside the private subnet perimeter to eliminate internet egress.
-* **[Task-11] Terraform: S3 Buckets, SQS Queues & Primary DLQ Redrive Policies**
-  * Description: Deploy production S3 raw bucket with strict public access blocks. Provision Stage-1 and Stage-2 SQS queues bound to matching dead-letter queues (`-dlq`) with maxReceiveCount=3.
 * **[Task-02] Terraform: EKS Cluster Deployment & IAM IRSA Binding Profiles**
   * Description: Spin up managed EKS cluster with Spot-driven node groups. Generate AWS IAM Roles with precise OIDC trust relationships for S3 read, SQS process, and Bedrock InvokeModel actions.

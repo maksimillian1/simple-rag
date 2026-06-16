@@ -1,22 +1,57 @@
 module "rag_storage" {
+  count  = var.is_local_test ? 0 : 1
   source = "./modules/rag_storage"
 
-  # TODO: Replace with a globally unique bucket name.
-  # Using a placeholder variable or hardcoded string here for demonstration.
-  bucket_name = "my-unique-rag-docs-bucket-12345"
-
-  queue_name = "rag-upload-notifications"
+  resource_prefix      = var.resource_prefix
+  is_local_test        = var.is_local_test
+  vpc_cidr             = var.vpc_cidr
+  public_subnet_cidrs  = var.public_subnet_cidrs
+  private_subnet_cidrs = var.private_subnet_cidrs
+  single_nat_gateway   = var.single_nat_gateway
 
   tags = {
-    Environment = "dev"
-    Project     = "simple-rag"
+    app         = "simple-rag"
+    environment = var.is_local_test ? "local-test" : "dev"
+    managed-by  = "terraform"
   }
 }
 
 output "rag_s3_bucket" {
-  value = module.rag_storage.s3_bucket_name
+  value = one(module.rag_storage[*].s3_bucket_name)
+}
+
+output "rag_s3_bucket_arn" {
+  value = one(module.rag_storage[*].s3_bucket_arn)
 }
 
 output "rag_sqs_queue" {
-  value = module.rag_storage.sqs_queue_url
+  value = one(module.rag_storage[*].sqs_stage_1_queue_url)
+}
+
+output "rag_sqs_stage_1_queue" {
+  value = one(module.rag_storage[*].sqs_stage_1_queue_url)
+}
+
+output "rag_sqs_stage_1_queue_arn" {
+  value = one(module.rag_storage[*].sqs_stage_1_queue_arn)
+}
+
+output "rag_sqs_stage_2_queue" {
+  value = one(module.rag_storage[*].sqs_stage_2_queue_url)
+}
+
+output "rag_sqs_stage_2_queue_arn" {
+  value = one(module.rag_storage[*].sqs_stage_2_queue_arn)
+}
+
+output "vpc_id" {
+  value = one(module.rag_storage[*].vpc_id)
+}
+
+output "private_subnets" {
+  value = one(module.rag_storage[*].private_subnets)
+}
+
+output "public_subnets" {
+  value = one(module.rag_storage[*].public_subnets)
 }
