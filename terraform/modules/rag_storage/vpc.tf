@@ -6,7 +6,7 @@ data "aws_availability_zones" "available" {
 module "vpc" {
   count   = var.is_local_test ? 0 : 1
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  version = "~> 6.0"
 
   name = "${var.resource_prefix}-vpc"
   cidr = var.vpc_cidr
