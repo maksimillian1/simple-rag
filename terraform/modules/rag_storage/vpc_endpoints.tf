@@ -1,21 +1,22 @@
 module "vpc_endpoints" {
+  count   = var.is_local_test ? 0 : 1
   source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
   version = "~> 5.0"
 
-  vpc_id = module.vpc.vpc_id
+  vpc_id = module.vpc[0].vpc_id
 
-  security_group_ids = [aws_security_group.bedrock_endpoint_sg.id]
+  security_group_ids = [aws_security_group.bedrock_endpoint_sg[0].id]
 
   endpoints = {
     bedrock_runtime = {
       service             = "bedrock-runtime"
       private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
+      subnet_ids          = module.vpc[0].private_subnets
     },
     bedrock = {
       service             = "bedrock"
       private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
+      subnet_ids          = module.vpc[0].private_subnets
     }
   }
 
@@ -23,9 +24,10 @@ module "vpc_endpoints" {
 }
 
 resource "aws_security_group" "bedrock_endpoint_sg" {
+  count       = var.is_local_test ? 0 : 1
   name        = "${var.resource_prefix}-bedrock-endpoint-sg"
   description = "Security Group for AWS Bedrock VPC Endpoints"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id      = module.vpc[0].vpc_id
 
   ingress {
     from_port   = 443

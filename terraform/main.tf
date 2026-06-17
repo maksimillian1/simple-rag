@@ -1,5 +1,4 @@
 module "rag_storage" {
-  count  = var.is_local_test ? 0 : 1
   source = "./modules/rag_storage"
 
   resource_prefix      = var.resource_prefix
@@ -17,41 +16,41 @@ module "rag_storage" {
 }
 
 output "rag_s3_bucket" {
-  value = one(module.rag_storage[*].s3_bucket_name)
+  value = module.rag_storage.s3_bucket_name
 }
 
 output "rag_s3_bucket_arn" {
-  value = one(module.rag_storage[*].s3_bucket_arn)
+  value = module.rag_storage.s3_bucket_arn
 }
 
 output "rag_sqs_queue" {
-  value = one(module.rag_storage[*].sqs_stage_1_queue_url)
+  value = module.rag_storage.sqs_stage_1_queue_url
 }
 
 output "rag_sqs_stage_1_queue" {
-  value = one(module.rag_storage[*].sqs_stage_1_queue_url)
+  value = module.rag_storage.sqs_stage_1_queue_url
 }
 
 output "rag_sqs_stage_1_queue_arn" {
-  value = one(module.rag_storage[*].sqs_stage_1_queue_arn)
+  value = module.rag_storage.sqs_stage_1_queue_arn
 }
 
 output "rag_sqs_stage_2_queue" {
-  value = one(module.rag_storage[*].sqs_stage_2_queue_url)
+  value = module.rag_storage.sqs_stage_2_queue_url
 }
 
 output "rag_sqs_stage_2_queue_arn" {
-  value = one(module.rag_storage[*].sqs_stage_2_queue_arn)
+  value = module.rag_storage.sqs_stage_2_queue_arn
 }
 
 output "vpc_id" {
-  value = one(module.rag_storage[*].vpc_id)
+  value = module.rag_storage.vpc_id
 }
 
 output "private_subnets" {
-  value = one(module.rag_storage[*].private_subnets)
+  value = module.rag_storage.private_subnets
 }
 
 output "public_subnets" {
-  value = one(module.rag_storage[*].public_subnets)
+  value = module.rag_storage.public_subnets
 }
