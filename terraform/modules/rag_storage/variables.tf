@@ -39,3 +39,9 @@ variable "single_nat_gateway" {
   type        = bool
   default     = true
 }
+
+variable "cluster_name" {
+  description = "Name of the EKS cluster for Karpenter subnet tagging"
+  type        = string
+  default     = ""
+}

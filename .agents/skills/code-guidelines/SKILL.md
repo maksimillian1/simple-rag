@@ -28,6 +28,7 @@ Before implementing:
 - No abstractions for single-use code.
 - No "flexibility" or "configurability" that wasn't requested.
 - No error handling for impossible scenarios.
+- No comments, header annotations, or inline explanations. Code must be self-documenting. Comments are permitted ONLY for mathematically complex algorithms that cannot be inferred from standard APIs.
 - If you write 200 lines and it could be 50, rewrite it.
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
