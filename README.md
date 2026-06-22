@@ -49,3 +49,12 @@ Architectural changes must be peer-reviewed via the `adr-tools` standard before 
 
 * **Initialize new design record:** `adr new "Your Decision Title"`
 * **Supersede an existing policy:** `adr new -supersedes 0004 "Migrating Framework"`
+
+## Setup
+
+### Terraform
+* terraform init
+* terraform apply
+
+### Kubernetes
+* aws eks update-kubeconfig --region eu-central-1 --name simple-rag-cluster

@@ -1,37 +1,5 @@
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "~> 21.0"
-
-  name               = var.cluster_name
-  kubernetes_version = var.cluster_version
-
-  vpc_id     = var.vpc_id
-  subnet_ids = var.private_subnets
-
-  enable_irsa = true
-
-  enable_cluster_creator_admin_permissions = true
-
-  node_security_group_tags = {
-    "karpenter.sh/discovery" = var.cluster_name
-  }
-
-  fargate_profiles = {
-    karpenter = {
-      selectors = [
-        {
-          namespace = "karpenter"
-        }
-      ]
-      subnet_ids = var.private_subnets
-    }
-  }
-
-  tags = var.tags
-}
-
 resource "aws_iam_role" "karpenter_node" {
-  name  = "${var.cluster_name}-karpenter-node"
+  name = "${var.cluster_name}-karpenter-node"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -99,6 +67,28 @@ resource "aws_iam_policy" "karpenter_controller" {
       },
       {
         Action = [
+          "iam:CreateServiceLinkedRole"
+        ]
+        Effect   = "Allow"
+        Resource = "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot*"
+        Condition = {
+          StringEquals = {
+            "iam:AWSServiceName" = "spot.amazonaws.com"
+          }
+        }
+      },
+      {
+        Action = [
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl",
+          "sqs:ReceiveMessage"
+        ]
+        Effect   = "Allow"
+        Resource = aws_sqs_queue.karpenter_interruption.arn
+      },
+      {
+        Action = [
           "iam:PassRole"
         ]
         Effect   = "Allow"
@@ -118,7 +108,7 @@ resource "aws_iam_policy" "karpenter_controller" {
 }
 
 resource "aws_iam_role" "karpenter_controller" {
-  name  = "${var.cluster_name}-karpenter-controller"
+  name = "${var.cluster_name}-karpenter-controller"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -152,3 +142,5 @@ resource "aws_eks_access_entry" "karpenter_node" {
   principal_arn = aws_iam_role.karpenter_node.arn
   type          = "EC2_LINUX"
 }
+
+

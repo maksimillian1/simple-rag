@@ -1,5 +1,5 @@
 # ==============================================================================
-# Gemini Code Assist Context: simple-rag (Strict Guardrails & Architecture V2.2)
+# Gemini Code Assist Context: simple-rag (Strict Guardrails & Architecture V2.3)
 # ==============================================================================
 
 ## 1. System Role & Core Mission
@@ -12,14 +12,14 @@ You must strictly follow this layout. Do not generate code outside these boundar
 * `apps/api/`         -> Go standard library / `labstack/echo` (Synchronous query path)
 * `apps/chunker/`     -> Python / Haystack 2.0 (Stage 1: Ephemeral parsing job)
 * `apps/indexer/`     -> Python / Haystack 2.0 (Stage 2: Ephemeral indexing job)
-* `deploy/k8s/`       -> Kubernetes manifests (KEDA ScaledJobs, Cilium NetworkPolicies, ServiceAccounts)
-* `docs/`             -> System documentation (`architecture.md`, `contracts.md`, `ops.md`)
-* `terraform/`        -> Infrastructure as Code (Strict AWS EKS, IAM IRSA, SQS, S3 provision)
+* `deploy/k8s/`       -> Kubernetes manifests, KEDA ScaledJobs, Cilium NetworkPolicies, Gateway API resources
+* `docs/`             -> System documentation (`architecture.md`, `contracts.md`, `ops.md`, `adr/`)
+* `terraform/`        -> Infrastructure as Code (Strict AWS EKS, IAM IRSA, SQS, S3, Cilium, Karpenter baseline)
 
 ## 3. Interaction Protocol & Review-Optimized Output
 * **No Wall of Code:** Generating the entire file is prohibited if the changes affect less than 50% of the code. Use the "Diff/Patch" pattern or show specific functions.
 * **Explain the "Why":** Before the code, the model should explain the architectural decision (why this particular pattern/library) in 2-3 lines (bullet points).
-* **Cognitive Load Reduction:** Absolutely no comments, section headers, or inline explanations are allowed in Terraform, configuration files, Go, or Python files. Code must be entirely self-documenting. Comments are permitted ONLY for documenting mathematically complex algorithms (e.g., the RRF formula) that cannot be inferred from standard API calls.
+* **Cognitive Load Reduction:** Absolutely no comments, section headers, or inline explanations are allowed in Terraform, configuration files, Go, or Python files. Code must be entirely self-documenting. Comments are permitted ONLY for documenting mathematically complex algorithms (e.g., the RRF formula or token frequency penalty) that cannot be inferred from standard API calls.
 * **Draft Mode by Default:** If the task is complex, first propose the high-level design (pseudocode or function signatures) and wait for approval, instead of generating 200 lines of Python/Go code.
 * **Strict Function Length & SRP:** The maximum size of any function or method is 50 lines of execution code (excluding decorators and docstrings). You must decompose logic into pure, single-purpose, easily testable functions adhering to the Single Responsibility Principle.
 * **Magic Numbers & Configuration Guardrail:** Hardcoding configuration strings, regular expressions, salt values, or mathematical constants directly inside function bodies is strictly forbidden. All such values must be declared as top-level module constants (`UPPER_CASE`) or loaded via environment variables/Pydantic settings. Linear indices (0, 1) and empty initializers are allowed in-place.
@@ -39,14 +39,26 @@ All implementation details, data routing, and infrastructure limitations are gov
 * **Security & IAM (IRSA Compliance):** Absolutely zero hardcoded AWS Access Keys or `.env` files with credentials. Production code relies entirely on standard AWS Credential Provider Chain. Kubernetes pods use IAM Roles for Service Accounts (IRSA) via WebIdentity token projection. Local code must let `boto3`/Go SDK resolve native AWS shared config profiles (`~/.aws/credentials`) transparently.
 * **Kubernetes Memory Optimization Strategy:** All Python applications must adhere strictly to a **Lazy-Loading Pattern**. Framework components (e.g., Haystack `Pipeline`, `QdrantDocumentWriter`, `boto3`) must be imported and initialized dynamically only after a message is successfully pulled or when the application initializes its runtime components.
 
-## 5. Terraform & Kubernetes Co-existence & IaC Architecture Rules
+## 5. IaC & Monorepo GitOps Deployment Framework
 When generating or interacting with infrastructure configuration or deployment manifests, you must strictly comply with these enterprise design principles:
-* **Separation of Concerns (Terraform vs K8s Boundary):**
-  - Terraform (`terraform/`) is strictly restricted to provisioning cloud infrastructure foundational state: VPC, EKS cluster, managed node groups, SQS queues, S3 buckets, and IAM Roles.
-  - You are STRICTLY FORBIDDEN from using Terraform to manage Kubernetes application payloads. Do not use `kubernetes_manifest`, `kubernetes_pod`, or `helm_release` inside Terraform modules to deploy `simple-rag` services. All K8s manifests, KEDA ScaledJobs, and K8s ServiceAccounts must be isolated strictly inside `deploy/k8s/`.
+* **Separation of Concerns (Line of Demarcation via ADR-0011):**
+  - **Layer 1: Infrastructure Foundations (Terraform):** Confined strictly to provisioning the virtual cloud environment (VPC, private/public subnets, security groups, SQS, S3, EKS Control Plane) and core scheduling/networking primitives:
+    - **Cilium CNI & Gateway API Controller:** Instantiated via Terraform Helm provider with `gatewayAPI.enabled=true`.
+    - **Karpenter Controller:** Provisioned onto an isolated AWS Fargate profile with dedicated SQS interruption queues for Spot Interruption events.
+    - **AWS EBS CSI Driver:** Provisioned natively to bind persistent `gp3` storage classes to stateful nodes.
+    - **ArgoCD Engine:** Bootstrapped via a single Helm transaction to monitor the root entry point. Terraform has zero visibility or management over subsequent workload states.
+  - **Layer 2: Declarative GitOps Configuration (ArgoCD):** Every component above Layer 1 is managed strictly inside `deploy/k8s/` via the App-of-Apps pattern (KEDA operators, Qdrant database clusters, TEI services, and app workloads).
+* **Monorepo GitOps Write-Back Protocol (ADR-0009):** Continuous Delivery completely eliminates administrative Git write access within GitHub Actions CI.
+  - CI pipelines are renamed to `build-and-push-*.yml` and are restricted to publishing OCI images to **GitHub Container Registry (GHCR)** tagged with the short commit SHA (`sha-${{ github.sha }}`).
+  - State synchronization is managed via **ArgoCD Image Updater** using `write-back-method: git`. The controller executes automated state persistence commits back to `master`, isolated strictly to a tracking manifest named `.argocd-source-<app-name>.yaml` within the environment folder.
+* **4-Tier Compute Architecture & Isolation (ADR-0010):**
+  - **Tier 1 (AWS Fargate):** Houses the Karpenter controller to eliminate scheduling deadlocks during cluster consolidation.
+  - **Tier 2 (On-Demand Managed Pool):** Houses immutable core daemons (ArgoCD, KEDA, Cilium) and the stateful Qdrant Vector DB to insulate transactional workflows from volatility.
+  - **Tier 3 (`apps-serving` NodePool):** Dedicated to `apps/api`. Employs mixed capacity allocation (`on-demand` + `spot`) with `replicas: 2` and strict `podAntiAffinity` by `kubernetes.io/hostname` to guarantee p95 SLAs while isolating query layers from Tier 2.
+  - **Tier 4 (`apps-compute` NodePool):** Confined strictly to AWS Spot instances running `apps/chunker` and `apps/indexer` via KEDA `ScaledJobs` with a dynamic scale-to-zero enforcement policy.
 * **IRSA (IAM Roles for Service Accounts) Tight Coupling:**
-  - For every cloud resource requiring access (S3, SQS), Terraform must export the AWS IAM Role ARN featuring an explicit Trust Policy bound to the EKS Cluster OIDC Provider (`oidc.eks.<region>.amazonaws.com/id/...`).
-  - The corresponding Kubernetes manifest in `deploy/k8s/service-account.yaml` must explicitly declare the annotation `eks.amazonaws.com/role-arn: <IAM_ROLE_ARN>` to bind the runtime pod security context natively.
+  - For every cloud resource requiring access (S3, SQS), Terraform must export the AWS IAM Role ARN featuring an explicit Trust Policy bound to the EKS Cluster OIDC Provider.
+  - The corresponding Kubernetes manifest in `deploy/k8s/` must explicitly declare the annotation `eks.amazonaws.com/role-arn: <IAM_ROLE_ARN>`.
 * **Mandatory Resource Tagging Policy:** Every AWS resource that supports metadata tags MUST be explicitly configured with the following tag definitions:
   - `app          = "simple-rag"` (Grouping project identification)
   - `environment  = var.environment` (e.g. `"local-test"`, `"staging"`, or `"prod"`)
@@ -60,8 +72,11 @@ When generating or interacting with infrastructure configuration or deployment m
   - **Dead-Letter Queues (DLQs):** All primary message queues (SQS) must declare a redrive policy routing failing messages to a sibling `-dlq` queue with reasonable `maxReceiveCount` limit (e.g. 3).
   - **Least Privilege Access Policies:** Queue policies (`aws_sqs_queue_policy`) must define narrow conditions limiting permissions specifically to source bucket ARNs using conditional operators like `ArnEquals`.
 
-## 6. Current Phase & Engineering Tasks
-* **[Task-01] Terraform: VPC Networking with PrivateLink Base**
-  * Description: Provision private/public subnets and NAT Gateways. Configure AWS Bedrock VPC Interface Endpoints (AWS PrivateLink) inside the private subnet perimeter to eliminate internet egress.
+## 6. Operational Guidelines
+* **Spot Instance Graceful Termination:**
+  Always explicitly set `terminationGracePeriodSeconds: 120` in the pod spec for asynchronous batch workloads (`chunker` and `indexer`). 
+  Because these workloads run on AWS Spot Instances governed by Karpenter, setting the grace period to 120 seconds perfectly aligns Kubernetes with the 2-minute Spot Instance Interruption Notice window. This overrides the default 30-second Kubernetes SIGTERM window, giving the processes maximum possible time to checkpoint or complete their current batch before forceful termination.
+
+## 7. Current Phase & Engineering Tasks
 * **[Task-02] Terraform: EKS Cluster Deployment & IAM IRSA Binding Profiles**
-  * Description: Spin up managed EKS cluster with Spot-driven node groups. Generate AWS IAM Roles with precise OIDC trust relationships for S3 read, SQS process, and Bedrock InvokeModel actions.
+    * Description: Spin up managed EKS cluster with Spot-driven node groups. Generate AWS IAM Roles with precise OIDC trust relationships for S3 read, SQS process, and Bedrock InvokeModel actions.

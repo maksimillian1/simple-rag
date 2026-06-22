@@ -7,8 +7,8 @@ locals {
   }
 }
 
-module "rag_storage" {
-  source = "./modules/rag_storage"
+module "rag_core" {
+  source = "./modules/01-rag-core"
 
   resource_prefix      = var.resource_prefix
   is_local_test        = var.is_local_test
@@ -21,62 +21,33 @@ module "rag_storage" {
   tags = local.tags
 }
 
-output "rag_s3_bucket" {
-  value = module.rag_storage.s3_bucket_name
+data "aws_eks_cluster" "this" {
+  count      = var.is_local_test ? 0 : 1
+  name       = module.rag_core.cluster_name
+  depends_on = [module.rag_core]
 }
 
-output "rag_s3_bucket_arn" {
-  value = module.rag_storage.s3_bucket_arn
-}
+module "rag_k8s" {
+  source = "./modules/02-rag-k8s"
+  count  = var.is_local_test ? 0 : 1
 
-output "rag_sqs_queue" {
-  value = module.rag_storage.sqs_stage_1_queue_url
-}
+  cluster_name                      = module.rag_core.cluster_name
+  karpenter_node_role_arn           = module.rag_core.karpenter_node_role_arn
+  karpenter_controller_role_arn     = module.rag_core.eks_karpenter_controller_role_arn
+  karpenter_interruption_queue_name = module.rag_core.eks_karpenter_interruption_queue_name
 
-output "rag_sqs_stage_1_queue" {
-  value = module.rag_storage.sqs_stage_1_queue_url
-}
+  node_security_group_id            = module.rag_core.node_security_group_id
+  cluster_primary_security_group_id = module.rag_core.cluster_primary_security_group_id
+  private_subnets                   = module.rag_core.private_subnets
 
-output "rag_sqs_stage_1_queue_arn" {
-  value = module.rag_storage.sqs_stage_1_queue_arn
-}
+  cluster_endpoint     = data.aws_eks_cluster.this[0].endpoint
+  cluster_auth_base64  = data.aws_eks_cluster.this[0].certificate_authority[0].data
+  cluster_service_cidr = data.aws_eks_cluster.this[0].kubernetes_network_config[0].service_ipv4_cidr
 
-output "rag_sqs_stage_2_queue" {
-  value = module.rag_storage.sqs_stage_2_queue_url
-}
+  cluster_oidc_provider_arn = module.rag_core.eks_oidc_provider_arn
+  cluster_oidc_provider     = module.rag_core.eks_oidc_provider
 
-output "rag_sqs_stage_2_queue_arn" {
-  value = module.rag_storage.sqs_stage_2_queue_arn
-}
+  tags = local.tags
 
-output "vpc_id" {
-  value = module.rag_storage.vpc_id
-}
-
-output "private_subnets" {
-  value = module.rag_storage.private_subnets
-}
-
-output "public_subnets" {
-  value = module.rag_storage.public_subnets
-}
-
-output "eks_cluster_endpoint" {
-  description = "EKS API server endpoint"
-  value       = module.rag_storage.eks_cluster_endpoint
-}
-
-output "eks_oidc_provider_url" {
-  description = "OIDC Issuer URL of EKS cluster"
-  value       = module.rag_storage.eks_oidc_provider_url
-}
-
-output "eks_cluster_security_group_id" {
-  description = "Cluster-wide security group ID of EKS cluster"
-  value       = module.rag_storage.eks_cluster_security_group_id
-}
-
-output "eks_karpenter_controller_role_arn" {
-  description = "IAM Role ARN for Karpenter controller"
-  value       = module.rag_storage.eks_karpenter_controller_role_arn
+  depends_on = [module.rag_core]
 }

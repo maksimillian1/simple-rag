@@ -45,3 +45,9 @@ variable "cluster_name" {
   type        = string
   default     = ""
 }
+
+variable "create_nat_instance" {
+  description = "If true, provisions an fck-nat EC2 instance. If false, provisions a managed AWS NAT Gateway."
+  type        = bool
+  default     = false
+}
