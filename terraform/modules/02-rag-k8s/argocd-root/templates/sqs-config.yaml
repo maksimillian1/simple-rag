@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rag-jobs
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sqs-config
+  namespace: rag-jobs
+data:
+  CHUNKER_SQS_URL: {{ .Values.sqsChunkerUrl | quote }}
+  INDEXER_SQS_URL: {{ .Values.sqsIndexerUrl | quote }}
