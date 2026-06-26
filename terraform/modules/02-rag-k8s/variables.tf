@@ -63,3 +63,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "github_token" {
+  description = "GitHub PAT for ArgoCD Image Updater to write back to the repo"
+  type        = string
+  sensitive   = true
+}

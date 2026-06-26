@@ -48,6 +48,8 @@ module "rag_k8s" {
   cluster_oidc_provider     = module.rag_core.eks_oidc_provider
 
   tags = local.tags
+  
+  github_token = var.github_token
 
   depends_on = [module.rag_core]
 }

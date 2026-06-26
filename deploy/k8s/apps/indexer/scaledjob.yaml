@@ -1,0 +1,42 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: indexer
+spec:
+  jobTargetRef:
+    template:
+      metadata:
+        labels:
+          app: indexer
+      spec:
+        serviceAccountName: indexer-sa
+        terminationGracePeriodSeconds: 120
+        nodeSelector:
+          karpenter.sh/nodepool: apps-compute
+        tolerations:
+        - key: "karpenter.sh/capacity-type"
+          operator: "Equal"
+          value: "spot"
+          effect: "NoSchedule"
+        containers:
+        - name: indexer
+          image: ghcr.io/maksimillian1/simple-rag/indexer:latest
+          env:
+          - name: CONTINUOUS_POLL
+            value: "False"
+        restartPolicy: Never
+  pollingInterval: 15
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  maxReplicaCount: 100
+  triggers:
+  - type: aws-sqs-queue
+    metadata:
+      queueURL: "<REPLACE_WITH_INDEXER_SQS_URL>"
+      awsRegion: "eu-central-1"
+      queueLength: "5"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: indexer-sa

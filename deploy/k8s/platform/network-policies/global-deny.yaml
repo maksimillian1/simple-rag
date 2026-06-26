@@ -1,0 +1,17 @@
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: global-default-deny
+spec:
+  description: "Global Default Deny all ingress/egress"
+  endpointSelector:
+    matchExpressions:
+    - key: "k8s:io.kubernetes.pod.namespace"
+      operator: NotIn
+      values:
+      - kube-system
+      - argocd
+  ingress:
+  - {}
+  egress:
+  - {}

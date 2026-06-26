@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: rag-apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/maksimillian1/simple-rag.git
+        targetRevision: master
+        directories:
+          - path: deploy/k8s/platform/*
+          - path: deploy/k8s/apps/*
+  template:
+    metadata:
+      name: '{{app}}'
+      # Controller namespace
+      namespace: argocd
+      annotations:
+        # Dynamic alias 'img-{{app}}' for each app separately
+        argocd-image-updater.argoproj.io/image-list: img-{{app}}=ghcr.io/maksimillian1/simple-rag/{{app}}
+        argocd-image-updater.argoproj.io/img-{{app}}.update-strategy: latest
+        argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-repository-creds
+        argocd-image-updater.argoproj.io/git-branch: master
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/maksimillian1/simple-rag.git
+        targetRevision: master
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

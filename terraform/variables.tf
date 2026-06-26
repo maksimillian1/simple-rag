@@ -39,3 +39,9 @@ variable "single_nat_gateway" {
   type        = bool
   default     = true
 }
+
+variable "github_token" {
+  description = "GitHub PAT for ArgoCD Image Updater to write back to the repo"
+  type        = string
+  sensitive   = true
+}

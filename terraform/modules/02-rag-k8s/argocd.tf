@@ -12,33 +12,30 @@ resource "helm_release" "argocd" {
   }
 }
 
-# resource "kubernetes_manifest" "root_application" {
-#   depends_on = [helm_release.argocd]
-#
-#   manifest = {
-#     apiVersion = "argoproj.io/v1alpha1"
-#     kind       = "Application"
-#     metadata = {
-#       name      = "root-bootstrap"
-#       namespace = "argocd"
-#     }
-#     spec = {
-#       project = "default"
-#       source = {
-#         repoURL        = "https://github.com/maksimillian1/simple-rag.git"
-#         targetRevision = "HEAD"
-#         path           = "deploy"
-#       }
-#       destination = {
-#         server    = "https://kubernetes.default.svc"
-#         namespace = "argocd"
-#       }
-#       syncPolicy = {
-#         automated = {
-#           prune    = true
-#           selfHeal = true
-#         }
-#       }
-#     }
-#   }
-# }
+resource "helm_release" "root_application" {
+  name       = "argocd-root"
+  chart      = "${path.module}/argocd-root"
+  namespace  = "argocd"
+  depends_on = [helm_release.argocd]
+}
+
+resource "kubernetes_secret" "git_repository_creds" {
+  metadata {
+    name      = "git-repository-creds"
+    namespace = "argocd"
+    labels = {
+      # Важнейший лейбл: заставляет ArgoCD использовать этот секрет для авторизации в репозиториях
+      "argocd.argoproj.io/secret-type" = "repository"
+    }
+  }
+
+  data = {
+    type     = "git"
+    url      = "https://github.com/maksimillian1/simple-rag.git"
+    # Для GitHub в качестве username может быть любая строка, авторизация идет по токену в password
+    username = "maksimillian1"
+    password = var.github_token
+  }
+
+  depends_on = [helm_release.argocd]
+}
