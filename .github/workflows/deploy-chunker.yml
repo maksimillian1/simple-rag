@@ -3,7 +3,8 @@ name: Build and Push Chunker to GHCR
 on:
   push:
     branches:
-      - master
+      - '**'
+#      - master
     paths:
       - 'apps/chunker/**'
 
