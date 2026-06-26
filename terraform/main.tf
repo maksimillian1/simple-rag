@@ -51,5 +51,8 @@ module "rag_k8s" {
   
   github_token = var.github_token
 
+  sqs_chunker_url = module.rag_core.sqs_stage_1_queue_url
+  sqs_indexer_url = module.rag_core.sqs_stage_2_queue_url
+
   depends_on = [module.rag_core]
 }

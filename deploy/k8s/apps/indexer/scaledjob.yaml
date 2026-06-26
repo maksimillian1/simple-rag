@@ -22,8 +22,11 @@ spec:
         - name: indexer
           image: ghcr.io/maksimillian1/simple-rag/indexer:latest
           env:
-          - name: CONTINUOUS_POLL
-            value: "False"
+          - name: INDEXER_SQS_URL
+            valueFrom:
+              configMapKeyRef:
+                name: sqs-config
+                key: INDEXER_SQS_URL
         restartPolicy: Never
   pollingInterval: 15
   successfulJobsHistoryLimit: 3
@@ -32,7 +35,7 @@ spec:
   triggers:
   - type: aws-sqs-queue
     metadata:
-      queueURL: "<REPLACE_WITH_INDEXER_SQS_URL>"
+      queueURLFromEnv: INDEXER_SQS_URL
       awsRegion: "eu-central-1"
       queueLength: "5"
 ---

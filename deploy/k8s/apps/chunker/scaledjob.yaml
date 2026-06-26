@@ -22,8 +22,11 @@ spec:
         - name: chunker
           image: ghcr.io/maksimillian1/simple-rag/chunker:latest
           env:
-          - name: CONTINUOUS_POLL
-            value: "False"
+          - name: CHUNKER_SQS_URL
+            valueFrom:
+              configMapKeyRef:
+                name: sqs-config
+                key: CHUNKER_SQS_URL
         restartPolicy: Never
   pollingInterval: 15
   successfulJobsHistoryLimit: 3
@@ -32,7 +35,7 @@ spec:
   triggers:
   - type: aws-sqs-queue
     metadata:
-      queueURL: "<REPLACE_WITH_CHUNKER_SQS_URL>"
+      queueURLFromEnv: CHUNKER_SQS_URL
       awsRegion: "eu-central-1"
       queueLength: "5"
 ---

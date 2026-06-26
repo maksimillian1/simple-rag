@@ -69,3 +69,13 @@ variable "github_token" {
   type        = string
   sensitive   = true
 }
+
+variable "sqs_chunker_url" {
+  description = "SQS URL for the chunker stage"
+  type        = string
+}
+
+variable "sqs_indexer_url" {
+  description = "SQS URL for the indexer stage"
+  type        = string
+}

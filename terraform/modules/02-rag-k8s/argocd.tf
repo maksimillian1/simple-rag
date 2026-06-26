@@ -24,7 +24,6 @@ resource "kubernetes_secret" "git_repository_creds" {
     name      = "git-repository-creds"
     namespace = "argocd"
     labels = {
-      # Важнейший лейбл: заставляет ArgoCD использовать этот секрет для авторизации в репозиториях
       "argocd.argoproj.io/secret-type" = "repository"
     }
   }
@@ -32,8 +31,7 @@ resource "kubernetes_secret" "git_repository_creds" {
   data = {
     type     = "git"
     url      = "https://github.com/maksimillian1/simple-rag.git"
-    # Для GitHub в качестве username может быть любая строка, авторизация идет по токену в password
-    username = "maksimillian1"
+    username = "argo"
     password = var.github_token
   }
 
