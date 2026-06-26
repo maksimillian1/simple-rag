@@ -35,6 +35,7 @@ def get_sqs_client():
     kwargs = {}
     if aws_access_key:
         kwargs["aws_access_key_id"] = aws_access_key
+
     if aws_secret_key:
         kwargs["aws_secret_access_key"] = aws_secret_key
 

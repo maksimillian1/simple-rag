@@ -116,6 +116,7 @@ def _parse_and_validate_coords(message: dict, sqs_client, queue_url: str) -> tup
         return None
 
     coords = extract_s3_coords(body)
+
     if not coords or not validate_object_size(coords[0], coords[1], coords[2], config.MAX_ALLOWED_SIZE_BYTES):
         sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
         return None
