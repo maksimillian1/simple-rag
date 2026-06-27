@@ -6,14 +6,13 @@ This document defines the operational runbooks, FinOps verification metrics, eme
 
 ## 1. Spot Eviction Handling & Graceful Shutdown
 
-Compute workloads for `apps/chunker` and `apps/indexer` execute on cost-optimized AWS Spot Instances. When AWS reclaims an instance, the node receives a strict 2-minute notice via the EC2 metadata endpoint.
+Compute workloads for `apps/chunker` and `apps/indexer` execute on cost-optimized AWS Spot Instances managed by Karpenter. When AWS reclaims an instance, the node receives a strict 2-minute notice via the EC2 metadata endpoint.
 
 ### Graceful Termination Mechanism
-The cluster infrastructure architecture relies on `aws-node-termination-handler` to intercept the eviction event, taint the node, and broadcast a standard `SIGTERM` signal to all active pods.
+The cluster infrastructure architecture relies on **Karpenter's Native Interruption Handling** (configured via infrastructure SQS event forwarding at the Terraform layer) to intercept the eviction event, taint the node as `DisruptionTarget`, drain the pods, and broadcast a standard `SIGTERM` signal.
 * **Signal Interception:** Upon trapping `SIGTERM`, the internal execution loop of the worker process must immediately halt SQS long-polling operations.
 * **Inflight Ingestion Flush:** The container is granted a 120-second grace window to complete processing the current active payload batch, execute deterministic gRPC upserts to Qdrant, delete the completed message from SQS, and issue a clean `exit 0`.
-* **Idempotency Guarantee:** If a hard eviction kills the pod before the active batch is deleted from SQS, the message visible visibility timeout expires, and another worker picks it up. Data duplication inside Qdrant is blocked atomically via deterministic `UUID5(file_name + chunk_index)` point ID generation, converting retries into safe overwrites.
-
+* **Idempotency Guarantee:** If a hard eviction kills the pod before the active batch is deleted from SQS, the message visibility timeout expires, and another worker picks it up. Data duplication inside Qdrant is blocked atomically via deterministic `UUID5(file_name + chunk_index)` point ID generation, converting retries into safe overwrites.
 ---
 
 ## 2. KEDA Autoscaling Architecture
@@ -21,10 +20,9 @@ The cluster infrastructure architecture relies on `aws-node-termination-handler`
 To prevent cluster thrashing and minimize resource utilization overhead, horizontal auto-scaling is managed strictly via Kubernetes **`ScaledJob`** resources instead of standard `ScaledObject` deployments.
 
 ### Dynamic Provisioning Metrics
-* **Queue-Driven Scaling:** The KEDA controller monitors the SQS queue lengths via high-frequency API polling intervals.
+* **Queue-Driven Scaling:** The KEDA controller (deployed and managed via the **ArgoCD Platform Layer**) monitors the SQS queue lengths via high-frequency API polling intervals.
 * **Job Allocation Target:** The scaler instantiates parallel dedicated Kubernetes `Job` objects based on a target ratio of **1 parallel job per 10 messages** pending in the queue, up to a strict infrastructure quota limit (`maxReplicaCount = 20`).
-* **Natural Scale-In:** Resource contraction happens natively from within the application layer. When a worker process receives an empty response from the SQS long-poll request, it automatically breaks its processing loop and terminates cleanly (`exit 0`). Kubernetes automatically garbage-collects completed job pods, scaling compute resource consumption back to absolute zero when idle.
-
+* **Natural Scale-In:** Resource contraction happens natively from within the application layer. When a worker process receives an empty response from the SQS long-poll request, it automatically breaks its processing loop and terminates cleanly (`exit 0`). Kubernetes automatically garbage-collects completed job pods, allowing Karpenter to scale compute resource consumption back to absolute zero when idle.
 ---
 
 ## 3. Ingestion Assumptions & Scope Boundaries

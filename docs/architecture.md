@@ -14,7 +14,24 @@ This document describes the high-level architecture, component boundaries, and d
 
 ---
 
-<h2 id="data-flow-diagram">2. Container and Data Flow Diagram</h2>
+## 2. Infrastructure Demarcation & Control Planes
+
+The platform enforces a strict boundary of engineering responsibility between environment provisioning (Terraform) and in-cluster GitOps state enforcement (ArgoCD) to guarantee high availability and prevent resource deadlocks:
+
+### Layer 1: Foundations Layer (Managed by Terraform)
+* **eBPF Networking & Edge Gateway (Cilium):** Provisioned immediately alongside EKS. Operates natively with Kubernetes Gateway API CRDs (`gateway.networking.k8s.io`) to manage edge routing, replacing deprecated reverse-proxy architectures.
+* **Orchestration & Node Provisioning (Karpenter):** Bootstrap is isolated onto an AWS Fargate profile. Manages automatic creation, caching, and teardown of EC2 On-Demand and Spot NodePool configurations.
+* **Storage Provider (AWS EBS CSI Driver):** Injected natively to interface directly with the AWS EC2 storage fabric, enabling declarative persistent disk attachment.
+* **GitOps Engine (ArgoCD):** Bootstrapped via a single Helm transaction to monitor the `deploy/k8s/environments/local` (or `prod`) repository scope.
+
+### Layer 2: Configuration Layer (Managed by ArgoCD App-of-Apps)
+* **Platform Controllers:** KEDA autoscaling operators, log routers, and telemetry systems.
+* **L7 Traffic Topography:** Declarative `Gateway` allocations and `HTTPRoute` definitions evaluated via Cilium's eBPF ingress layer.
+* **Workload Configurations:** Stateful entities (Qdrant Vector DB instance bounds) and processing execution layers (`apps/`).
+
+---
+
+<h2 id="data-flow-diagram">3. Container and Data Flow Diagram</h2>
 
 The definitive system architecture diagram is maintained here as the single source of truth:
 
@@ -67,7 +84,7 @@ graph TB
 
 ---
 
-## 3. Component Specification
+<h2 id="component-specification">4. Component Specification</h2>
 
 ### Asynchronous Ingestion Pipeline
 
@@ -81,9 +98,9 @@ graph TB
 
 ### Infrastructure and Storage Layer
 
-* **KEDA (Kubernetes Event-driven Autoscaling):** Ancillary cluster controller that monitors SQS queue lengths and dynamically provisions standard Kubernetes `Job` workloads up to quota limits. It also dynamically scales the shared TEI Service based on queue/traffic metrics (`tei_queue_size`).
+* **KEDA (Kubernetes Event-driven Autoscaling):** Ancillary cluster controller that monitors SQS queue lengths and dynamically provisions standard Kubernetes `Job` workloads up to quota limits. It also dynamically scales the shared TEI Service based on queue/traffic metrics (`tei_queue_size`). Managed via the ArgoCD Platform configuration layer.
 * **TEI Service (HuggingFace Text Embeddings Inference - ADR-0005):** Standalone, shared Kubernetes deployment running the Rust-based TEI container. It loads **`BAAI/bge-small-en-v1.5`** (130MB weights baked directly into the container storage layer via CI/CD) and exposes a private HTTP/gRPC endpoint (`EMBEDDING_MODEL_TEI_URL`) accessible by both the `indexer` and the `Go API`. It outputs **384-dimensional vectors** and scales horizontally via KEDA on `tei_queue_size`.
-* **Qdrant Vector DB (ADR-0002):** Self-hosted distributed vector database running via Helm on persistent On-Demand compute nodes with AWS EBS (gp3) storage. Configured with native Dense (384-dim) and Sparse indexing. Uses single-stage filtering and Scalar Quantization (SQ) to reduce RAM consumption by ~75%.
+* **Qdrant Vector DB (ADR-0002):** Self-hosted distributed vector database running via Helm on persistent On-Demand compute nodes with AWS EBS (gp3) storage provisioned by Layer 1 storage drivers. Configured with native Dense (384-dim) and Sparse indexing. Uses single-stage filtering and Scalar Quantization (SQ) to reduce RAM consumption by ~75%.
 
 ### Synchronous Query Path
 
@@ -97,17 +114,17 @@ graph TB
 
 ---
 
-## 4. Security and Network Isolation
+## 5. Security and Network Isolation
 
 1. **Identity Security (IAM IRSA):** Zero hardcoded credentials. Pods utilize dedicated Kubernetes `ServiceAccounts` mapped to AWS IAM Roles via OIDC. `chunker` has read-only S3 access and read/write SQS access. `indexer` has exclusive read/delete access to SQS Stage 2. `apps/api` has an IAM policy granting `bedrock:InvokeModel` strictly for `us.meta.llama3-1-8b-instruct-v1:0`.
 2. **Network Topology (Cilium NetworkPolicies):**
     * `chunker`: Outbound allowed only to AWS S3, SQS, and internal CoreDNS.
     * `indexer`: Outbound allowed only to AWS SQS, Qdrant gRPC, and the shared TEI Service endpoint. Direct egress to the internet is denied.
-    * `Go API`: Inbound allowed from ingress/users. Outbound allowed strictly to Qdrant cluster gRPC/HTTP ports, the shared TEI Service endpoint, and the internal IP addresses of the AWS Bedrock VPC Interface Endpoint. Public internet access is denied at the network policy layer.
+    * `Go API`: Inbound allowed from Cilium Gateway API endpoints. Outbound allowed strictly to Qdrant cluster gRPC/HTTP ports, the shared TEI Service endpoint, and the internal IP addresses of the AWS Bedrock VPC Interface Endpoint. Public internet access is denied at the network policy layer.
 
 ---
 
-<h2 id="directory-structure">5. Repository Directory Structure</h2>
+<h2 id="directory-structure">6. Repository Directory Structure</h2>
 
 The monorepo follows a strict layout constraint. No arbitrary top-level directories are permitted:
 

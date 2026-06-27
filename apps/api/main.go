@@ -66,6 +66,7 @@ func bootstrapServices(ctx context.Context, cfg core.Config) (*search.Service, *
 		Host: host,
 		Port: 6334,
 	})
+
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("failed to connect to Qdrant gRPC: %w", err)
 	}

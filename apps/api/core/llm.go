@@ -154,7 +154,7 @@ func SynthesizeAnswerPlaceholder(query string, citations []Citation) string {
 		} else {
 			sb.WriteString(text)
 		}
-		sb.WriteString(fmt.Sprintf(" (Source: *%s*, Page %d, Similarity: %.1f%%)\n", cit.FileName, cit.PageNumber, cit.Score*100))
+		sb.WriteString(fmt.Sprintf(" (Source: *%s*, Page %d, RRF Score: %.4f)\n", cit.FileName, cit.PageNumber, cit.Score))
 	}
 
 	return sb.String()

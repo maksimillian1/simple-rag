@@ -1,0 +1,24 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: chunker-netpol
+spec:
+  endpointSelector:
+    matchLabels:
+      app: chunker
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: kube-system
+        k8s-app: kube-dns
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: ANY
+  - toFQDNs:
+    - matchPattern: "*.s3.*.amazonaws.com"
+    - matchPattern: "*.sqs.*.amazonaws.com"
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP

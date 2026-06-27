@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tei-embeddings
+  labels:
+    app: tei-embeddings
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tei-embeddings
+  template:
+    metadata:
+      labels:
+        app: tei-embeddings
+    spec:
+      nodeSelector:
+        eks.amazonaws.com/nodegroup: core-on-demand
+      containers:
+      - name: tei-embeddings
+        image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+        args: ["--model-id", "BAAI/bge-small-en-v1.5"]
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: tei-cache
+          mountPath: /data
+      volumes:
+      - name: tei-cache
+        emptyDir: {}

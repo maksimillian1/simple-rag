@@ -11,10 +11,15 @@ type Citation struct {
 }
 
 type QueryRequest struct {
-	Query string  `json:"query"`
-	TopK  int     `json:"top_k"`
-	Alpha float64 `json:"alpha"`
-	Debug bool    `json:"debug"`
+	Query                 string   `json:"query"`
+	TopK                  int      `json:"top_k"`
+	PoolAlpha             *float64 `json:"pool_alpha,omitempty"`
+	RrfMergePriorityAlpha *float64 `json:"rrf_merge_priority_alpha,omitempty"`
+	PrefetchLimit         *int     `json:"prefetch_limit,omitempty"`
+	RrfK                  int      `json:"rrf_k,omitempty"`
+	Dense                 *bool    `json:"dense,omitempty"`
+	Sparse                *bool    `json:"sparse,omitempty"`
+	Debug                 bool     `json:"debug"`
 }
 
 type DebugResult struct {

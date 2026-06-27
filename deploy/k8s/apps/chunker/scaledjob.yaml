@@ -1,0 +1,45 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: chunker
+spec:
+  jobTargetRef:
+    template:
+      metadata:
+        labels:
+          app: chunker
+      spec:
+        serviceAccountName: chunker-sa
+        terminationGracePeriodSeconds: 120
+        nodeSelector:
+          karpenter.sh/nodepool: apps-compute
+        tolerations:
+        - key: "karpenter.sh/capacity-type"
+          operator: "Equal"
+          value: "spot"
+          effect: "NoSchedule"
+        containers:
+        - name: chunker
+          image: ghcr.io/maksimillian1/simple-rag/chunker:latest
+          env:
+          - name: CHUNKER_SQS_URL
+            valueFrom:
+              configMapKeyRef:
+                name: sqs-config
+                key: CHUNKER_SQS_URL
+        restartPolicy: Never
+  pollingInterval: 15
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  maxReplicaCount: 100
+  triggers:
+  - type: aws-sqs-queue
+    metadata:
+      queueURLFromEnv: CHUNKER_SQS_URL
+      awsRegion: "eu-central-1"
+      queueLength: "5"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chunker-sa

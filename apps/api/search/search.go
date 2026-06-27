@@ -206,19 +206,60 @@ func (s *Service) QueryHandler(c echo.Context) error {
 
 	isDebug := req.Debug || c.QueryParam("debug") == "true"
 
-	denseQueryVector, err := s.getDenseEmbedding(ctx, trimmedQuery)
-	if err != nil {
-		log.Printf("[ERROR] [query] TEI embedding failed: %v", err)
-		return c.String(http.StatusInternalServerError, "Embedding Generator (TEI) error: "+err.Error())
+	searchDense := true
+	if req.Dense != nil {
+		searchDense = *req.Dense
 	}
 
-	sparseEmbedding, err := s.getSparseEmbedding(ctx, trimmedQuery)
-	if err != nil {
-		log.Printf("[ERROR] [query] Sparse embedding failed: %v", err)
-		return c.String(http.StatusInternalServerError, "Sparse embedding error: "+err.Error())
+	searchSparse := true
+	if req.Sparse != nil {
+		searchSparse = *req.Sparse
 	}
 
-	results, err := s.queryQdrant(ctx, denseQueryVector, sparseEmbedding, limit)
+	if !searchDense && !searchSparse {
+		return c.String(http.StatusBadRequest, "validation error: at least one of dense or sparse search must be enabled")
+	}
+
+	var denseQueryVector []float32
+	var err error
+	if searchDense {
+		denseQueryVector, err = s.getDenseEmbedding(ctx, trimmedQuery)
+		if err != nil {
+			log.Printf("[ERROR] [query] TEI embedding failed: %v", err)
+			return c.String(http.StatusInternalServerError, "Embedding Generator (TEI) error: "+err.Error())
+		}
+	}
+
+	var sparseEmbedding fastembed.SparseEmbedding
+	if searchSparse {
+		sparseEmbedding, err = s.getSparseEmbedding(ctx, trimmedQuery)
+		if err != nil {
+			log.Printf("[ERROR] [query] Sparse embedding failed: %v", err)
+			return c.String(http.StatusInternalServerError, "Sparse embedding error: "+err.Error())
+		}
+	}
+
+	poolAlpha := 0.5
+	if req.PoolAlpha != nil {
+		poolAlpha = *req.PoolAlpha
+	}
+
+	rrfMergePriorityAlpha := 0.5
+	if req.RrfMergePriorityAlpha != nil {
+		rrfMergePriorityAlpha = *req.RrfMergePriorityAlpha
+	}
+
+	rrfK := 60
+	if req.RrfK > 0 {
+		rrfK = req.RrfK
+	}
+
+	prefetchLimit := limit * 4
+	if req.PrefetchLimit != nil && *req.PrefetchLimit > 0 {
+		prefetchLimit = *req.PrefetchLimit
+	}
+
+	results, err := s.queryQdrant(ctx, denseQueryVector, sparseEmbedding, limit, prefetchLimit, poolAlpha, rrfMergePriorityAlpha, rrfK, searchDense, searchSparse)
 	if err != nil {
 		log.Printf("[ERROR] [query] Qdrant query failed: %v", err)
 		return c.String(http.StatusInternalServerError, "Qdrant query error: "+err.Error())
@@ -321,42 +362,69 @@ func (s *Service) getSparseEmbedding(ctx context.Context, query string) (fastemb
 	return embeddings[0], nil
 }
 
-func (s *Service) queryQdrant(ctx context.Context, dense []float32, sparse fastembed.SparseEmbedding, limit int) ([]*qdrant.ScoredPoint, error) {
-	densePrefetchLimit := uint64(limit * 3)
-
-	sparsePrefetchLimit := uint64(limit / 2)
-	if sparsePrefetchLimit < 2 {
-		sparsePrefetchLimit = 2
-	}
-
-	rrfK := uint32(60)
+func (s *Service) queryQdrant(ctx context.Context, dense []float32, sparse fastembed.SparseEmbedding, limit int, prefetchLimit int, poolAlpha float64, rrfMergePriorityAlpha float64, rrfKVal int, searchDense bool, searchSparse bool) ([]*qdrant.ScoredPoint, error) {
 	uint64Limit := uint64(limit)
 
-	// Execute Qdrant Query with Reciprocal Rank Fusion (RRF) algorithm to merge dense and sparse results:
-	// Score(p) = sum_{m in Models} 1 / (k + rank_m(p)) where k = 60
 	queryPointsReq := &qdrant.QueryPoints{
 		CollectionName: s.Collection,
-		Prefetch: []*qdrant.PrefetchQuery{
-			{
-				Query: qdrant.NewQueryDense(dense),
-				Using: &s.DenseVectorsName,
-				Limit: &densePrefetchLimit,
-			},
-			{
-				Query: qdrant.NewQuerySparse(sparse.Indices, sparse.Values),
-				Using: &s.SparseVectorsName,
-				Limit: &sparsePrefetchLimit,
-			},
+		Limit:          &uint64Limit,
+		WithPayload: &qdrant.WithPayloadSelector{
+			SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true},
 		},
-		Query:       qdrant.NewQueryRRF(&qdrant.Rrf{K: &rrfK}),
-		Limit:       &uint64Limit,
-		WithPayload: &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: true}},
+	}
+
+	switch {
+	case searchDense && searchSparse:
+		densePrefetchLimit := uint64(float64(prefetchLimit) * poolAlpha)
+		sparsePrefetchLimit := uint64(float64(prefetchLimit) * (1.0 - poolAlpha))
+
+		if densePrefetchLimit == 0 && sparsePrefetchLimit > 0 {
+			queryPointsReq.Query = qdrant.NewQuerySparse(sparse.Indices, sparse.Values)
+			queryPointsReq.Using = &s.SparseVectorsName
+		} else if sparsePrefetchLimit == 0 && densePrefetchLimit > 0 {
+			queryPointsReq.Query = qdrant.NewQueryDense(dense)
+			queryPointsReq.Using = &s.DenseVectorsName
+		} else {
+			rrfK := uint32(rrfKVal)
+
+			queryPointsReq.Prefetch = make([]*qdrant.PrefetchQuery, 0, 2)
+			if densePrefetchLimit > 0 {
+				queryPointsReq.Prefetch = append(queryPointsReq.Prefetch, &qdrant.PrefetchQuery{
+					Query: qdrant.NewQueryDense(dense),
+					Using: &s.DenseVectorsName,
+					Limit: &densePrefetchLimit,
+				})
+			}
+			if sparsePrefetchLimit > 0 {
+				queryPointsReq.Prefetch = append(queryPointsReq.Prefetch, &qdrant.PrefetchQuery{
+					Query: qdrant.NewQuerySparse(sparse.Indices, sparse.Values),
+					Using: &s.SparseVectorsName,
+					Limit: &sparsePrefetchLimit,
+				})
+			}
+			queryPointsReq.Query = qdrant.NewQueryRRF(&qdrant.Rrf{
+				K:       &rrfK,
+				Weights: []float32{float32(rrfMergePriorityAlpha), float32(1.0 - rrfMergePriorityAlpha)},
+			})
+		}
+
+	case searchDense:
+		queryPointsReq.Query = qdrant.NewQueryDense(dense)
+		queryPointsReq.Using = &s.DenseVectorsName
+
+	case searchSparse:
+		queryPointsReq.Query = qdrant.NewQuerySparse(sparse.Indices, sparse.Values)
+		queryPointsReq.Using = &s.SparseVectorsName
+
+	default:
+		return nil, fmt.Errorf("at least one search mode (dense or sparse) must be enabled")
 	}
 
 	res, err := s.QdrantClient.Query(ctx, queryPointsReq)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("qdrant query failed: %w", err)
 	}
+
 	return res.Result, nil
 }
 
@@ -426,7 +494,7 @@ func synthesizeAnswer(query string, citations []core.Citation) string {
 		} else {
 			sb.WriteString(text)
 		}
-		sb.WriteString(fmt.Sprintf(" (Source: *%s*, Page %d, Similarity: %.1f%%)\n", cit.FileName, cit.PageNumber, cit.Score*100))
+		sb.WriteString(fmt.Sprintf(" (Source: *%s*, Page %d, RRF Score: %.4f)\n", cit.FileName, cit.PageNumber, cit.Score))
 	}
 
 	return sb.String()

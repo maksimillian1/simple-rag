@@ -86,7 +86,7 @@ func LoadConfig() Config {
 		Collection:           GetEnv("COLLECTION_NAME", "demo_collection"),
 		EmbeddingModelTeiURL: GetEnv("EMBEDDING_MODEL_TEI_URL", "http://localhost:8081"),
 		Environment:          GetEnv("ENVIRONMENT", "production"),
-		SQSQueueURL:          GetEnv("AWS_SQS_STAGE_2_URL", "https://sqs.eu-central-1.amazonaws.com/790348267926/simple-rag-test-stage-2-indexing"),
+		SQSQueueURL:          GetEnv("AWS_SQS_STAGE_2_URL", ""),
 		LLMProvider:          GetEnv("LLM_PROVIDER", "mock"),
 		AwsRegion:            GetEnv("AWS_DEFAULT_REGION", "eu-central-1"),
 		AwsBedrockRegion:     GetEnv("AWS_BEDROCK_REGION", GetEnv("AWS_DEFAULT_REGION", "us-east-1")),
