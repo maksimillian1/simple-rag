@@ -26,11 +26,28 @@ For specific design justifications, performance baselines, and cost optimization
 * [ADR-0005: Embedding Model Selection](./docs/adr/0005-embedding-model.md)
 * [ADR-0006: Hybrid Retrieval and Reranking](./docs/adr/0006-retrieval-with-reranking.md)
 * [ADR-0007: LLM Selection for Context Post-Processing](./docs/adr/0007-llm-selection-aws-bedrock)
+* [ADR-0012: Advanced Query Configuration Approach](./docs/adr/0012-advanced-query-configuration-approach.md)
 
 ---
 
 ## Directory Structure
 Look [Directory Structure](./docs/architecture.md#directory-structure)
+
+---
+
+## Advanced Query Configuration
+
+The API avoids opinionated guardrails and code-level clamping for query parameters where it's not make sense (see [ADR-0012](./docs/adr/0012-advanced-query-configuration-approach.md)). This means developers have raw control over retrieval tuning.
+
+### Hybrid Mode & `poolAlpha`
+In hybrid retrieval mode, the `poolAlpha` parameter balances the weighting and prefetch limits between Dense (Semantic) and Sparse (Keyword) results.
+
+* **Standard Hybrid (`0.0 < poolAlpha < 1.0`):** Distributes the prefetch limit according to the ratio. For example, `poolAlpha = 0.5` pulls an equal number of candidates from both indexes before applying Reciprocal Rank Fusion (RRF).
+* **Extreme Values (`0.0` or `1.0`):** Setting `poolAlpha` to exact boundaries is explicitly allowed. 
+  * `poolAlpha = 0.0` allocates a `0` prefetch limit to the Dense query, effectively turning the request into a **Pure Sparse** search.
+  * `poolAlpha = 1.0` allocates a `0` prefetch limit to the Sparse query, turning the request into a **Pure Dense** search.
+  
+**Expected Behavior:** While setting `poolAlpha` to boundary values logically contradicts "hybridness," the system will not throw validation errors or artificially enforce minimum limits. It will execute exactly as configured. This pushes the responsibility of mathematically sound configuration to the caller while minimizing code bloat in the API layer.
 
 ---
 

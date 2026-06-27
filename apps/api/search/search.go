@@ -242,15 +242,11 @@ func (s *Service) QueryHandler(c echo.Context) error {
 	poolAlpha := 0.5
 	if req.PoolAlpha != nil {
 		poolAlpha = *req.PoolAlpha
-	} else if req.Alpha != nil {
-		poolAlpha = *req.Alpha
 	}
 
 	rrfMergePriorityAlpha := 0.5
 	if req.RrfMergePriorityAlpha != nil {
 		rrfMergePriorityAlpha = *req.RrfMergePriorityAlpha
-	} else if req.Alpha != nil {
-		rrfMergePriorityAlpha = *req.Alpha
 	}
 
 	rrfK := 60

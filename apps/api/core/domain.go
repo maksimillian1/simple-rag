@@ -13,7 +13,6 @@ type Citation struct {
 type QueryRequest struct {
 	Query                 string   `json:"query"`
 	TopK                  int      `json:"top_k"`
-	Alpha                 *float64 `json:"alpha,omitempty"` // legacy fallback
 	PoolAlpha             *float64 `json:"pool_alpha,omitempty"`
 	RrfMergePriorityAlpha *float64 `json:"rrf_merge_priority_alpha,omitempty"`
 	RrfK                  int      `json:"rrf_k,omitempty"`
