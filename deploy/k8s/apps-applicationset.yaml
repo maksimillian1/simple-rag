@@ -7,7 +7,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/maksimillian1/simple-rag.git
-        targetRevision: master
+        revision: master
         directories:
           - path: deploy/k8s/platform/*
           - path: deploy/k8s/apps/*
