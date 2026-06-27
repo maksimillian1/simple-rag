@@ -18,6 +18,10 @@ spec:
           operator: "Equal"
           value: "spot"
           effect: "NoSchedule"
+        - key: "role"
+          operator: "Equal"
+          value: "compute"
+          effect: "NoSchedule"
         containers:
         - name: chunker
           image: ghcr.io/maksimillian1/simple-rag/chunker:latest

@@ -27,6 +27,11 @@ spec:
             topologyKey: kubernetes.io/hostname
       nodeSelector:
         karpenter.sh/nodepool: apps-serving
+      tolerations:
+      - key: role
+        operator: Equal
+        value: serving
+        effect: NoSchedule
       containers:
       - name: api
         image: ghcr.io/maksimillian1/simple-rag/api:latest
