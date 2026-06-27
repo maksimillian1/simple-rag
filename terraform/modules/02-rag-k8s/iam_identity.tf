@@ -19,9 +19,29 @@ resource "aws_iam_role_policy_attachment" "api_s3" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
 }
 
+resource "aws_iam_policy" "bedrock_invoke" {
+  name        = "rag-bedrock-invoke"
+  description = "Allow API to invoke Bedrock models"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "api_bedrock" {
+  role       = aws_iam_role.api_role.name
+  policy_arn = aws_iam_policy.bedrock_invoke.arn
+}
+
 resource "aws_eks_pod_identity_association" "api" {
   cluster_name    = var.cluster_name
-  namespace       = "rag-api"
+  namespace       = "default"
   service_account = "api-sa"
   role_arn        = aws_iam_role.api_role.arn
 }
@@ -36,9 +56,31 @@ resource "aws_iam_role_policy_attachment" "chunker_sqs" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
 }
 
+resource "aws_iam_role_policy_attachment" "chunker_s3" {
+  role       = aws_iam_role.chunker_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+}
+
 resource "aws_eks_pod_identity_association" "chunker" {
   cluster_name    = var.cluster_name
-  namespace       = "rag-jobs"
+  namespace       = "default"
   service_account = "chunker-sa"
   role_arn        = aws_iam_role.chunker_role.arn
+}
+
+resource "aws_iam_role" "indexer_role" {
+  name               = "rag-indexer-role"
+  assume_role_policy = data.aws_iam_policy_document.pod_identity_trust.json
+}
+
+resource "aws_iam_role_policy_attachment" "indexer_sqs" {
+  role       = aws_iam_role.indexer_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+}
+
+resource "aws_eks_pod_identity_association" "indexer" {
+  cluster_name    = var.cluster_name
+  namespace       = "default"
+  service_account = "indexer-sa"
+  role_arn        = aws_iam_role.indexer_role.arn
 }
