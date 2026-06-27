@@ -18,7 +18,7 @@ resource "helm_release" "root_application" {
   namespace  = "argocd"
   depends_on = [helm_release.argocd]
 
-  set {
+  set_sensitive {
     name  = "githubToken"
     value = var.github_token
   }

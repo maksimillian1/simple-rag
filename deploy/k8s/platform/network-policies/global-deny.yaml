@@ -11,7 +11,5 @@ spec:
       values:
       - kube-system
       - argocd
-  ingress:
-  - {}
-  egress:
-  - {}
+  ingress: []
+  egress: []

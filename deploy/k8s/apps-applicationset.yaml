@@ -13,13 +13,13 @@ spec:
           - path: deploy/k8s/apps/*
   template:
     metadata:
-      name: '{{app}}'
+      name: '{{path.basename}}'
       # Controller namespace
       namespace: argocd
       annotations:
-        # Dynamic alias 'img-{{app}}' for each app separately
-        argocd-image-updater.argoproj.io/image-list: img-{{app}}=ghcr.io/maksimillian1/simple-rag/{{app}}
-        argocd-image-updater.argoproj.io/img-{{app}}.update-strategy: latest
+        # Dynamic alias 'img-{{path.basename}}' for each app separately
+        argocd-image-updater.argoproj.io/image-list: img-{{path.basename}}=ghcr.io/maksimillian1/simple-rag/{{path.basename}}
+        argocd-image-updater.argoproj.io/img-{{path.basename}}.update-strategy: latest
         argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-repository-creds
         argocd-image-updater.argoproj.io/git-branch: master
     spec:

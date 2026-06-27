@@ -30,27 +30,27 @@ output "sqs_stage_2_queue_arn" {
 
 output "vpc_id" {
   description = "ID of the created VPC"
-  value       = one(module.eks[*].vpc_id)
+  value       = try(one(module.eks[*].vpc_id), null)
 }
 
 output "private_subnets" {
   description = "List of IDs of private subnets"
-  value       = one(module.eks[*].private_subnets)
+  value       = try(one(module.eks[*].private_subnets), null)
 }
 
 output "public_subnets" {
   description = "List of IDs of public subnets"
-  value       = one(module.eks[*].public_subnets)
+  value       = try(one(module.eks[*].public_subnets), null)
 }
 
 output "eks_cluster_endpoint" {
   description = "EKS Cluster Endpoint URL"
-  value       = one(module.eks[*].cluster_endpoint)
+  value       = try(one(module.eks[*].cluster_endpoint), null)
 }
 
 output "eks_oidc_provider_url" {
   description = "OIDC Provider URL for the EKS Cluster"
-  value       = one(module.eks[*].oidc_provider_url)
+  value       = try(one(module.eks[*].oidc_provider_url), null)
 }
 
 output "eks_oidc_provider_arn" {

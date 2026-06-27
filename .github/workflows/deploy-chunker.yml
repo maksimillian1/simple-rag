@@ -31,6 +31,5 @@ jobs:
 
       - name: Build and Push Chunker
         run: |
-          docker build -t $IMAGE_NAME:${{ github.sha }} -t $IMAGE_NAME:latest ./apps/chunker
-          docker push $IMAGE_NAME:${{ github.sha }}
-          docker push $IMAGE_NAME:latest
+          docker build -t $IMAGE_NAME:sha-${{ github.sha }} ./apps/chunker
+          docker push $IMAGE_NAME:sha-${{ github.sha }}

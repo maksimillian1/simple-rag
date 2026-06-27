@@ -19,7 +19,7 @@ spec:
       containers:
       - name: tei-embeddings
         image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
-        command: ["--model-id", "BAAI/bge-small-en-v1.5"]
+        args: ["--model-id", "BAAI/bge-small-en-v1.5"]
         ports:
         - containerPort: 80
           name: http

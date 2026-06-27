@@ -11,7 +11,7 @@ variable "resource_prefix" {
 }
 
 variable "is_local_test" {
-  description = "Whether it is a local test run where AWS resources should not be provisioned."
+  description = "Whether it is a local test run where EKS/VPC resources should not be provisioned (S3/SQS are still created for integration testing)."
   type        = bool
   default     = false
 }

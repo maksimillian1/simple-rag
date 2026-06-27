@@ -21,7 +21,7 @@ resource "aws_iam_role_policy_attachment" "api_s3" {
 
 resource "aws_eks_pod_identity_association" "api" {
   cluster_name    = var.cluster_name
-  namespace       = "rag-api-public"
+  namespace       = "rag-api"
   service_account = "api-sa"
   role_arn        = aws_iam_role.api_role.arn
 }
