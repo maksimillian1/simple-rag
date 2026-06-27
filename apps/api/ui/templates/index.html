@@ -193,7 +193,7 @@
                             <span>Advanced Configuration</span>
                         </div>
                         
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 text-xs">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-xs">
                             <!-- Limit -->
                             <div class="flex flex-col gap-1.5">
                                 <label for="search-limit" class="text-neutral-500 font-medium">Limit Results</label>
@@ -252,6 +252,12 @@
                             <div class="flex flex-col gap-1.5">
                                 <label for="search-rrf-k" class="text-neutral-500 font-medium">RRF K Constant</label>
                                 <input id="search-rrf-k" type="number" min="1" max="1000" value="60" class="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-neutral-700 focus:outline-none focus:border-neutral-900 focus:bg-white transition-colors">
+                            </div>
+
+                            <!-- Prefetch Limit -->
+                            <div class="flex flex-col gap-1.5" title="Recommended: TopK * 4 to ensure enough candidates for RRF fusion. Default is 0 (auto-calculates as TopK * 4).">
+                                <label for="search-prefetch-limit" class="text-neutral-500 font-medium">Prefetch Limit</label>
+                                <input id="search-prefetch-limit" type="number" min="0" max="1000" value="0" placeholder="Auto (* 4)" class="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-neutral-700 focus:outline-none focus:border-neutral-900 focus:bg-white transition-colors">
                             </div>
                         </div>
                     </div>
@@ -447,20 +453,24 @@
             const poolAlphaSelect = document.getElementById("search-pool-alpha");
             const rrfMergeAlphaSelect = document.getElementById("search-rrf-merge-priority-alpha");
             const rrfKInput = document.getElementById("search-rrf-k");
+            const prefetchLimitInput = document.getElementById("search-prefetch-limit");
 
             const isHybrid = dense && sparse;
             poolAlphaSelect.disabled = !isHybrid;
             rrfMergeAlphaSelect.disabled = !isHybrid;
             rrfKInput.disabled = !isHybrid;
+            prefetchLimitInput.disabled = !isHybrid;
 
             if (!isHybrid) {
                 poolAlphaSelect.classList.add("opacity-50", "cursor-not-allowed");
                 rrfMergeAlphaSelect.classList.add("opacity-50", "cursor-not-allowed");
                 rrfKInput.classList.add("opacity-50", "cursor-not-allowed");
+                prefetchLimitInput.classList.add("opacity-50", "cursor-not-allowed");
             } else {
                 poolAlphaSelect.classList.remove("opacity-50", "cursor-not-allowed");
                 rrfMergeAlphaSelect.classList.remove("opacity-50", "cursor-not-allowed");
                 rrfKInput.classList.remove("opacity-50", "cursor-not-allowed");
+                prefetchLimitInput.classList.remove("opacity-50", "cursor-not-allowed");
             }
 
             if (!dense && !sparse) {
@@ -476,6 +486,7 @@
             const poolAlpha = parseFloat(document.getElementById("search-pool-alpha").value);
             const rrfMergePriorityAlpha = parseFloat(document.getElementById("search-rrf-merge-priority-alpha").value);
             const rrfK = parseInt(document.getElementById("search-rrf-k").value) || 60;
+            let prefetchLimit = parseInt(document.getElementById("search-prefetch-limit").value) || 0;
             const searchDense = document.getElementById("search-dense").checked;
             const searchSparse = document.getElementById("search-sparse").checked;
 
@@ -511,8 +522,10 @@
                         pool_alpha: poolAlpha,
                         rrf_merge_priority_alpha: rrfMergePriorityAlpha,
                         rrf_k: rrfK,
+                        prefetch_limit: prefetchLimit,
                         dense: searchDense,
-                        sparse: searchSparse
+                        sparse: searchSparse,
+                        debug: true
                     })
                 });
 

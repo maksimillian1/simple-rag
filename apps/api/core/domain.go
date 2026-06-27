@@ -15,6 +15,7 @@ type QueryRequest struct {
 	TopK                  int      `json:"top_k"`
 	PoolAlpha             *float64 `json:"pool_alpha,omitempty"`
 	RrfMergePriorityAlpha *float64 `json:"rrf_merge_priority_alpha,omitempty"`
+	PrefetchLimit         *int     `json:"prefetch_limit,omitempty"`
 	RrfK                  int      `json:"rrf_k,omitempty"`
 	Dense                 *bool    `json:"dense,omitempty"`
 	Sparse                *bool    `json:"sparse,omitempty"`
