@@ -22,11 +22,16 @@ spec:
         - name: chunker
           image: ghcr.io/maksimillian1/simple-rag/chunker:latest
           env:
-          - name: CHUNKER_SQS_URL
+          - name: AWS_SQS_STAGE_1_URL
             valueFrom:
               configMapKeyRef:
                 name: sqs-config
-                key: CHUNKER_SQS_URL
+                key: AWS_SQS_STAGE_1_URL
+          - name: AWS_SQS_STAGE_2_URL
+            valueFrom:
+              configMapKeyRef:
+                name: sqs-config
+                key: AWS_SQS_STAGE_2_URL
         restartPolicy: Never
   pollingInterval: 15
   successfulJobsHistoryLimit: 3
@@ -35,7 +40,7 @@ spec:
   triggers:
   - type: aws-sqs-queue
     metadata:
-      queueURLFromEnv: CHUNKER_SQS_URL
+      queueURLFromEnv: AWS_SQS_STAGE_1_URL
       awsRegion: "eu-central-1"
       queueLength: "5"
 ---

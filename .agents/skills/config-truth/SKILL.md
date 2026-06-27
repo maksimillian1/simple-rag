@@ -24,7 +24,6 @@ description: Single source of truth for the project's environment variables, con
 
 ## 4. AWS / SQS Specifics
 - `AWS_BEDROCK_REGION`: Always explicitly target `us-east-1` for Bedrock clients (with fallback to `AWS_DEFAULT_REGION`).
-- `AWS_ENDPOINT_URL`: Used ONLY for offline ElasticMQ testing. Go API must dynamically bypass this parameter if the target queue is a live AWS SQS URL (`AWS_IGNORE_CONFIGURED_ENDPOINT_URLS=true`).
 
 ## 5. Implementation Locations
 - **Go API**: Parsed in `apps/api/core/config.go` via `LoadConfig()`.

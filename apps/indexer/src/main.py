@@ -27,7 +27,7 @@ signal.signal(signal.SIGINT, handle_signal)
 
 def get_sqs_client():
     import boto3
-    sqs_endpoint = config.AWS_ENDPOINT_URL
+    sqs_endpoint = config.AWS_SQS_STAGE_2_URL
     region = config.AWS_DEFAULT_REGION
     aws_access_key = config.AWS_ACCESS_KEY_ID
     aws_secret_key = config.AWS_SECRET_ACCESS_KEY

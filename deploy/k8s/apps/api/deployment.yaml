@@ -32,6 +32,47 @@ spec:
         image: ghcr.io/maksimillian1/simple-rag/api:latest
         ports:
         - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: LLM_PROVIDER
+          value: "bedrock"
+        - name: MODEL_ID
+          value: "us.meta.llama3-1-8b-instruct-v1:0"
+        - name: AWS_SQS_STAGE_2_URL
+          valueFrom:
+            configMapKeyRef:
+              name: sqs-config
+              key: AWS_SQS_STAGE_2_URL
+        - name: COLLECTION_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: qdrant-config
+              key: COLLECTION_NAME
+        - name: QDRANT_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: qdrant-config
+              key: QDRANT_HOST
+        - name: QDRANT_HTTP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: qdrant-config
+              key: QDRANT_HTTP_PORT
+        - name: QDRANT_URL
+          value: "http://$(QDRANT_HOST):$(QDRANT_HTTP_PORT)"
+        - name: TEI_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: tei-config
+              key: TEI_HOST
+        - name: TEI_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: tei-config
+              key: TEI_PORT
+        - name: EMBEDDING_MODEL_TEI_URL
+          value: "http://$(TEI_HOST):$(TEI_PORT)"
 ---
 apiVersion: v1
 kind: ServiceAccount

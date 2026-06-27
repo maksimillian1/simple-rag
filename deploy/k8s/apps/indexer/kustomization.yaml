@@ -6,3 +6,7 @@ namespace: rag-jobs
 resources:
   - scaledjob.yaml
   - network-policy.yaml
+
+components:
+  - ../../platform/qdrant/component
+  - ../../platform/tei-embeddings/component

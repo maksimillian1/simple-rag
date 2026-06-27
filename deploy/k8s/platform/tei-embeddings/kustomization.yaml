@@ -6,3 +6,6 @@ namespace: rag-platform
 resources:
   - deployment.yaml
   - service.yaml
+
+components:
+  - component
