@@ -55,47 +55,47 @@ output "eks_oidc_provider_url" {
 
 output "eks_oidc_provider_arn" {
   description = "OIDC Provider ARN for the EKS Cluster"
-  value       = one(module.eks[*].oidc_provider_arn)
+  value       = try(one(module.eks[*].oidc_provider_arn), null)
 }
 
 output "eks_oidc_provider" {
   description = "OIDC Provider for the EKS Cluster (without https://)"
-  value       = one(module.eks[*].oidc_provider)
+  value       = try(one(module.eks[*].oidc_provider), null)
 }
 
 output "eks_cluster_security_group_id" {
   description = "Security Group ID of the EKS Cluster"
-  value       = one(module.eks[*].cluster_security_group_id)
+  value       = try(one(module.eks[*].cluster_security_group_id), null)
 }
 
 output "node_security_group_id" {
   description = "Node security group ID of the EKS cluster"
-  value       = one(module.eks[*].node_security_group_id)
+  value       = try(one(module.eks[*].node_security_group_id), null)
 }
 
 output "cluster_primary_security_group_id" {
   description = "Cluster primary security group ID"
-  value       = one(module.eks[*].cluster_primary_security_group_id)
+  value       = try(one(module.eks[*].cluster_primary_security_group_id), null)
 }
 
 output "eks_karpenter_controller_role_arn" {
   description = "IAM Role ARN for the Karpenter controller"
-  value       = one(module.eks[*].karpenter_controller_role_arn)
+  value       = try(one(module.eks[*].karpenter_controller_role_arn), null)
 }
 
 output "eks_cluster_certificate_authority_data" {
   description = "Base64 encoded certificate data required to communicate with the cluster"
-  value       = one(module.eks[*].cluster_certificate_authority_data)
+  value       = try(one(module.eks[*].cluster_certificate_authority_data), null)
 }
 
 output "qdrant_ebs_volume_id" {
   description = "ID of the 150GB gp3 EBS volume provisioned for Qdrant"
-  value       = one(module.eks[*].qdrant_ebs_volume_id)
+  value       = try(one(module.eks[*].qdrant_ebs_volume_id), null)
 }
 
 output "eks_karpenter_interruption_queue_name" {
   description = "Name of the Karpenter interruption queue"
-  value       = one(module.eks[*].karpenter_interruption_queue_name)
+  value       = try(one(module.eks[*].karpenter_interruption_queue_name), null)
 }
 
 output "cluster_name" {
@@ -105,5 +105,5 @@ output "cluster_name" {
 
 output "karpenter_node_role_arn" {
   description = "IAM Role ARN for the Karpenter node"
-  value       = one(module.eks[*].karpenter_node_role_arn)
+  value       = try(one(module.eks[*].karpenter_node_role_arn), null)
 }

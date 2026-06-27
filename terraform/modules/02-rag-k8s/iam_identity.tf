@@ -38,7 +38,7 @@ resource "aws_iam_role_policy_attachment" "chunker_sqs" {
 
 resource "aws_eks_pod_identity_association" "chunker" {
   cluster_name    = var.cluster_name
-  namespace       = "rag-jobs-private"
+  namespace       = "rag-jobs"
   service_account = "chunker-sa"
   role_arn        = aws_iam_role.chunker_role.arn
 }
