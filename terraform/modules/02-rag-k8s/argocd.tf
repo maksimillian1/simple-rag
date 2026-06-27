@@ -16,7 +16,7 @@ resource "helm_release" "root_application" {
   name       = "argocd-root"
   chart      = "${path.module}/argocd-root"
   namespace  = "argocd"
-  depends_on = [helm_release.argocd]
+  depends_on = [helm_release.argocd, helm_release.keda]
 
   set_sensitive {
     name  = "githubToken"

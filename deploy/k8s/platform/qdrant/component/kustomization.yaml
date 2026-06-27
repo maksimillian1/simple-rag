@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+configMapGenerator:
+  - name: qdrant-config
+    literals:
+      - QDRANT_HOST=qdrant.rag-platform.svc.cluster.local
+      - QDRANT_GRPC_PORT="6334"
+      - QDRANT_HTTP_PORT="6333"
+      - COLLECTION_NAME=demo_collection
