@@ -75,3 +75,7 @@ Architectural changes must be peer-reviewed via the `adr-tools` standard before 
 
 ### Kubernetes
 * aws eks update-kubeconfig --region eu-central-1 --name simple-rag-cluster
+
+### Argo CD
+To trigger an update
+* kubectl patch application root-bootstrap -n argocd --type merge -p '{"operation": {"sync": {"revision": "HEAD"}}}'

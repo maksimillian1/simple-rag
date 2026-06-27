@@ -22,11 +22,11 @@ spec:
         - name: indexer
           image: ghcr.io/maksimillian1/simple-rag/indexer:latest
           env:
-          - name: INDEXER_SQS_URL
+          - name: AWS_SQS_STAGE_2_URL
             valueFrom:
               configMapKeyRef:
                 name: sqs-config
-                key: INDEXER_SQS_URL
+                key: AWS_SQS_STAGE_2_URL
         restartPolicy: Never
   pollingInterval: 15
   successfulJobsHistoryLimit: 3
@@ -35,7 +35,7 @@ spec:
   triggers:
   - type: aws-sqs-queue
     metadata:
-      queueURLFromEnv: INDEXER_SQS_URL
+      queueURLFromEnv: AWS_SQS_STAGE_2_URL
       awsRegion: "eu-central-1"
       queueLength: "5"
 ---

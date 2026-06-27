@@ -2,7 +2,6 @@ import os
 
 # AWS SQS Configuration
 AWS_SQS_STAGE_2_URL = os.getenv("AWS_SQS_STAGE_2_URL")
-AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL")
 AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "eu-central-1")
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")

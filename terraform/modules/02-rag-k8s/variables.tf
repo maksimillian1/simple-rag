@@ -79,3 +79,8 @@ variable "sqs_indexer_url" {
   description = "SQS URL for the indexer stage"
   type        = string
 }
+
+variable "component_namespaces" {
+  type    = list(string)
+  default = ["rag-api", "rag-jobs", "rag-platform"]
+}

@@ -32,4 +32,9 @@ resource "helm_release" "root_application" {
     name  = "sqsIndexerUrl"
     value = var.sqs_indexer_url
   }
+
+  set {
+    name  = "componentNamespaces"
+    value = "{${join(",", var.component_namespaces)}}"
+  }
 }

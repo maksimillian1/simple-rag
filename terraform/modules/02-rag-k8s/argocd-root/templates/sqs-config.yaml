@@ -1,8 +1,11 @@
+{{- range .Values.componentNamespaces }}
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: sqs-config
-  namespace: default
+  namespace: {{ . }}
 data:
-  CHUNKER_SQS_URL: {{ .Values.sqsChunkerUrl | quote }}
-  INDEXER_SQS_URL: {{ .Values.sqsIndexerUrl | quote }}
+  AWS_SQS_STAGE_1_URL: {{ $.Values.sqsChunkerUrl | quote }}
+  AWS_SQS_STAGE_2_URL: {{ $.Values.sqsIndexerUrl | quote }}
+{{- end }}

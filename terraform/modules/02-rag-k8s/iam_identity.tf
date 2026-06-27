@@ -41,7 +41,7 @@ resource "aws_iam_role_policy_attachment" "api_bedrock" {
 
 resource "aws_eks_pod_identity_association" "api" {
   cluster_name    = var.cluster_name
-  namespace       = "default"
+  namespace       = "rag-api"
   service_account = "api-sa"
   role_arn        = aws_iam_role.api_role.arn
 }
@@ -63,7 +63,7 @@ resource "aws_iam_role_policy_attachment" "chunker_s3" {
 
 resource "aws_eks_pod_identity_association" "chunker" {
   cluster_name    = var.cluster_name
-  namespace       = "default"
+  namespace       = "rag-jobs"
   service_account = "chunker-sa"
   role_arn        = aws_iam_role.chunker_role.arn
 }
@@ -80,7 +80,7 @@ resource "aws_iam_role_policy_attachment" "indexer_sqs" {
 
 resource "aws_eks_pod_identity_association" "indexer" {
   cluster_name    = var.cluster_name
-  namespace       = "default"
+  namespace       = "rag-jobs"
   service_account = "indexer-sa"
   role_arn        = aws_iam_role.indexer_role.arn
 }

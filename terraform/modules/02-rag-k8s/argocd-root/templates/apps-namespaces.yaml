@@ -1,9 +1,7 @@
+{{- range .Values.componentNamespaces }}
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: rag-jobs
+  name: {{ . }}
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: rag-api
+{{- end }}
