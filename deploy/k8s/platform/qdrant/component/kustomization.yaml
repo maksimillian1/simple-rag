@@ -2,6 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 configMapGenerator:
   - name: qdrant-config
+    options:
+      disableNameSuffixHash: true
     literals:
       - QDRANT_HOST=qdrant.rag-platform.svc.cluster.local
       - QDRANT_GRPC_PORT=6334
