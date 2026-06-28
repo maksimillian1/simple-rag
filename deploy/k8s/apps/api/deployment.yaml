@@ -44,6 +44,8 @@ spec:
           value: "bedrock"
         - name: MODEL_ID
           value: "us.meta.llama3-1-8b-instruct-v1:0"
+        - name: AWS_BEDROCK_REGION
+          value: "us-east-1"
         - name: AWS_SQS_STAGE_2_URL
           valueFrom:
             configMapKeyRef:

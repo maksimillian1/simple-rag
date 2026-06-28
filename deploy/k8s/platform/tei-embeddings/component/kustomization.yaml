@@ -4,4 +4,4 @@ configMapGenerator:
   - name: tei-config
     literals:
       - TEI_HOST=tei-embeddings.rag-platform.svc.cluster.local
-      - TEI_PORT="80"
+      - TEI_PORT=80
