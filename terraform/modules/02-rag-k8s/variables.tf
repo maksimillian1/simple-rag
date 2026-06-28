@@ -79,3 +79,9 @@ variable "sqs_indexer_url" {
   description = "SQS URL for the indexer stage"
   type        = string
 }
+
+variable "component_namespaces" {
+  description = "Kubernetes namespaces created by the ArgoCD root chart (and targeted for shared bootstrap ConfigMaps)"
+  type        = list(string)
+  default     = ["rag-api", "rag-jobs", "rag-platform"]
+}

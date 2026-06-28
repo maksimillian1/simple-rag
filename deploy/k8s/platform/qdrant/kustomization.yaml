@@ -6,3 +6,6 @@ namespace: rag-platform
 resources:
   - statefulset.yaml
   - service.yaml
+
+components:
+  - component
