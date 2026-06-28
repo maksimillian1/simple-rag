@@ -24,7 +24,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: tei-embeddings
-        image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+        image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
         resources:
           requests:
             cpu: 1000m
