@@ -16,7 +16,7 @@ spec:
         app: qdrant
     spec:
       nodeSelector:
-        eks.amazonaws.com/nodegroup: core-on-demand
+        tier: core-on-demand
       containers:
       - name: qdrant
         image: qdrant/qdrant:latest

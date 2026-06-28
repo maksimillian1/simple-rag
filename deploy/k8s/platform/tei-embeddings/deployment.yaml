@@ -15,7 +15,12 @@ spec:
         app: tei-embeddings
     spec:
       nodeSelector:
-        eks.amazonaws.com/nodegroup: core-on-demand
+        karpenter.sh/nodepool: apps-serving
+      tolerations:
+      - key: role
+        operator: Equal
+        value: serving
+        effect: NoSchedule
       containers:
       - name: tei-embeddings
         image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5

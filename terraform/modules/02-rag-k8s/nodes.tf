@@ -32,6 +32,7 @@ module "eks_core_nodes" {
 
   labels = {
     "node.kubernetes.io/cni-welcome" = "cilium"
+    "tier"                           = "core-on-demand"
   }
 
   iam_role_additional_policies = {
