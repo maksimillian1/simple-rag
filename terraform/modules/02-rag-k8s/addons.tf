@@ -50,7 +50,7 @@ resource "aws_eks_addon" "aws_ebs_csi_driver" {
 
   configuration_values = jsonencode({
     defaultStorageClass = {
-      enabled = false
+      enabled = true
     }
   })
 }
