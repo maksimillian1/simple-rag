@@ -25,6 +25,11 @@ spec:
       containers:
       - name: tei-embeddings
         image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
+        env:
+        - name: HF_ENDPOINT
+          value: "https://huggingface.co"
+        - name: HF_HUB_DISABLE_PROXY
+          value: "true"
         resources:
           requests:
             cpu: 1000m
