@@ -60,7 +60,13 @@ resource "aws_iam_policy" "karpenter_controller" {
           "ec2:TerminateInstances",
           "ec2:DeleteLaunchTemplate",
           "ssm:GetParameter",
-          "pricing:GetProducts"
+          "pricing:GetProducts",
+          "iam:AddRoleToInstanceProfile",
+          "iam:CreateInstanceProfile",
+          "iam:DeleteInstanceProfile",
+          "iam:GetInstanceProfile",
+          "iam:RemoveRoleFromInstanceProfile",
+          "iam:TagInstanceProfile"
         ]
         Effect   = "Allow"
         Resource = "*"

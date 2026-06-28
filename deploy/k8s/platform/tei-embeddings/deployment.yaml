@@ -24,6 +24,13 @@ spec:
       containers:
       - name: tei-embeddings
         image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
         args: ["--model-id", "BAAI/bge-small-en-v1.5"]
         ports:
         - containerPort: 80
