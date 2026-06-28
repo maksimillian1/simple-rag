@@ -2,5 +2,5 @@ apiVersion: v2
 name: argocd-root
 description: A Helm chart to deploy the ArgoCD Root Application (App of Apps)
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "1.0.0"
