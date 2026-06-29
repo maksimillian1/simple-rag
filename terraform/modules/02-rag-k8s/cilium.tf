@@ -53,16 +53,6 @@ resource "helm_release" "cilium" {
   }
 
   set {
-    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key"
-    value = "eks.amazonaws.com/compute-type"
-  }
-
-  set {
-    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator"
-    value = "DoesNotExist"
-  }
-
-  set {
     name  = "nodePort.enabled"
     value = "true"
   }
@@ -70,5 +60,31 @@ resource "helm_release" "cilium" {
   set {
     name  = "kubeProxyReplacement"
     value = "true"
+  }
+
+  set {
+    name  = "operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key"
+    value = "eks.amazonaws.com/compute-type"
+  }
+  set {
+    name  = "operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator"
+    value = "NotIn"
+  }
+  set {
+    name  = "operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]"
+    value = "fargate"
+  }
+
+  set {
+    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key"
+    value = "eks.amazonaws.com/compute-type"
+  }
+  set {
+    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator"
+    value = "NotIn"
+  }
+  set {
+    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]"
+    value = "fargate"
   }
 }

@@ -11,3 +11,20 @@ resource "helm_release" "keda" {
     value = "true"
   }
 }
+
+resource "aws_iam_role" "keda_role" {
+  name               = "rag-keda-role"
+  assume_role_policy = data.aws_iam_policy_document.pod_identity_trust.json
+}
+
+resource "aws_iam_role_policy_attachment" "keda_sqs" {
+  role       = aws_iam_role.keda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSQSReadOnlyAccess"
+}
+
+resource "aws_eks_pod_identity_association" "keda" {
+  cluster_name    = var.cluster_name
+  namespace       = "keda"
+  service_account = "keda-operator"
+  role_arn        = aws_iam_role.keda_role.arn
+}
