@@ -62,3 +62,13 @@ output "eks_karpenter_controller_role_arn" {
   description = "IAM Role ARN for Karpenter controller"
   value       = module.rag_core.eks_karpenter_controller_role_arn
 }
+
+# output "qdrant_backup_bucket_name" {
+#   description = "S3 Bucket Name for Qdrant Backups"
+#   value       = module.rag_core.qdrant_backup_bucket_name
+# }
+#
+# output "qdrant_backup_role_arn" {
+#   description = "IAM Role ARN for Qdrant Backup Manager"
+#   value       = module.rag_core.qdrant_backup_role_arn
+# }

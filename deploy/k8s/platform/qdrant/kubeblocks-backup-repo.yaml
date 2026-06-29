@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: qdrant-backup-sa
+  namespace: rag-platform
+  annotations:
+    eks.amazonaws.com/role-arn: "<QDRANT_BACKUP_ROLE_ARN>"
+---
+apiVersion: dataprotection.kubeblocks.io/v1alpha1
+kind: BackupRepo
+metadata:
+  name: qdrant-backup-repo
+  namespace: rag-platform
+spec:
+  storageProvider: s3
+  s3:
+    bucket: "<QDRANT_BACKUP_BUCKET_NAME>"

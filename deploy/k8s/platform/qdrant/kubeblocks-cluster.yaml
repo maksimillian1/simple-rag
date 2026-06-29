@@ -1,0 +1,33 @@
+apiVersion: apps.kubeblocks.io/v1
+kind: Cluster
+metadata:
+  name: qdrant-vector-db
+  namespace: rag-platform
+  labels:
+    app: qdrant
+spec:
+  clusterDef: qdrant
+  topology: cluster
+  terminationPolicy: WipeOut
+  componentSpecs:
+    - name: qdrant
+      serviceVersion: 1.8.4
+      replicas: 1
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: gp3
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 100Gi
+      nodeSelector:
+        tier: core-on-demand

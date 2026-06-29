@@ -1,0 +1,13 @@
+apiVersion: dataprotection.kubeblocks.io/v1alpha1
+kind: BackupPolicy
+metadata:
+  name: qdrant-backup-policy
+  namespace: rag-platform
+spec:
+  clusterRef: qdrant-vector-db
+  retention:
+    ttl: 10d
+  schedules:
+    - cronExpression: "0 2 * * *"
+      backupMethod: snapshot
+      retentionPolicy: Default

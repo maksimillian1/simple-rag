@@ -4,8 +4,9 @@ kind: Kustomization
 namespace: rag-platform
 
 resources:
-  - statefulset.yaml
-  - service.yaml
+  - kubeblocks-cluster.yaml
+  - kubeblocks-backup-repo.yaml
+  - kubeblocks-backup-policy.yaml
 
 components:
   - component
