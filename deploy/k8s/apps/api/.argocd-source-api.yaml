@@ -1,0 +1,3 @@
+kustomize:
+  images:
+  - ghcr.io/maksimillian1/simple-rag/api:sha-fa9ea4bad4a83936c98e868d34f5b7dc7cf4719d
