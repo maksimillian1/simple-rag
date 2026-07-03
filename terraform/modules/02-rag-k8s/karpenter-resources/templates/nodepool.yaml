@@ -45,7 +45,7 @@ spec:
           value: serving
           effect: NoSchedule
   limits:
-    cpu: 1000
+    cpu: 100
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
@@ -81,7 +81,7 @@ spec:
           value: compute
           effect: NoSchedule
   limits:
-    cpu: 1000
+    cpu: 200
   disruption:
     consolidationPolicy: WhenEmpty
     consolidateAfter: 30s

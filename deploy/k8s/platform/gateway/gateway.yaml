@@ -3,15 +3,16 @@ kind: Gateway
 metadata:
   name: cilium-gateway
   namespace: rag-platform
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: "external"
-    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
 spec:
-  gatewayClassName: cilium
+  gatewayClassName: aws-nlb
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: nlb-config
   listeners:
-    - name: http
-      protocol: HTTP
+    - name: tcp
+      protocol: TCP
       port: 80
       allowedRoutes:
         namespaces:

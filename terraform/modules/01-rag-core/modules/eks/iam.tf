@@ -29,6 +29,26 @@ resource "aws_iam_role_policy_attachment" "karpenter_node_policies" {
   policy_arn = each.value
 }
 
+resource "aws_iam_policy" "karpenter_nodes_pod_identity" {
+  name        = "${var.cluster_name}-karpenter-nodes-pod-identity"
+  description = "IAM Policy for EKS Pod Identity Agent on Karpenter nodes"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "eks-auth:AssumeRoleForPodIdentity"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "karpenter_nodes_pod_identity" {
+  role       = aws_iam_role.karpenter_node.name
+  policy_arn = aws_iam_policy.karpenter_nodes_pod_identity.arn
+}
+
 resource "aws_iam_instance_profile" "karpenter_node" {
   name = "${var.cluster_name}-karpenter-node"
   role = aws_iam_role.karpenter_node.name

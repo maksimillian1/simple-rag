@@ -39,6 +39,7 @@ module "rag_k8s" {
   node_security_group_id            = module.rag_core.node_security_group_id
   cluster_primary_security_group_id = module.rag_core.cluster_primary_security_group_id
   private_subnets                   = module.rag_core.private_subnets
+  vpc_id                            = module.rag_core.vpc_id
 
   cluster_endpoint     = data.aws_eks_cluster.this[0].endpoint
   cluster_auth_base64  = data.aws_eks_cluster.this[0].certificate_authority[0].data
@@ -48,7 +49,7 @@ module "rag_k8s" {
   cluster_oidc_provider     = module.rag_core.eks_oidc_provider
 
   tags = local.tags
-  
+
   github_token = var.github_token
 
   sqs_chunker_url = module.rag_core.sqs_stage_1_queue_url

@@ -6,6 +6,13 @@ resource "aws_eks_addon" "coredns" {
   addon_version = "v1.14.3-eksbuild.3"
 }
 
+resource "aws_eks_addon" "pod_identity" {
+  depends_on = [module.eks_core_nodes]
+
+  cluster_name  = var.cluster_name
+  addon_name    = "eks-pod-identity-agent"
+}
+
 resource "aws_iam_role" "ebs_csi" {
   name = "${var.cluster_name}-ebs-csi"
 

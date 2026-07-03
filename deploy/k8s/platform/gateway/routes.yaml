@@ -1,5 +1,5 @@
 apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
+kind: TCPRoute
 metadata:
   name: api-route
   namespace: rag-api
@@ -8,10 +8,6 @@ spec:
     - name: cilium-gateway
       namespace: rag-platform
   rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: simple-rag-api
-          port: 8080
+    - backendRefs:
+        - name: api
+          port: 80

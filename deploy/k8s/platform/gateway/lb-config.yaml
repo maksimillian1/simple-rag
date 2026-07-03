@@ -1,0 +1,7 @@
+apiVersion: gateway.k8s.aws/v1beta1
+kind: LoadBalancerConfiguration
+metadata:
+  name: nlb-config
+  namespace: rag-platform
+spec:
+  scheme: internet-facing

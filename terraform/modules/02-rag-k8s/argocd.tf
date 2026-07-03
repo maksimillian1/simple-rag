@@ -11,7 +11,7 @@ resource "helm_release" "argocd" {
     value = "ClusterIP"
   }
 
-  depends_on = [module.eks_core_nodes]
+  depends_on = [module.eks_core_nodes, helm_release.cilium]
 }
 
 resource "helm_release" "root_application" {

@@ -6,6 +6,7 @@ namespace: rag-api
 resources:
   - deployment.yaml
   - network-policy.yaml
+  - tg-config.yaml
 
 components:
   - ../../platform/qdrant/component

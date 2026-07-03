@@ -39,3 +39,23 @@ module "eks_core_nodes" {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   }
 }
+
+resource "aws_iam_policy" "core_nodes_pod_identity" {
+  name        = "${var.cluster_name}-core-nodes-pod-identity"
+  description = "IAM Policy for EKS Pod Identity Agent on core nodes"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "eks-auth:AssumeRoleForPodIdentity"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "core_nodes_pod_identity" {
+  role       = module.eks_core_nodes.iam_role_name
+  policy_arn = aws_iam_policy.core_nodes_pod_identity.arn
+}

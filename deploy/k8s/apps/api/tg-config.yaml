@@ -1,0 +1,12 @@
+apiVersion: gateway.k8s.aws/v1beta1
+kind: TargetGroupConfiguration
+metadata:
+  name: api-tg-config
+  namespace: rag-api
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: api
+  defaultConfiguration:
+    targetType: ip

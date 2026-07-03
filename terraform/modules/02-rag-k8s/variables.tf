@@ -85,3 +85,8 @@ variable "component_namespaces" {
   type        = list(string)
   default     = ["rag-api", "rag-jobs", "rag-platform"]
 }
+
+variable "vpc_id" {
+  description = "VPC ID for AWS Load Balancer Controller"
+  type        = string
+}

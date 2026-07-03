@@ -11,7 +11,12 @@ resource "helm_release" "keda" {
     value = "true"
   }
 
-  depends_on = [module.eks_core_nodes]
+  depends_on = [
+    module.eks_core_nodes,
+    helm_release.cilium,
+    aws_eks_pod_identity_association.keda,
+    aws_eks_addon.pod_identity
+  ]
 }
 
 resource "aws_iam_role" "keda_role" {
