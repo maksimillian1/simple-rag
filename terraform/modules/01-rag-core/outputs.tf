@@ -108,12 +108,12 @@ output "karpenter_node_role_arn" {
   value       = try(one(module.eks[*].karpenter_node_role_arn), null)
 }
 
-# output "qdrant_backup_bucket_name" {
-#   description = "S3 Bucket Name for Qdrant Backups"
-#   value       = aws_s3_bucket.qdrant_backup.id
-# }
-#
-# output "qdrant_backup_role_arn" {
-#   description = "IAM Role ARN for Qdrant Backup Manager"
-#   value       = try(one(aws_iam_role.qdrant_backup_role[*].arn), null)
-# }
+output "qdrant_backup_bucket_name" {
+  description = "S3 Bucket Name for Qdrant Backups"
+  value       = aws_s3_bucket.qdrant_backup.id
+}
+
+output "qdrant_backup_role_arn" {
+  description = "IAM Role ARN for Qdrant Backup Manager"
+  value       = try(one(aws_iam_role.qdrant_backup_role[*].arn), null)
+}

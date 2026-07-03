@@ -3,12 +3,18 @@ resource "helm_release" "cilium" {
   name       = "cilium"
   repository = "https://helm.cilium.io/"
   chart      = "cilium"
-  version    = "1.15.5"
+  version    = "1.19.5"
   namespace  = "kube-system"
-  wait = false
+  wait       = false
 
   set {
     name  = "eni.enabled"
+    value = "true"
+  }
+
+
+  set {
+    name  = "gatewayAPI.enabled"
     value = "true"
   }
 

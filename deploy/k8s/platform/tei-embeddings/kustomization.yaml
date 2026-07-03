@@ -7,5 +7,10 @@ resources:
   - deployment.yaml
   - service.yaml
 
-components:
-  - component
+configMapGenerator:
+  - name: tei-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - TEI_HOST=tei-embeddings.rag-platform.svc.cluster.local
+      - TEI_PORT=80

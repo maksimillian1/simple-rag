@@ -8,5 +8,12 @@ resources:
   - kubeblocks-backup-repo.yaml
   - kubeblocks-backup-policy.yaml
 
-components:
-  - component
+configMapGenerator:
+  - name: qdrant-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - QDRANT_HOST=qdrant.rag-platform.svc.cluster.local
+      - QDRANT_GRPC_PORT=6334
+      - QDRANT_HTTP_PORT=6333
+      - COLLECTION_NAME=demo_collection

@@ -10,13 +10,16 @@ resource "helm_release" "argocd" {
     name  = "server.service.type"
     value = "ClusterIP"
   }
+
+  depends_on = [module.eks_core_nodes]
 }
 
 resource "helm_release" "root_application" {
   name       = "argocd-root"
   chart      = "${path.module}/argocd-root"
   namespace  = "argocd"
-  depends_on = [helm_release.argocd, helm_release.keda]
+  depends_on = [helm_release.argocd, helm_release.keda, helm_release.karpenter_resources]
+  timeout    = 600
 
   set_sensitive {
     name  = "githubToken"

@@ -79,3 +79,11 @@ Architectural changes must be peer-reviewed via the `adr-tools` standard before 
 ### Argo CD
 To trigger an update
 * kubectl patch application root-bootstrap -n argocd --type merge -p '{"operation": {"sync": {"revision": "HEAD"}}}'
+* kubectl patch application root-bootstrap -n argocd --type merge -p '{"operation": {"sync": {"revision": "<branch>"}}}'
+
+View
+* kubectl get applications -n argocd qdrant -o yaml
+
+List
+* kubectl get applications -A
+

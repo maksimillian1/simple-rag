@@ -1,8 +1,8 @@
 resource "aws_eks_addon" "coredns" {
   depends_on = [module.eks_core_nodes]
 
-  cluster_name = var.cluster_name
-  addon_name   = "coredns"
+  cluster_name  = var.cluster_name
+  addon_name    = "coredns"
   addon_version = "v1.14.3-eksbuild.3"
 }
 
@@ -39,8 +39,8 @@ resource "aws_iam_role_policy_attachment" "ebs_csi" {
 resource "aws_eks_addon" "aws_ebs_csi_driver" {
   depends_on = [module.eks_core_nodes]
 
-  cluster_name             = var.cluster_name
-  addon_name               = "aws-ebs-csi-driver"
+  cluster_name  = var.cluster_name
+  addon_name    = "aws-ebs-csi-driver"
   addon_version = "v1.62.0-eksbuild.1"
 
   resolve_conflicts_on_create = "OVERWRITE"

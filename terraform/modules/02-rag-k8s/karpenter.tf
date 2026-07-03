@@ -31,6 +31,8 @@ resource "helm_release" "karpenter" {
     value = var.karpenter_controller_role_arn
   }
 
+  depends_on = [module.eks_core_nodes]
+  timeout    = 600
 }
 
 resource "helm_release" "karpenter_resources" {
@@ -44,4 +46,5 @@ resource "helm_release" "karpenter_resources" {
   }
 
   depends_on = [helm_release.karpenter]
+  timeout    = 600
 }

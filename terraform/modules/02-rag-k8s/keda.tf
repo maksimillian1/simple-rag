@@ -10,6 +10,8 @@ resource "helm_release" "keda" {
     name  = "crds.install"
     value = "true"
   }
+
+  depends_on = [module.eks_core_nodes]
 }
 
 resource "aws_iam_role" "keda_role" {
