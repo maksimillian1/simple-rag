@@ -5,15 +5,6 @@ resource "helm_release" "gateway_api_crds" {
   atomic          = false
 }
 
-data "http" "aws_lbc_gateway_crds" {
-  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/refs/heads/main/config/crd/gateway/gateway-crds.yaml"
-}
-
-resource "kubectl_manifest" "aws_lbc_gateway_crds" {
-  yaml_body         = data.http.aws_lbc_gateway_crds.response_body
-  server_side_apply = true
-}
-
 resource "helm_release" "cilium" {
   name       = "cilium"
   repository = "https://helm.cilium.io/"

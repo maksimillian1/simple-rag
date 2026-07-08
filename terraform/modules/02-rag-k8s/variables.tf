@@ -1,3 +1,8 @@
+variable "resource_prefix" {
+  description = "Prefix for all resources"
+  type        = string
+}
+
 variable "cluster_endpoint" {
   description = "EKS Cluster Endpoint"
   type        = string

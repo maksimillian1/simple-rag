@@ -31,6 +31,7 @@ module "rag_k8s" {
   source = "./modules/02-rag-k8s"
   count  = var.is_local_test ? 0 : 1
 
+  resource_prefix                   = var.resource_prefix
   cluster_name                      = module.rag_core.cluster_name
   karpenter_node_role_arn           = module.rag_core.karpenter_node_role_arn
   karpenter_controller_role_arn     = module.rag_core.eks_karpenter_controller_role_arn
