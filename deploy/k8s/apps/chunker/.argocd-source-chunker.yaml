@@ -1,0 +1,3 @@
+kustomize:
+  images:
+  - ghcr.io/maksimillian1/simple-rag/chunker:sha-f3fe346d0ccad7342fb2ed98b662b144de4b65fc
