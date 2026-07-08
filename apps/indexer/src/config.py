@@ -24,6 +24,7 @@ TEI_API_TYPE = os.getenv("TEI_API_TYPE", "text_embeddings_inference")
 FETCH_BATCH_SIZE = int(os.getenv("FETCH_BATCH_SIZE", "10"))
 POLL_WAIT_TIME_SECONDS = int(os.getenv("POLL_WAIT_TIME_SECONDS", "10"))
 
+
 # DEBUG
 CONTINUOUS_POLL = os.getenv("INDEXER_CONTINUOUS_POLL", "false").lower() == "true"
 POLL_SLEEP_INTERVAL_SECONDS = int(os.getenv("POLL_SLEEP_INTERVAL_SECONDS", "5"))
