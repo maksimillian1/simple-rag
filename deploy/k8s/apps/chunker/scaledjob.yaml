@@ -47,6 +47,7 @@ spec:
       queueURLFromEnv: AWS_SQS_STAGE_1_URL
       awsRegion: "eu-central-1"
       queueLength: "5"
+      identityOwner: operator
 ---
 apiVersion: v1
 kind: ServiceAccount
