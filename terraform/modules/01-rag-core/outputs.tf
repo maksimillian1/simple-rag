@@ -103,9 +103,9 @@ output "cluster_name" {
   value       = var.cluster_name
 }
 
-output "karpenter_node_role_arn" {
-  description = "IAM Role ARN for the Karpenter node"
-  value       = try(one(module.eks[*].karpenter_node_role_arn), null)
+
+
+output "cluster_arn" {
+  description = "EKS Cluster ARN"
+  value       = try(one(module.eks[*].cluster_arn), null)
 }
-
-

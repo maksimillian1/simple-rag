@@ -59,3 +59,55 @@ resource "aws_iam_role_policy_attachment" "core_nodes_pod_identity" {
   role       = module.eks_core_nodes.iam_role_name
   policy_arn = aws_iam_policy.core_nodes_pod_identity.arn
 }
+
+module "eks_database_nodes" {
+  source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
+  version = "~> 21.0"
+
+  name                 = "database-on-demand"
+  cluster_name         = var.cluster_name
+  cluster_endpoint     = var.cluster_endpoint
+  cluster_auth_base64  = var.cluster_auth_base64
+  cluster_service_cidr = var.cluster_service_cidr
+
+  subnet_ids                        = var.private_subnets
+  cluster_primary_security_group_id = var.cluster_primary_security_group_id
+  vpc_security_group_ids            = [var.node_security_group_id]
+
+  instance_types = ["t3.large"]
+  min_size       = 1
+  max_size       = 2
+  desired_size   = 1
+  capacity_type  = "ON_DEMAND"
+
+  enable_bootstrap_user_data = true
+  use_custom_launch_template = true
+  ami_type                   = "AL2023_x86_64_STANDARD"
+
+  taints = {
+    cilium = {
+      key    = "node.cilium.io/agent-not-ready"
+      value  = "true"
+      effect = "NO_EXECUTE"
+    }
+    database = {
+      key    = "dedicated"
+      value  = "database"
+      effect = "NO_SCHEDULE"
+    }
+  }
+
+  labels = {
+    "node.kubernetes.io/cni-welcome" = "cilium"
+    "tier"                           = "database"
+  }
+
+  iam_role_additional_policies = {
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "database_nodes_pod_identity" {
+  role       = module.eks_database_nodes.iam_role_name
+  policy_arn = aws_iam_policy.core_nodes_pod_identity.arn
+}

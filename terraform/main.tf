@@ -33,9 +33,8 @@ module "rag_k8s" {
 
   resource_prefix                   = var.resource_prefix
   cluster_name                      = module.rag_core.cluster_name
-  karpenter_node_role_arn           = module.rag_core.karpenter_node_role_arn
-  karpenter_controller_role_arn     = module.rag_core.eks_karpenter_controller_role_arn
-  karpenter_interruption_queue_name = module.rag_core.eks_karpenter_interruption_queue_name
+  cluster_arn                       = module.rag_core.cluster_arn
+
 
   node_security_group_id            = module.rag_core.node_security_group_id
   cluster_primary_security_group_id = module.rag_core.cluster_primary_security_group_id

@@ -87,3 +87,6 @@ View
 List
 * kubectl get applications -A
 
+Clean-up to run before tf destroy
+* kubectl patch application root-bootstrap -n argocd --type merge -p '{"metadata":{"finalizers":["resources-finalizer.argocd.argoproj.io"]}}'
+kubectl delete application root-bootstrap -n argocd

@@ -16,10 +16,10 @@ spec:
       resources:
         requests:
           cpu: "1"
-          memory: "2Gi"
+          memory: "4Gi"
         limits:
-          cpu: "1"
-          memory: "2Gi"
+          cpu: "2"
+          memory: "6Gi"
       volumeClaimTemplates:
         - name: data
           spec:
@@ -30,4 +30,9 @@ spec:
               requests:
                 storage: 100Gi
       nodeSelector:
-        tier: core-on-demand
+        tier: database
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "database"
+          effect: "NoSchedule"

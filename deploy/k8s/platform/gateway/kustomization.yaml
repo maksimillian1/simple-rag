@@ -5,3 +5,6 @@ resources:
   - gateway.yaml
   - lb-config.yaml
   - routes.yaml
+
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "20"

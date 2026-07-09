@@ -125,7 +125,7 @@ resource "aws_iam_policy" "karpenter_controller" {
           "eks:DescribeCluster"
         ]
         Effect   = "Allow"
-        Resource = module.eks.cluster_arn
+        Resource = var.cluster_arn
       }
     ]
   })
@@ -143,12 +143,12 @@ resource "aws_iam_role" "karpenter_controller" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Effect = "Allow"
         Principal = {
-          Federated = module.eks.oidc_provider_arn
+          Federated = var.cluster_oidc_provider_arn
         }
         Condition = {
           StringEquals = {
-            "${module.eks.oidc_provider}:sub" = "system:serviceaccount:karpenter:karpenter"
-            "${module.eks.oidc_provider}:aud" = "sts.amazonaws.com"
+            "${var.cluster_oidc_provider}:sub" = "system:serviceaccount:karpenter:karpenter"
+            "${var.cluster_oidc_provider}:aud" = "sts.amazonaws.com"
           }
         }
       }
@@ -164,7 +164,7 @@ resource "aws_iam_role_policy_attachment" "karpenter_controller" {
 }
 
 resource "aws_eks_access_entry" "karpenter_node" {
-  cluster_name  = module.eks.cluster_name
+  cluster_name  = var.cluster_name
   principal_arn = aws_iam_role.karpenter_node.arn
   type          = "EC2_LINUX"
 }

@@ -25,12 +25,12 @@ resource "helm_release" "karpenter" {
 
   set {
     name  = "settings.interruptionQueue"
-    value = var.karpenter_interruption_queue_name
+    value = aws_sqs_queue.karpenter_interruption.name
   }
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = var.karpenter_controller_role_arn
+    value = aws_iam_role.karpenter_controller.arn
   }
 
   depends_on = [
@@ -42,18 +42,3 @@ resource "helm_release" "karpenter" {
   timeout = 600
 }
 
-resource "helm_release" "karpenter_resources" {
-  name      = "karpenter-resources"
-  chart     = "${path.module}/karpenter-resources"
-  namespace = "karpenter"
-  replace          = true
-  cleanup_on_fail  = true
-
-  set {
-    name  = "clusterName"
-    value = var.cluster_name
-  }
-
-  depends_on = [helm_release.karpenter]
-  timeout    = 600
-}

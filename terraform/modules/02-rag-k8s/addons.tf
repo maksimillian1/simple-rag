@@ -9,8 +9,8 @@ resource "aws_eks_addon" "coredns" {
 resource "aws_eks_addon" "pod_identity" {
   depends_on = [module.eks_core_nodes]
 
-  cluster_name  = var.cluster_name
-  addon_name    = "eks-pod-identity-agent"
+  cluster_name = var.cluster_name
+  addon_name   = "eks-pod-identity-agent"
 }
 
 resource "aws_iam_role" "ebs_csi" {

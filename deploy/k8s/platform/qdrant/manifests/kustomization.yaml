@@ -10,3 +10,6 @@ resources:
 
 components:
   - component
+
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "10"

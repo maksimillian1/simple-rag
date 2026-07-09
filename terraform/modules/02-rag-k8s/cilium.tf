@@ -1,8 +1,8 @@
 resource "helm_release" "gateway_api_crds" {
-  name       = "gateway-api-crds"
-  chart      = "${path.module}/gateway-api-crds"
-  namespace  = "kube-system"
-  atomic          = false
+  name      = "gateway-api-crds"
+  chart     = "${path.module}/gateway-api-crds"
+  namespace = "kube-system"
+  atomic    = false
 }
 
 resource "helm_release" "cilium" {

@@ -19,8 +19,10 @@ We reject the paradigm of running a monolithic or non-segmented cluster node poo
 1. **Bootstrap Isolation Layer (AWS Fargate Profile):**
    * The **Karpenter Controller** itself is explicitly deployed onto AWS Fargate. This establishes a structural guardrail that decouples the node provisioner from the EC2 lifecycles it manages, preventing deadlocks during scale-down and node consolidation events.
 
-2. **Immutable Core Control Plane (On-Demand Managed Pool):**
-   * Core operational daemons (**ArgoCD, KEDA, Cilium CNI**) along with the stateful database storage layer (**Qdrant Vector DB**) are restricted to a highly available, fixed-size pool of AWS On-Demand EC2 instances. No user-facing application workloads are permitted here.
+2. **Immutable Core Infrastructure (On-Demand Managed Pools):**
+   * Restricted to highly available AWS On-Demand EC2 instances. No user-facing application workloads are permitted here. This tier is subdivided into two distinct blast radiuses (see ADR-0016 for detailed rationale):
+     * **Core Control Plane:** Hosts operational daemons (**ArgoCD, KEDA, Cilium CNI**) and observability stacks (**Prometheus/Grafana**).
+     * **Isolated Database Plane:** A dedicated, tainted sub-pool (`dedicated=database:NO_SCHEDULE`) exclusively hosting the stateful database layer (**Qdrant Vector DB**) to prevent noisy neighbor degradation during observability peak loads.
 
 3. **Isolated Synchronous Query Plane (`apps-serving` NodePool):**
    * A dedicated, isolated Karpenter NodePool is provisioned exclusively for `apps/api`. This tier allows a mixed allocation configuration (`capacity-type: ["on-demand", "spot"]`).
@@ -36,10 +38,15 @@ graph TD
         subgraph Fargate_Isolation [Tier 1: AWS Fargate Boundary]
             Karpenter[Karpenter Controller]
         end
-        subgraph On_Demand_Pool [Tier 2: On-Demand Pool - Fixed System TCO]
-            ArgoCD[ArgoCD Engine]
-            KEDA[KEDA Operator]
-            Qdrant[(Qdrant DB + EBS)]
+        subgraph On_Demand_Pool [Tier 2: On-Demand Managed Pools]
+            subgraph Core_Control_Plane [Core Plane]
+                ArgoCD[ArgoCD Engine]
+                KEDA[KEDA Operator]
+                Observability[Prometheus / Grafana]
+            end
+            subgraph DB_Pool [Isolated DB Plane]
+                Qdrant[(Qdrant DB + EBS)]
+            end
         end
         subgraph Serving_Pool [Tier 3: apps-serving Pool - Mixed Spot/On-Demand]
             GoAPI[Go API Replicas 1..N]

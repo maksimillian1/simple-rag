@@ -3,6 +3,8 @@ apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
   name: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   amiFamily: AL2023
   role: "{{ .Values.clusterName }}-karpenter-node"
@@ -20,6 +22,8 @@ apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: apps-serving
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   template:
     spec:
@@ -56,6 +60,8 @@ apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: apps-compute
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   template:
     spec:

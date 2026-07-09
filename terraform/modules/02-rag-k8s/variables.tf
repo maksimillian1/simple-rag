@@ -33,21 +33,6 @@ variable "cluster_name" {
   type        = string
 }
 
-variable "karpenter_node_role_arn" {
-  description = "Karpenter node role arn"
-  type        = string
-}
-
-variable "karpenter_controller_role_arn" {
-  description = "Karpenter controller role arn"
-  type        = string
-}
-
-variable "karpenter_interruption_queue_name" {
-  description = "Karpenter interruption queue name"
-  type        = string
-}
-
 variable "node_security_group_id" {
   description = "Node security group ID from the cluster"
   type        = string
@@ -93,5 +78,10 @@ variable "component_namespaces" {
 
 variable "vpc_id" {
   description = "VPC ID for AWS Load Balancer Controller"
+  type        = string
+}
+
+variable "cluster_arn" {
+  description = "EKS Cluster ARN"
   type        = string
 }
