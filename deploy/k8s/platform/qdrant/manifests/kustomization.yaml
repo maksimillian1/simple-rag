@@ -5,8 +5,8 @@ namespace: rag-platform
 
 resources:
   - kubeblocks-cluster.yaml
-  - kubeblocks-backup-repo.yaml
-  - kubeblocks-backup-policy.yaml
+#  - kubeblocks-backup-repo.yaml
+#  - kubeblocks-backup-schedule.yaml
 
 components:
   - component

@@ -29,10 +29,11 @@ spec:
             resources:
               requests:
                 storage: 100Gi
-      nodeSelector:
-        tier: database
-      tolerations:
-        - key: "dedicated"
-          operator: "Equal"
-          value: "database"
-          effect: "NoSchedule"
+      schedulingPolicy:
+        nodeSelector:
+          tier: database
+        tolerations:
+          - key: "dedicated"
+            operator: "Equal"
+            value: "database"
+            effect: "NoSchedule"

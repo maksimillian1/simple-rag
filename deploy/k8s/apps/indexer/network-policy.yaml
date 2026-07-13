@@ -20,7 +20,7 @@ spec:
         - matchPattern: "*"
   - toEndpoints:
     - matchLabels:
-        app: qdrant
+        apps.kubeblocks.io/component-name: qdrant
         io.kubernetes.pod.namespace: rag-platform
     toPorts:
     - ports:
