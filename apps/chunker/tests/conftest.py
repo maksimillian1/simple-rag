@@ -14,11 +14,9 @@ def mock_env_vars(monkeypatch):
 
 class MockTokenizer:
     def encode(self, text: str) -> list:
-        # Simplistic word-based token encoding for mock tests
         return text.split()
 
     def decode(self, tokens: list) -> str:
-        # Simplistic word-based token decoding for mock tests
         return " ".join(tokens)
 
 @pytest.fixture(autouse=True)

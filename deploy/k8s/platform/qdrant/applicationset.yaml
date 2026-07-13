@@ -18,9 +18,7 @@ spec:
     spec:
       project: default
       sources:
-        - repoURL: 'https://github.com/maksimillian1/simple-rag.git'
-          targetRevision: SR-infra-prod-setup
-          path: deploy/k8s/platform/qdrant/crds
+
         - repoURL: 'https://apecloud.github.io/helm-charts'
           chart: kubeblocks
           targetRevision: 1.0.2
