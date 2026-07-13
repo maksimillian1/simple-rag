@@ -57,6 +57,7 @@ def test_build_haystack_pipeline(monkeypatch):
     from src.haystack_pipeline import build_haystack_pipeline
     mock_model = MockSparseTextEmbedding("test-model")
     pipeline = build_haystack_pipeline(splade_model=mock_model)
+
     assert pipeline is not None
     assert "splade_processor" in pipeline.graph.nodes
     assert "embedder" in pipeline.graph.nodes
