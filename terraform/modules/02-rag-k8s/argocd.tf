@@ -15,6 +15,8 @@ resource "helm_release" "argocd" {
 }
 
 resource "kubernetes_secret" "argocd_cluster" {
+  depends_on = [helm_release.argocd]
+
   metadata {
     name      = "eks-cluster-${var.cluster_name}"
     namespace = "argocd"
