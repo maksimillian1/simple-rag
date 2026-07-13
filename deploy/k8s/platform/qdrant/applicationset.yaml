@@ -11,7 +11,7 @@ spec:
             argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-qdrant'
+      name: 'qdrant-platform'
       namespace: argocd
       annotations:
         argocd.argoproj.io/sync-wave: "11"

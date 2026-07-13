@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: aws-load-balancer-controller
+  name: gateway-applicationset
   namespace: argocd
 spec:
   generators:
@@ -11,7 +11,7 @@ spec:
             argocd.argoproj.io/secret-type: cluster
   template:
     metadata:
-      name: '{{name}}-aws-load-balancer-controller'
+      name: 'gateway-platform'
       namespace: argocd
       annotations:
         argocd.argoproj.io/sync-wave: "11"
@@ -20,7 +20,7 @@ spec:
       sources:
         - repoURL: 'https://github.com/maksimillian1/simple-rag.git'
           targetRevision: SR-infra-prod-setup
-          path: deploy/k8s/platform/load-balancer-controller/crds
+          path: deploy/k8s/platform/gateway/crds
         - repoURL: 'https://aws.github.io/eks-charts'
           chart: aws-load-balancer-controller
           targetRevision: 3.4.0
@@ -29,6 +29,9 @@ spec:
             values: |
               clusterName: '{{name}}'
               vpcId: '{{values.vpc_id}}'
+        - repoURL: 'https://github.com/maksimillian1/simple-rag.git'
+          targetRevision: SR-infra-prod-setup
+          path: deploy/k8s/platform/gateway/resources
       destination:
         server: '{{server}}'
         namespace: kube-system

@@ -9,5 +9,5 @@ resources:
   - tg-config.yaml
 
 components:
-  - ../../platform/qdrant/component
+  - ../../platform/qdrant/manifests/component
   - ../../platform/tei-embeddings/component
