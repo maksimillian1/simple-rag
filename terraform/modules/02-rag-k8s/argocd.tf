@@ -24,6 +24,9 @@ resource "kubernetes_secret" "argocd_cluster" {
     labels = {
       "argocd.argoproj.io/secret-type" = "cluster"
     }
+    annotations = {
+      "vpc_id" = var.vpc_id
+    }
   }
 
   type = "Opaque"
