@@ -35,7 +35,7 @@ spec:
           targetRevision: SR-infra-prod-setup
           path: deploy/k8s/platform/qdrant/manifests
       destination:
-        server: '{{server}}'
+        server: https://kubernetes.default.svc
         namespace: kb-system
       syncPolicy:
         automated:
