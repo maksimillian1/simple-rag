@@ -10,6 +10,7 @@ spec:
       service.beta.kubernetes.io/aws-load-balancer-type: "external"
       service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
       service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+      service.beta.kubernetes.io/aws-load-balancer-target-node-labels: "karpenter.sh/nodepool=apps-serving"
   listeners:
     - name: http
       protocol: HTTP
