@@ -123,3 +123,5 @@ kubectl get applicationset -n argocd -o name | xargs -I {} kubectl patch {} -n a
 kubectl get application -n argocd -o name | xargs -I {} kubectl patch {} -n argocd --type=merge -p '{"metadata":{"finalizers":[]}}'
 ```
 *(Or simply run `./scripts/teardown-cluster.sh` to automate this safety check!)*
+
+kubectl get secret prometheus-grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 --decode; echo

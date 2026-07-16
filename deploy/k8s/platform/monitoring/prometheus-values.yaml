@@ -17,10 +17,26 @@ prometheus:
 grafana:
   nodeSelector:
     tier: core-on-demand
-  grafana.ini: |
-    [server]
-    root_url = %(protocol)s://%(domain)s:%(http_port)s/monitor/
-    serve_from_sub_path = true
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s:%(http_port)s/monitor/"
+      serve_from_sub_path: true
+  additionalDataSources:
+    - name: Prometheus
+      type: prometheus
+      uid: prometheus
+      access: proxy
+      url: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+      isDefault: true
+      jsonData:
+        timeInterval: 30s
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki.monitoring.svc.cluster.local:3100
+      jsonData:
+        maxLines: 1000
 
 alertmanager:
   alertmanagerSpec:
@@ -34,3 +50,8 @@ kubeStateMetrics:
 prometheusOperator:
   nodeSelector:
     tier: core-on-demand
+  admissionWebhooks:
+    namespace: monitoring
+    patch:
+      nodeSelector:
+        tier: core-on-demand

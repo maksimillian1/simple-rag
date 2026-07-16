@@ -11,6 +11,11 @@ resource "helm_release" "argocd" {
     value = "ClusterIP"
   }
 
+  set {
+    name  = "configs.cm.kustomize\\.buildOptions"
+    value = "--enable-helm"
+  }
+
   depends_on = [module.eks_core_nodes, helm_release.cilium]
 }
 

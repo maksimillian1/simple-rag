@@ -102,4 +102,8 @@ resource "kubernetes_config_map" "qdrant_infra_config" {
   data = {
     QDRANT_BACKUP_BUCKET_NAME = aws_s3_bucket.qdrant_backup.id
   }
+
+  depends_on = [
+    helm_release.root_application
+  ]
 }

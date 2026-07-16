@@ -73,7 +73,7 @@ variable "sqs_indexer_url" {
 variable "component_namespaces" {
   description = "Kubernetes namespaces created by the ArgoCD root chart (and targeted for shared bootstrap ConfigMaps)"
   type        = list(string)
-  default     = ["rag-api", "rag-jobs", "rag-platform"]
+  default     = ["rag-api", "rag-jobs", "rag-platform", "monitoring"]
 }
 
 variable "vpc_id" {
