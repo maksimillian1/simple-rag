@@ -25,7 +25,7 @@ spec:
         protocol: ANY
   - toEndpoints:
     - matchLabels:
-        apps.kubeblocks.io/component-name: qdrant
+        app: qdrant
         io.kubernetes.pod.namespace: rag-platform
     toPorts:
     - ports:

@@ -1,0 +1,4 @@
+apiVersion: v2
+name: monitoring-apps
+version: 1.0.0
+description: App-of-apps pattern for monitoring components

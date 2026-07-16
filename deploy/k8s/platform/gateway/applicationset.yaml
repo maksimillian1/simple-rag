@@ -19,7 +19,7 @@ spec:
       project: default
       sources:
         - repoURL: 'https://github.com/maksimillian1/simple-rag.git'
-          targetRevision: SR-infra-prod-setup
+          targetRevision: master
           path: deploy/k8s/platform/gateway/crds
         - repoURL: 'https://aws.github.io/eks-charts'
           chart: aws-load-balancer-controller
@@ -30,7 +30,7 @@ spec:
               clusterName: '{{name}}'
               vpcId: '{{metadata.annotations.vpc_id}}'
         - repoURL: 'https://github.com/maksimillian1/simple-rag.git'
-          targetRevision: SR-infra-prod-setup
+          targetRevision: master
           path: deploy/k8s/platform/gateway/resources
       destination:
         server: https://kubernetes.default.svc

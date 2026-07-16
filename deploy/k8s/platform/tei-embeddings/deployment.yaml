@@ -32,10 +32,10 @@ spec:
           value: "true"
         resources:
           requests:
-            cpu: 1000m
+            cpu: 2000m
             memory: 1Gi
           limits:
-            cpu: 2000m
+            cpu: 4000m
             memory: 2Gi
         args: ["--model-id", "BAAI/bge-small-en-v1.5"]
         ports:

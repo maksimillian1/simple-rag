@@ -7,7 +7,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/maksimillian1/simple-rag.git
-        revision: SR-infra-prod-setup
+        revision: master
         directories:
           - path: deploy/k8s/platform/*
           - path: deploy/k8s/apps/*
@@ -21,12 +21,12 @@ spec:
         argocd-image-updater.argoproj.io/image-list: img-{{path.basename}}=ghcr.io/maksimillian1/simple-rag/{{path.basename}}
         argocd-image-updater.argoproj.io/img-{{path.basename}}.update-strategy: latest
         argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-repository-creds
-        argocd-image-updater.argoproj.io/git-branch: SR-infra-prod-setup
+        argocd-image-updater.argoproj.io/git-branch: master
     spec:
       project: default
       source:
         repoURL: https://github.com/maksimillian1/simple-rag.git
-        targetRevision: SR-infra-prod-setup
+        targetRevision: master
         path: '{{path}}'
       destination:
         server: https://kubernetes.default.svc

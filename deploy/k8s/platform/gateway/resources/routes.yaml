@@ -31,5 +31,5 @@ spec:
             type: PathPrefix
             value: /monitor
       backendRefs:
-        - name: prometheus-grafana
+        - name: monitoring-grafana
           port: 80
