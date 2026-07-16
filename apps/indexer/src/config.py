@@ -14,7 +14,7 @@ TEI_EMBEDDING_MODEL = os.getenv("TEI_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 # Qdrant Configuration
 QDRANT_HOST = os.getenv("INDEXER_QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("INDEXER_QDRANT_PORT", "6334"))
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "demo_collection")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "simple-rag")
 SPLADE_MODEL_NAME = os.getenv("SPLADE_MODEL_NAME", "prithivida/Splade_PP_en_v1")
 QDRANT_PREFER_GRPC = os.getenv("QDRANT_PREFER_GRPC", "true").lower() == "true"
 DENSE_EMBEDDING_DIM = int(os.getenv("DENSE_EMBEDDING_DIM", "384"))

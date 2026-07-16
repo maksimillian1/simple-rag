@@ -75,9 +75,9 @@ module "eks_database_nodes" {
   vpc_security_group_ids            = [var.node_security_group_id]
 
   instance_types = ["t3.large"]
-  min_size       = 1
-  max_size       = 2
-  desired_size   = 1
+  min_size       = 2
+  max_size       = 3
+  desired_size   = 2
   capacity_type  = "ON_DEMAND"
 
   enable_bootstrap_user_data = true

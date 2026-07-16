@@ -1,0 +1,36 @@
+prometheus:
+  prometheusSpec:
+    retention: 3d
+    retentionSize: "7GiB"
+
+    nodeSelector:
+      tier: core-on-demand
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+grafana:
+  nodeSelector:
+    tier: core-on-demand
+  grafana.ini: |
+    [server]
+    root_url = %(protocol)s://%(domain)s:%(http_port)s/monitor/
+    serve_from_sub_path = true
+
+alertmanager:
+  alertmanagerSpec:
+    nodeSelector:
+      tier: core-on-demand
+
+kubeStateMetrics:
+  nodeSelector:
+    tier: core-on-demand
+
+prometheusOperator:
+  nodeSelector:
+    tier: core-on-demand

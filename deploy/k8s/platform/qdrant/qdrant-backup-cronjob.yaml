@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: qdrant-backup
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: qdrant-backup-sa
+          containers:
+            - name: backup
+              image: amazon/aws-cli:2.15.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  echo "Triggering new snapshot via Qdrant REST API..."
+                  RES=$(curl -s -X POST http://qdrant-headless:6333/collections/simple-rag/snapshots)
+                  
+                  SNAP_NAME=$(echo "$RES" | grep -o '"name":"[^"]*' | cut -d'"' -f4)
+                  if [ -z "$SNAP_NAME" ]; then
+                    echo "Failed to create snapshot: $RES"
+                    exit 1
+                  fi
+                  echo "Snapshot created: $SNAP_NAME. Downloading locally..."
+                  
+                  curl -s -o /tmp/$SNAP_NAME http://qdrant-headless:6333/collections/simple-rag/snapshots/$SNAP_NAME
+                  
+                  echo "Uploading to S3..."
+                  aws s3 cp /tmp/$SNAP_NAME s3://${S3_BACKUP_BUCKET}/snapshots/simple-rag/$SNAP_NAME
+                  
+                  echo "Cleaning up local PV and ephemeral disk..."
+                  rm /tmp/$SNAP_NAME
+                  curl -s -X DELETE http://qdrant-headless:6333/collections/simple-rag/snapshots/$SNAP_NAME
+                  
+                  echo "Backup $SNAP_NAME completed successfully."
+              env:
+                - name: S3_BACKUP_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: qdrant-infra-config
+                      key: QDRANT_BACKUP_BUCKET_NAME
+          restartPolicy: OnFailure

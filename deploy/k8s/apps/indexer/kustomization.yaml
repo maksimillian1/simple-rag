@@ -8,5 +8,5 @@ resources:
   - network-policy.yaml
 
 components:
-  - ../../platform/qdrant/manifests/component
+  - ../../platform/qdrant/component
   - ../../platform/tei-embeddings/component

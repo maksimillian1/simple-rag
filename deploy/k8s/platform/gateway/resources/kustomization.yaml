@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - gatewayclass.yaml
   - gateway.yaml
-  - lb-config.yaml
   - routes.yaml
 
 commonAnnotations:

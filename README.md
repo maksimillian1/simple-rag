@@ -115,10 +115,11 @@ Because ArgoCD uses finalizers, simply running `terraform destroy` will cause AW
 
 You **must** force-delete ArgoCD applications to clear cloud-provider resources before destroying Terraform:
 ```bash
-# 1. Strip finalizers to prevent hanging
-kubectl patch application root-bootstrap -n argocd --type merge -p '{"metadata":{"finalizers":null}}'
-
-# 2. Delete the root app (this cascades to child apps if finalizers are cleared)
+# 1. Trigger cascading deletion properly
 kubectl delete application root-bootstrap -n argocd
+
+# 2. If deletion hangs (orphaned resources), force remove finalizers from ALL remaining apps:
+kubectl get applicationset -n argocd -o name | xargs -I {} kubectl patch {} -n argocd --type=merge -p '{"metadata":{"finalizers":[]}}'
+kubectl get application -n argocd -o name | xargs -I {} kubectl patch {} -n argocd --type=merge -p '{"metadata":{"finalizers":[]}}'
 ```
 *(Or simply run `./scripts/teardown-cluster.sh` to automate this safety check!)*

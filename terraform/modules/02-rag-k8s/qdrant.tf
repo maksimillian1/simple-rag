@@ -92,3 +92,14 @@ resource "aws_eks_pod_identity_association" "qdrant_backup" {
   service_account = "qdrant-backup-sa"
   role_arn        = aws_iam_role.qdrant_backup_role.arn
 }
+
+resource "kubernetes_config_map" "qdrant_infra_config" {
+  metadata {
+    name      = "qdrant-infra-config"
+    namespace = "rag-platform"
+  }
+
+  data = {
+    QDRANT_BACKUP_BUCKET_NAME = aws_s3_bucket.qdrant_backup.id
+  }
+}

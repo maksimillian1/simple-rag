@@ -6,8 +6,7 @@ namespace: rag-api
 resources:
   - deployment.yaml
   - network-policy.yaml
-  - tg-config.yaml
 
 components:
-  - ../../platform/qdrant/manifests/component
+  - ../../platform/qdrant/component
   - ../../platform/tei-embeddings/component
