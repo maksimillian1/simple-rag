@@ -58,6 +58,21 @@ spec:
                 key: TEI_PORT
           - name: INDEXER_EMBEDDING_MODEL_TEI_URL
             value: "http://$(TEI_HOST):$(TEI_PORT)"
+          - name: FASTEMBED_THREADS
+            value: "1"
+          - name: QDRANT_CLIENT_NO_TELEMETRY
+            value: "true"
+          - name: HAYSTACK_TELEMETRY_ENABLED
+            value: "False"
+          - name: DO_NOT_TRACK
+            value: "true"
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "3Gi"
         restartPolicy: Never
   pollingInterval: 15
   successfulJobsHistoryLimit: 3

@@ -1,3 +1,3 @@
 kustomize:
   images:
-  - ghcr.io/maksimillian1/simple-rag/indexer:sha-836f698460b0d8d5b653944c94682cd32b8a99f2
+  - ghcr.io/maksimillian1/simple-rag/indexer:sha-e4e143404cef4d9ee2102440e9866a587ee754cc

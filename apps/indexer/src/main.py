@@ -122,7 +122,7 @@ def main():
             if pipeline is None:
                 logger.info("Building Haystack pipeline (lazy loading)...")
                 from fastembed import SparseTextEmbedding
-                model = SparseTextEmbedding(model_name=config.SPLADE_MODEL_NAME)
+                model = SparseTextEmbedding(model_name=config.SPLADE_MODEL_NAME, threads=config.FASTEMBED_THREADS)
                 pipeline = build_haystack_pipeline(splade_model=model)
                 logger.info("SPLADE model and Haystack pipeline are fully loaded and ready.")
 

@@ -23,6 +23,7 @@ TEI_API_TYPE = os.getenv("TEI_API_TYPE", "text_embeddings_inference")
 # Worker Loop Configuration
 FETCH_BATCH_SIZE = int(os.getenv("FETCH_BATCH_SIZE", "10"))
 POLL_WAIT_TIME_SECONDS = int(os.getenv("POLL_WAIT_TIME_SECONDS", "10"))
+FASTEMBED_THREADS = int(os.getenv("FASTEMBED_THREADS", "2"))
 
 
 # DEBUG

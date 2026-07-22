@@ -9,7 +9,7 @@ spec:
   egress:
   - toEndpoints:
     - matchLabels:
-        io.kubernetes.pod.namespace: kube-system
+        k8s:io.kubernetes.pod.namespace: kube-system
         k8s-app: kube-dns
     toPorts:
     - ports:
@@ -24,6 +24,8 @@ spec:
     - matchPattern: "sqs.*.amazonaws.com"
     - matchPattern: "huggingface.co"
     - matchPattern: "*.huggingface.co"
+    - matchPattern: "*.hf.co"
+    - matchPattern: "hf.co"
     toPorts:
     - ports:
       - port: "443"
