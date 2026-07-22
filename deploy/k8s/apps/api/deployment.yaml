@@ -27,7 +27,6 @@ spec:
             topologyKey: kubernetes.io/hostname
       nodeSelector:
         karpenter.sh/nodepool: apps-serving
-        kubernetes.io/arch: amd64
       tolerations:
       - key: role
         operator: Equal
