@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: "https://github.com/maksimillian1/simple-rag.git"
-    targetRevision: SR-infra-prod-setup
+    targetRevision: master
     path: deploy/k8s
   destination:
     server: "https://kubernetes.default.svc"

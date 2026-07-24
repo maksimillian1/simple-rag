@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - SR-infra-prod-setup
     paths:
       - 'apps/indexer/**'
 
