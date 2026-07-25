@@ -1,0 +1,103 @@
+kubeControllerManager:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 3d
+    retentionSize: "7GiB"
+    nodeSelector:
+      tier: core-on-demand
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "2Gi"
+      limits:
+        cpu: "1200m"
+        memory: "5Gi"
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+grafana:
+  nodeSelector:
+    tier: core-on-demand
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "200m"
+      memory: "512Mi"
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s:%(http_port)s/monitor/"
+      serve_from_sub_path: true
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://monitoring-loki.monitoring.svc.cluster.local:3100
+      jsonData:
+        maxLines: 1000
+
+alertmanager:
+  alertmanagerSpec:
+    nodeSelector:
+      tier: core-on-demand
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+
+kubeStateMetrics:
+  nodeSelector:
+    tier: core-on-demand
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "100m"
+      memory: "256Mi"
+
+prometheusOperator:
+  nodeSelector:
+    tier: core-on-demand
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+  admissionWebhooks:
+    namespace: monitoring
+    patch:
+      nodeSelector:
+        tier: core-on-demand
+
+prometheus-node-exporter:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: eks.amazonaws.com/compute-type
+                operator: NotIn
+                values:
+                  - fargate

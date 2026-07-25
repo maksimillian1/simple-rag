@@ -1,0 +1,40 @@
+loki:
+  nodeSelector:
+    tier: core-on-demand
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "1Gi"
+    limits:
+      cpu: "500m"
+      memory: "2Gi"
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 10Gi
+
+promtail:
+  config:
+    clients:
+      - url: http://monitoring-loki:3100/loki/api/v1/push
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "100m"
+      memory: "256Mi"
+  tolerations:
+    - operator: Exists
+      effect: NoSchedule
+    - operator: Exists
+      effect: NoExecute
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: eks.amazonaws.com/compute-type
+                operator: NotIn
+                values:
+                  - fargate
