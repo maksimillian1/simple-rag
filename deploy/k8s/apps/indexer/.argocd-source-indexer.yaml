@@ -1,0 +1,3 @@
+kustomize:
+  images:
+  - ghcr.io/maksimillian1/simple-rag/indexer:sha-e4e143404cef4d9ee2102440e9866a587ee754cc

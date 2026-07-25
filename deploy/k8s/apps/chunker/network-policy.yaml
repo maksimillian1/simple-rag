@@ -15,10 +15,30 @@ spec:
     - ports:
       - port: "53"
         protocol: ANY
+      rules:
+        dns:
+        - matchPattern: "*"
   - toFQDNs:
     - matchPattern: "*.s3.*.amazonaws.com"
     - matchPattern: "*.sqs.*.amazonaws.com"
+    - matchPattern: "sqs.*.amazonaws.com"
+    - matchPattern: "huggingface.co"
+    - matchPattern: "*.huggingface.co"
+    - matchPattern: "*.hf.co"
+    - matchPattern: "hf.co"
     toPorts:
     - ports:
       - port: "443"
+        protocol: TCP
+  - toCIDR:
+    - 169.254.170.23/32
+    toPorts:
+    - ports:
+      - port: "80"
+        protocol: TCP
+  - toEntities:
+    - host
+    toPorts:
+    - ports:
+      - port: "80"
         protocol: TCP

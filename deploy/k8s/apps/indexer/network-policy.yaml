@@ -15,12 +15,17 @@ spec:
     - ports:
       - port: "53"
         protocol: ANY
+      rules:
+        dns:
+        - matchPattern: "*"
   - toEndpoints:
     - matchLabels:
         app: qdrant
         k8s:io.kubernetes.pod.namespace: rag-platform
     toPorts:
     - ports:
+      - port: "6333"
+        protocol: TCP
       - port: "6334"
         protocol: TCP
   - toEndpoints:
@@ -29,11 +34,31 @@ spec:
         k8s:io.kubernetes.pod.namespace: rag-platform
     toPorts:
     - ports:
-      - port: "80"
+      - port: "8080"
         protocol: TCP
   - toFQDNs:
     - matchPattern: "*.sqs.*.amazonaws.com"
+    - matchPattern: "sqs.*.amazonaws.com"
+    - matchPattern: "huggingface.co"
+    - matchPattern: "*.huggingface.co"
+    - matchPattern: "*.*.huggingface.co"
+    - matchPattern: "*.hf.co"
+    - matchPattern: "*.*.hf.co"
+    - matchPattern: "*.*.*.hf.co"
+    - matchPattern: "hf.co"
     toPorts:
     - ports:
       - port: "443"
+        protocol: TCP
+  - toCIDR:
+    - 169.254.170.23/32
+    toPorts:
+    - ports:
+      - port: "80"
+        protocol: TCP
+  - toEntities:
+    - host
+    toPorts:
+    - ports:
+      - port: "80"
         protocol: TCP

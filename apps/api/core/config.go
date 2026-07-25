@@ -83,7 +83,7 @@ func LoadConfig() Config {
 	return Config{
 		Port:                 GetEnv("PORT", "8080"),
 		QdrantURL:            GetEnv("QDRANT_URL", "http://localhost:6333"),
-		Collection:           GetEnv("COLLECTION_NAME", "demo_collection"),
+		Collection:           GetEnv("COLLECTION_NAME", "simple-rag"),
 		EmbeddingModelTeiURL: GetEnv("EMBEDDING_MODEL_TEI_URL", "http://localhost:8081"),
 		Environment:          GetEnv("ENVIRONMENT", "production"),
 		SQSQueueURL:          GetEnv("AWS_SQS_STAGE_2_URL", ""),
