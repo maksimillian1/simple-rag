@@ -1,3 +1,8 @@
+variable "resource_prefix" {
+  description = "Prefix for all resources"
+  type        = string
+}
+
 variable "cluster_endpoint" {
   description = "EKS Cluster Endpoint"
   type        = string
@@ -25,21 +30,6 @@ variable "cluster_oidc_provider" {
 
 variable "cluster_name" {
   description = "EKS Cluster Name"
-  type        = string
-}
-
-variable "karpenter_node_role_arn" {
-  description = "Karpenter node role arn"
-  type        = string
-}
-
-variable "karpenter_controller_role_arn" {
-  description = "Karpenter controller role arn"
-  type        = string
-}
-
-variable "karpenter_interruption_queue_name" {
-  description = "Karpenter interruption queue name"
   type        = string
 }
 
@@ -84,4 +74,14 @@ variable "component_namespaces" {
   description = "Kubernetes namespaces created by the ArgoCD root chart (and targeted for shared bootstrap ConfigMaps)"
   type        = list(string)
   default     = ["rag-api", "rag-jobs", "rag-platform"]
+}
+
+variable "vpc_id" {
+  description = "VPC ID for AWS Load Balancer Controller"
+  type        = string
+}
+
+variable "cluster_arn" {
+  description = "EKS Cluster ARN"
+  type        = string
 }
