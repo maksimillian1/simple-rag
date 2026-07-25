@@ -67,15 +67,61 @@ Architectural changes must be peer-reviewed via the `adr-tools` standard before 
 * **Initialize new design record:** `adr new "Your Decision Title"`
 * **Supersede an existing policy:** `adr new -supersedes 0004 "Migrating Framework"`
 
-## Setup
+## Setup & Deployment
 
-### Terraform
-* terraform init
-* terraform apply
+### 1. Infrastructure (Terraform)
+Initialize and apply the foundational cloud infrastructure (VPC, EKS, NodeGroups, IAM IRSA):
+```bash
+terraform init
+terraform apply
+```
 
-### Kubernetes
-* aws eks update-kubeconfig --region eu-central-1 --name simple-rag-cluster
+### 2. Cluster Access (Kubernetes)
+Update your local kubeconfig to interact with the newly provisioned EKS cluster:
+```bash
+aws eks update-kubeconfig --region eu-central-1 --name simple-rag-cluster
+```
 
-### Argo CD
-To trigger an update
-* kubectl patch application root-bootstrap -n argocd --type merge -p '{"operation": {"sync": {"revision": "HEAD"}}}'
+### 3. GitOps Engine (ArgoCD)
+**Bootstrapping:**
+We manage the entire workload tier via the "App of Apps" pattern. To kickstart the auto-discovery process, manually apply the root bootstrap application:
+```bash
+kubectl apply -f terraform/modules/02-rag-k8s/argocd-root/templates/application.yaml
+```
+
+**Monitoring & Viewing:**
+To monitor the state of ArgoCD applications from the CLI:
+```bash
+# List all applications
+kubectl get applications -A
+
+# View detailed status of a specific application
+kubectl get application qdrant-platform -n argocd -o yaml
+```
+
+**Manual Syncing (Optional):**
+ArgoCD is configured to self-heal and auto-sync, but you can force an immediate manual sync to `HEAD` or a specific `<branch>`:
+```bash
+kubectl patch application root-bootstrap -n argocd --type merge -p '{"operation": {"sync": {"revision": "HEAD"}}}'
+```
+*(Tip: Check out the `scripts/` directory for handy wrappers for these commands!)*
+
+---
+
+## Troubleshooting & Teardown
+
+### Safe Cluster Destruction
+Because ArgoCD uses finalizers, simply running `terraform destroy` will cause AWS to hang indefinitely while attempting to delete VPC resources that contain active Kubernetes LoadBalancers. 
+
+You **must** force-delete ArgoCD applications to clear cloud-provider resources before destroying Terraform:
+```bash
+# 1. Trigger cascading deletion properly
+kubectl delete application root-bootstrap -n argocd
+
+# 2. If deletion hangs (orphaned resources), force remove finalizers from ALL remaining apps:
+kubectl get applicationset -n argocd -o name | xargs -I {} kubectl patch {} -n argocd --type=merge -p '{"metadata":{"finalizers":[]}}'
+kubectl get application -n argocd -o name | xargs -I {} kubectl patch {} -n argocd --type=merge -p '{"metadata":{"finalizers":[]}}'
+```
+*(Or simply run `./scripts/teardown-cluster.sh` to automate this safety check!)*
+
+kubectl get secret prometheus-grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 --decode; echo

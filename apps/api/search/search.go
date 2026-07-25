@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const QUERY_TIMEOUT_MS = 15000
+const QUERY_TIMEOUT = 15 * time.Second
 
 type QdrantClient interface {
 	Query(ctx context.Context, in *qdrant.QueryPoints, opts ...grpc.CallOption) (*qdrant.QueryResponse, error)
@@ -188,7 +188,7 @@ type QdrantSearchResponse struct {
 func (s *Service) QueryHandler(c echo.Context) error {
 	startTime := time.Now()
 
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Duration(QUERY_TIMEOUT_MS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), QUERY_TIMEOUT)
 	defer cancel()
 
 	var req core.QueryRequest
