@@ -1,0 +1,45 @@
+replicaCount: 2
+
+config:
+  cluster:
+    enabled: true
+
+resources:
+  limits:
+    cpu: "2"
+    memory: 6Gi
+  requests:
+    cpu: "1"
+    memory: 4Gi
+
+# ADR-0016: Strict Node Boundaries
+nodeSelector:
+  tier: database
+
+tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "database"
+    effect: "NoSchedule"
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: qdrant
+        app.kubernetes.io/instance: qdrant
+
+persistence:
+  storageClassName: "gp3"
+  size: 50Gi
+
+# IAM mapping is handled via AWS EKS Pod Identity Association in Terraform
+serviceAccount:
+  create: true
+  name: "qdrant-backup-sa"
+
+extraArgs:
+  - --snapshot
+  - /qdrant/snapshots/simple-rag.snapshot

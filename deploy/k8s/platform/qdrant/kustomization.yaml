@@ -4,8 +4,17 @@ kind: Kustomization
 namespace: rag-platform
 
 resources:
-  - statefulset.yaml
-  - service.yaml
+  - qdrant-backup-cronjob.yaml
+  - service-account.yaml
+  - collection-restore-job.yaml
+
+helmCharts:
+  - name: qdrant
+    repo: https://qdrant.github.io/qdrant-helm
+    releaseName: qdrant
+    version: 1.18.2
+    valuesFile: qdrant-values.yaml
 
 components:
   - component
+

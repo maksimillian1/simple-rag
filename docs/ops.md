@@ -73,7 +73,7 @@ Malformed document structures, unsupported binary payloads, or network blocks th
 2. **Verify Integrity State:**
    Extract the `file_id` or unique metadata properties from the isolated payload. Query the Qdrant Vector DB instance cluster from inside the private VPC subnet to identify if partial data fragments exist:
    ```bash
-   curl -X POST [http://qdrant.simple-rag.svc.cluster.local:6333/collections/demo_collection/points/recommend](http://qdrant.simple-rag.svc.cluster.local:6333/collections/demo_collection/points/recommend) \
+   curl -X POST [http://qdrant.simple-rag.svc.cluster.local:6333/collections/simple-rag/points/recommend](http://qdrant.simple-rag.svc.cluster.local:6333/collections/simple-rag/points/recommend) \
      -H "Content-Type: application/json" \
      -d '{"filter": {"must": [{"key": "file_id", "match": {"value": "TARGET_FILE_ID"}}]}}'
    ```
