@@ -15,7 +15,7 @@ class SpladeDocumentProcessor:
     def run(self, documents: List[Document]) -> dict:
         texts = [doc.content for doc in documents if doc.content]
         if texts:
-            embeddings = list(self.splade_model.embed(texts))
+            embeddings = list(self.splade_model.embed(texts, batch_size=16))
             emb_iter = iter(embeddings)
         else:
             emb_iter = iter([])
@@ -48,7 +48,7 @@ class SpladeDocumentProcessor:
         return {"documents": processed_docs}
 
 def build_haystack_pipeline(splade_model):
-    from haystack.components.embedders import HuggingFaceAPIDocumentEmbedder
+    from haystack_integrations.components.embedders.huggingface_api import HuggingFaceAPIDocumentEmbedder
     from haystack.components.writers import DocumentWriter
     from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
 

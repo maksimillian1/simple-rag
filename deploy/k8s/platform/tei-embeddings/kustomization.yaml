@@ -6,6 +6,8 @@ namespace: rag-platform
 resources:
   - deployment.yaml
   - service.yaml
+  - network-policy.yaml
+  - scaledobject.yaml
 
 components:
   - component
