@@ -38,24 +38,9 @@ output "node_security_group_id" {
   value       = module.eks.node_security_group_id
 }
 
-output "karpenter_controller_role_arn" {
-  description = "IAM Role ARN for the Karpenter controller"
-  value       = aws_iam_role.karpenter_controller.arn
-}
-
 output "cluster_certificate_authority_data" {
   description = "Base64 encoded certificate data required to communicate with the cluster"
   value       = module.eks.cluster_certificate_authority_data
-}
-
-output "karpenter_interruption_queue_name" {
-  description = "Name of the Karpenter interruption queue"
-  value       = aws_sqs_queue.karpenter_interruption.name
-}
-
-output "karpenter_node_role_arn" {
-  description = "IAM Role ARN for the Karpenter node"
-  value       = aws_iam_role.karpenter_node.arn
 }
 
 output "vpc_id" {
@@ -81,4 +66,9 @@ output "qdrant_ebs_volume_id" {
 output "update_kubeconfig" {
   description = "Command to launch to use kubectl"
   value       = "aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig ~/.kube/config"
+}
+
+output "cluster_arn" {
+  description = "EKS Cluster ARN"
+  value       = module.eks.cluster_arn
 }
