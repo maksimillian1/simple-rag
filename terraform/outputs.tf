@@ -57,8 +57,3 @@ output "eks_cluster_security_group_id" {
   description = "Cluster-wide security group ID of EKS cluster"
   value       = module.rag_core.eks_cluster_security_group_id
 }
-
-output "eks_karpenter_controller_role_arn" {
-  description = "IAM Role ARN for Karpenter controller"
-  value       = module.rag_core.eks_karpenter_controller_role_arn
-}

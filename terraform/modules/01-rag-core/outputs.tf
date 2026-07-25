@@ -78,11 +78,6 @@ output "cluster_primary_security_group_id" {
   value       = try(one(module.eks[*].cluster_primary_security_group_id), null)
 }
 
-output "eks_karpenter_controller_role_arn" {
-  description = "IAM Role ARN for the Karpenter controller"
-  value       = try(one(module.eks[*].karpenter_controller_role_arn), null)
-}
-
 output "eks_cluster_certificate_authority_data" {
   description = "Base64 encoded certificate data required to communicate with the cluster"
   value       = try(one(module.eks[*].cluster_certificate_authority_data), null)
@@ -93,17 +88,10 @@ output "qdrant_ebs_volume_id" {
   value       = try(one(module.eks[*].qdrant_ebs_volume_id), null)
 }
 
-output "eks_karpenter_interruption_queue_name" {
-  description = "Name of the Karpenter interruption queue"
-  value       = try(one(module.eks[*].karpenter_interruption_queue_name), null)
-}
-
 output "cluster_name" {
   description = "Name of the EKS cluster"
   value       = var.cluster_name
 }
-
-
 
 output "cluster_arn" {
   description = "EKS Cluster ARN"

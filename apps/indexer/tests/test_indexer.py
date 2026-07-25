@@ -21,7 +21,7 @@ class MockSparseTextEmbedding:
     def __init__(self, model_name):
         self.model_name = model_name
 
-    def embed(self, texts):
+    def embed(self, texts, **kwargs):
         for i, _ in enumerate(texts):
             yield MockSparseEmbeddingResult([100 + i, 200 + i], [0.1 + i, 0.2 + i])
 

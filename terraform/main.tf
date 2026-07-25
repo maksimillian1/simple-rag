@@ -31,9 +31,9 @@ module "rag_k8s" {
   source = "./modules/02-rag-k8s"
   count  = var.is_local_test ? 0 : 1
 
-  resource_prefix                   = var.resource_prefix
-  cluster_name                      = module.rag_core.cluster_name
-  cluster_arn                       = module.rag_core.cluster_arn
+  resource_prefix = var.resource_prefix
+  cluster_name    = module.rag_core.cluster_name
+  cluster_arn     = module.rag_core.cluster_arn
 
 
   node_security_group_id            = module.rag_core.node_security_group_id
