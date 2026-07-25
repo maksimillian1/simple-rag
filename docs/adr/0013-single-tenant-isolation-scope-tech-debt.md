@@ -1,5 +1,7 @@
 # ADR-0013: Single-Tenant Scope Isolation and Multi-Tenancy Technical Debt Definition
 
+Date: 2026-06-27
+
 ## Status
 Proposed
 

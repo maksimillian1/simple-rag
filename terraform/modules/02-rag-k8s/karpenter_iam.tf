@@ -29,6 +29,26 @@ resource "aws_iam_role_policy_attachment" "karpenter_node_policies" {
   policy_arn = each.value
 }
 
+resource "aws_iam_policy" "karpenter_nodes_pod_identity" {
+  name        = "${var.cluster_name}-karpenter-nodes-pod-identity"
+  description = "IAM Policy for EKS Pod Identity Agent on Karpenter nodes"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "eks-auth:AssumeRoleForPodIdentity"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "karpenter_nodes_pod_identity" {
+  role       = aws_iam_role.karpenter_node.name
+  policy_arn = aws_iam_policy.karpenter_nodes_pod_identity.arn
+}
+
 resource "aws_iam_instance_profile" "karpenter_node" {
   name = "${var.cluster_name}-karpenter-node"
   role = aws_iam_role.karpenter_node.name
@@ -105,7 +125,7 @@ resource "aws_iam_policy" "karpenter_controller" {
           "eks:DescribeCluster"
         ]
         Effect   = "Allow"
-        Resource = module.eks.cluster_arn
+        Resource = var.cluster_arn
       }
     ]
   })
@@ -123,12 +143,12 @@ resource "aws_iam_role" "karpenter_controller" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Effect = "Allow"
         Principal = {
-          Federated = module.eks.oidc_provider_arn
+          Federated = var.cluster_oidc_provider_arn
         }
         Condition = {
           StringEquals = {
-            "${module.eks.oidc_provider}:sub" = "system:serviceaccount:karpenter:karpenter"
-            "${module.eks.oidc_provider}:aud" = "sts.amazonaws.com"
+            "${var.cluster_oidc_provider}:sub" = "system:serviceaccount:karpenter:karpenter"
+            "${var.cluster_oidc_provider}:aud" = "sts.amazonaws.com"
           }
         }
       }
@@ -144,7 +164,7 @@ resource "aws_iam_role_policy_attachment" "karpenter_controller" {
 }
 
 resource "aws_eks_access_entry" "karpenter_node" {
-  cluster_name  = module.eks.cluster_name
+  cluster_name  = var.cluster_name
   principal_arn = aws_iam_role.karpenter_node.arn
   type          = "EC2_LINUX"
 }
