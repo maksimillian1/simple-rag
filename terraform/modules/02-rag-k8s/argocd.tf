@@ -10,6 +10,48 @@ resource "helm_release" "argocd" {
     name  = "server.service.type"
     value = "ClusterIP"
   }
+
+  set {
+    name  = "configs.cm.kustomize\\.buildOptions"
+    value = "--enable-helm"
+  }
+
+  depends_on = [module.eks_core_nodes, helm_release.cilium]
+}
+
+resource "kubernetes_secret" "argocd_cluster" {
+  depends_on = [helm_release.argocd]
+
+  metadata {
+    name      = "eks-cluster-${var.cluster_name}"
+    namespace = "argocd"
+
+    labels = {
+      "argocd.argoproj.io/secret-type" = "cluster"
+    }
+    annotations = {
+      "vpc_id" = var.vpc_id
+    }
+  }
+
+  type = "Opaque"
+
+  data = {
+    name   = var.cluster_name
+    server = var.cluster_endpoint
+    config = jsonencode({
+      awsAuthConfig = {
+        clusterName = var.cluster_name
+      }
+      tlsClientConfig = {
+        insecure = false
+        caData   = var.cluster_auth_base64
+      }
+    })
+    values = jsonencode({
+      vpc_id = var.vpc_id
+    })
+  }
 }
 
 resource "helm_release" "root_application" {
@@ -17,6 +59,7 @@ resource "helm_release" "root_application" {
   chart      = "${path.module}/argocd-root"
   namespace  = "argocd"
   depends_on = [helm_release.argocd, helm_release.keda]
+  timeout    = 600
 
   set_sensitive {
     name  = "githubToken"
@@ -38,3 +81,4 @@ resource "helm_release" "root_application" {
     value = "{${join(",", var.component_namespaces)}}"
   }
 }
+

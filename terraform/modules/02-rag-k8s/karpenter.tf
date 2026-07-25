@@ -4,6 +4,8 @@ resource "helm_release" "karpenter" {
   name             = "karpenter"
   repository       = "oci://public.ecr.aws/karpenter"
   chart            = "karpenter"
+  replace          = true
+  cleanup_on_fail  = true
   version          = "1.13.0"
 
   set {
@@ -23,25 +25,20 @@ resource "helm_release" "karpenter" {
 
   set {
     name  = "settings.interruptionQueue"
-    value = var.karpenter_interruption_queue_name
+    value = aws_sqs_queue.karpenter_interruption.name
   }
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = var.karpenter_controller_role_arn
+    value = aws_iam_role.karpenter_controller.arn
   }
 
+  depends_on = [
+    module.eks_core_nodes,
+    helm_release.cilium,
+    aws_eks_addon.aws_ebs_csi_driver,
+    aws_eks_addon.pod_identity
+  ]
+  timeout = 600
 }
 
-resource "helm_release" "karpenter_resources" {
-  name      = "karpenter-resources"
-  chart     = "${path.module}/karpenter-resources"
-  namespace = "karpenter"
-
-  set {
-    name  = "clusterName"
-    value = var.cluster_name
-  }
-
-  depends_on = [helm_release.karpenter]
-}
