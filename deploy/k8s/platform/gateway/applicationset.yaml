@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: gateway-applicationset
+  namespace: argocd
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: 'gateway-platform'
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "11"
+    spec:
+      project: default
+      sources:
+        - repoURL: 'https://github.com/maksimillian1/simple-rag.git'
+          targetRevision: master
+          path: deploy/k8s/platform/gateway/crds
+        - repoURL: 'https://aws.github.io/eks-charts'
+          chart: aws-load-balancer-controller
+          targetRevision: 3.4.0
+          helm:
+            releaseName: aws-load-balancer-controller
+            values: |
+              clusterName: '{{name}}'
+              vpcId: '{{metadata.annotations.vpc_id}}'
+        - repoURL: 'https://github.com/maksimillian1/simple-rag.git'
+          targetRevision: master
+          path: deploy/k8s/platform/gateway/resources
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: kube-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

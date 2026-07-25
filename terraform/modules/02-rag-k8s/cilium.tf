@@ -1,14 +1,26 @@
-resource "helm_release" "cilium" {
+resource "helm_release" "gateway_api_crds" {
+  name      = "gateway-api-crds"
+  chart     = "${path.module}/gateway-api-crds"
+  namespace = "kube-system"
+  atomic    = false
+}
 
+resource "helm_release" "cilium" {
   name       = "cilium"
   repository = "https://helm.cilium.io/"
   chart      = "cilium"
-  version    = "1.15.5"
+  version    = "1.19.5"
   namespace  = "kube-system"
-  wait = false
+  wait       = false
+  depends_on = [helm_release.gateway_api_crds]
 
   set {
     name  = "eni.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "gatewayAPI.enabled"
     value = "true"
   }
 
@@ -53,16 +65,6 @@ resource "helm_release" "cilium" {
   }
 
   set {
-    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key"
-    value = "eks.amazonaws.com/compute-type"
-  }
-
-  set {
-    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator"
-    value = "DoesNotExist"
-  }
-
-  set {
     name  = "nodePort.enabled"
     value = "true"
   }
@@ -70,5 +72,31 @@ resource "helm_release" "cilium" {
   set {
     name  = "kubeProxyReplacement"
     value = "true"
+  }
+
+  set {
+    name  = "operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key"
+    value = "eks.amazonaws.com/compute-type"
+  }
+  set {
+    name  = "operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator"
+    value = "NotIn"
+  }
+  set {
+    name  = "operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]"
+    value = "fargate"
+  }
+
+  set {
+    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key"
+    value = "eks.amazonaws.com/compute-type"
+  }
+  set {
+    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator"
+    value = "NotIn"
+  }
+  set {
+    name  = "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]"
+    value = "fargate"
   }
 }
