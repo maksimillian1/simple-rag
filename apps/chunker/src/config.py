@@ -24,4 +24,4 @@ POLL_SLEEP_INTERVAL_SECONDS = int(os.getenv("POLL_SLEEP_INTERVAL_SECONDS", "5"))
 CONTINUOUS_POLL = os.getenv("CHUNKER_CONTINUOUS_POLL", "false").lower() == "true"
 
 # SQS Batch Config
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "40"))
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", "30"))

@@ -1,18 +1,18 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: tei-embeddings-scaler
+  name: api-scaler
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: tei-embeddings
+    name: api
   minReplicaCount: 2
   maxReplicaCount: 10
   triggers:
   - type: prometheus
     metadata:
       serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
-      metricName: tei_avg_cpu
-      query: avg(rate(container_cpu_usage_seconds_total{namespace="rag-platform", pod=~"tei-embeddings-.*", container="tei-embeddings"}[2m])) or vector(0)
-      threshold: "1.5"
+      metricName: api_avg_cpu
+      query: avg(rate(container_cpu_usage_seconds_total{namespace="rag-api", pod=~"api-.*", container="api"}[2m])) or vector(0)
+      threshold: "0.2"

@@ -37,49 +37,67 @@ The definitive system architecture diagram is maintained here as the single sour
 
 ```mermaid
 graph TB
-    %% Styles
-    classDef container fill:#1168bd,stroke:#0b4c8c,color:#ffffff,rx:5px;
-    classDef external fill:#999999,stroke:#666666,color:#ffffff,rx:5px;
-    classDef boundary fill:none,stroke:#444444,stroke-width:2px,stroke-dasharray: 5 5;
+    %%{init: {
+      'theme': 'base', 
+      'themeVariables': { 
+        'darkMode': false,
+        'background': 'transparent',
+        'lineColor': '#2563eb',
+        'edgeLabelBackground':'#ffffff',
+        'nodeBorder': '#2563eb',
+        'clusterBkg': '#f8fafc',
+        'clusterBorder': '#94a3b8',
+        'titleColor': '#0f172a'
+      }
+    }}%%
 
-    User([User / External System]):::external -->|1. Upload Document| S3[AWS S3 Raw Bucket<br/>'Container: Object Store']:::container
-    User -->|11. Sync Search Query| GoAPI
+    %% Class definitions
+    classDef container fill:#1a73e8,stroke:#1557b0,color:#ffffff,rx:6px,stroke-width:1.5px;
+    classDef external fill:#475569,stroke:#334155,color:#ffffff,rx:6px,stroke-width:1.5px;
+    classDef database fill:#0284c7,stroke:#0369a1,color:#ffffff,rx:6px,stroke-width:1.5px;
 
-    %% SYSTEM BOUNDARY: Ingestion
-    subgraph Ingestion_System [System Boundary: Ingestion Pipeline]
-        SQS1[AWS SQS: stage-1-parsing<br/>'Container: Message Queue']:::container
-        Job1[K8s ScaledJob: Chunker<br/>'Container: Go/Python Worker']:::container
-        SQS2[AWS SQS: stage-2-indexing<br/>'Container: Message Queue']:::container
-        Indexer[K8s ScaledJob: Python Indexer<br/>'Container: Python Worker']:::container
+    %% External Entities
+    User([User / External System]):::external
+    Bedrock[AWS Bedrock: Llama 3<br/>External System: Managed LLM API]:::external
+    KEDA[KEDA Operator<br/>Control Plane: Autoscaler]:::external
 
-        S3 -->|2. S3 Event| SQS1
-        SQS1 -->|4. Poll| Job1
-        Job1 -->|5. Push Chunks| SQS2
-        SQS2 -->|7. Poll| Indexer
+    %% Core Application Components
+    GoAPI[Go API Gateway<br/>Container: Go Web App]:::container
+    TEI[TEI Service: bge-small-en<br/>Container: Rust ML Inference Engine]:::container
+    Qdrant[(Qdrant Vector DB<br/>Container: Stateful Database)]:::database
+
+    %% COMPOSITE SYSTEM BOUNDARY: Ingestion Pipeline
+    subgraph Ingestion_Pipeline [System Boundary: Asynchronous Ingestion Pipeline]
+        S3[AWS S3 Raw Bucket<br/>Container: Object Store]:::container
+        SQS1[AWS SQS: stage-1-parsing<br/>Container: Message Queue]:::container
+        Job1[K8s ScaledJob: Chunker<br/>Container: Python Worker]:::container
+        SQS2[AWS SQS: stage-2-indexing<br/>Container: Message Queue]:::container
+        Indexer[K8s ScaledJob: Python Indexer<br/>Container: Python Worker]:::container
+
+        S3 -->|1.2. s3:ObjectCreated Event| SQS1
+        SQS1 -->|1.3. Poll Messages| Job1
+        Job1 -->|1.4. Push Chunks| SQS2
+        SQS2 -->|1.5. Poll Batches| Indexer
     end
 
-    %% SYSTEM BOUNDARY: Core RAG Storage & Inference
-    subgraph RAG_Core_System [System Boundary: RAG Core & Search]
-        GoAPI[Go API<br/>'Container: Go Web App']:::container
-        TEI[TEI Service: bge-small-en<br/>'Container: Rust ML Inference']:::container
-        Qdrant[(Qdrant Vector DB<br/>'Container: Vector Database')]:::container
+    %% External Ingress Flows
+    User -->|1.1. Upload Document| S3
+    User -->|2.1. Sync RAG Search Query| GoAPI
 
-        Indexer -->|8. Embed text| TEI
-        Indexer -->|10. Upsert| Qdrant
-        
-        GoAPI -->|9. Embed query| TEI
-        GoAPI -->|12. Hybrid Search| Qdrant
-    end
+    %% Async Ingestion Processing Flows
+    Indexer -->|1.6. Embed Chunks| TEI
+    Indexer -->|1.7. Atomic Upsert Vectors| Qdrant
 
-    %% External System Boundary
-    GoAPI -->|13. Invoke Model| Bedrock[AWS Bedrock: Llama 3<br/>'External System: LLM API']:::external
+    %% Sync Query Processing Flows
+    GoAPI -->|2.2. Embed Search Term| TEI
+    GoAPI -->|2.3. Hybrid Vector Retrieval| Qdrant
+    GoAPI -->|2.4. Augmented Prompt Inference| Bedrock
 
-    %% KEDA Controls (Cross-cutting infrastructure)
-    KEDA[KEDA Operator]:::external -.->|Scale-out| Job1
-    KEDA -.->|Scale-out| Indexer
-    KEDA -.->|Scale-out| TEI
-
-    classDef Container Boundary boundary;
+    %% Control Plane Scaling Relationships
+    KEDA -.->|3.1. Scale-out Jobs| Job1
+    KEDA -.->|3.2. Scale-out Jobs| Indexer
+    KEDA -.->|3.3. Scale-out Replicas| TEI
+    KEDA -.->|3.4. Scale-out Replicas| GoAPI
 ```
 
 ---
@@ -88,38 +106,34 @@ graph TB
 
 ### Asynchronous Ingestion Pipeline
 
-* **AWS S3 Raw Bucket (`prod-raw-documents-eu-west-1`):** Decoupled ingestion interface. Operates under a **Trusted Ingress Assumption** (files uploaded via secure admin channels). Standard lifecycle policy transitions objects to Glacier Instant Retrieval after 7 days to minimize storage TCO.
-* **SQS Queue (stage-1-parsing):** Standard SQS queue holding S3 Object Created metadata. Backed by `stage-1-parsing-dlq` for toxic payload isolation.
-* **Haystack Chunker (`apps/chunker`):** Ephemeral Python job. Downloads files from S3.
-    * **Compute-Layer Fail-Safe (ADR-0001):** Enforces a **Max File Size Limit of 100 MB**. Parses SQS metadata *before* downloading. If the file exceeds 100 MB, it drops the item, logs a structured alert, and routes to DLQ.
-    * **Slicing:** Executes format-specific strategies (PDF, TXT, Markdown). Packs arrays into SQS Stage 2. If text chunks aggregate to >245 KB, it programmatically splits the chunks across multiple sequential SQS messages using a size-guard loop.
-* **SQS Queue (stage-2-indexing):** High-throughput intermediate queue. Message payload contains raw text chunks. Backed by `stage-2-indexing-dlq`.
-* **Haystack Indexer (`apps/indexer`):** Ephemeral Python job. Fetches chunk batches from SQS Stage 2, offloads vectorization to the standalone TEI service via HTTP/gRPC, and executes deterministic gRPC upserts to Qdrant using `UUID5(file_name + chunk_index)` to ensure idempotency. Bound to a hard resource limit of **2GB RAM**.
+* **AWS S3 Raw Bucket:** Decoupled ingestion interface. Operates under a Trusted Ingress Assumption. Standard lifecycle policy transitions objects to Glacier Instant Retrieval after 7 days.
+* **SQS Queue (stage-1-parsing):** Standard SQS queue holding S3 Object Created metadata. Backed by `stage-1-parsing-dlq`.
+* **Haystack Chunker (`apps/chunker`):** Ephemeral Python job.
+    * **Compute-Layer Fail-Safe (ADR-0001):** Enforces a Max File Size Limit of 100 MB. Parses SQS metadata before downloading; oversized payloads are routed directly to DLQ.
+    * **FinOps Payload Packing (ADR-0004):** Enforces a 350-token limit per text chunk (~1.5–2 KB). Caps message batching at 30 chunks per payload (~60 KB) to guarantee 100% of SQS messages stay under the 64 KB AWS billing threshold, avoiding multi-chunk transaction charges.
+* **SQS Queue (stage-2-indexing):** High-throughput intermediate queue. Backed by `stage-2-indexing-dlq`. Message payload contains structured JSON batches (~60 KB).
+* **Haystack Indexer (`apps/indexer`):** Ephemeral Python job. Fetches chunk batches from SQS Stage 2, offloads vectorization to the standalone TEI service. Executes deterministic gRPC upserts to Qdrant using `UUID5(file_name + chunk_index)`. Bound to a hard resource limit of 2GB RAM.
 
 ### Infrastructure and Storage Layer
 
-* **KEDA (Kubernetes Event-driven Autoscaling):** Ancillary cluster controller that monitors SQS queue lengths and dynamically provisions standard Kubernetes `Job` workloads up to quota limits. It also dynamically scales the shared TEI Service based on queue/traffic metrics (`tei_queue_size`). Managed via the ArgoCD Platform configuration layer.
-* **TEI Service (HuggingFace Text Embeddings Inference - ADR-0005):** Standalone, shared Kubernetes deployment running the Rust-based TEI container. It loads **`BAAI/bge-small-en-v1.5`** (130MB weights baked directly into the container storage layer via CI/CD) and exposes a private HTTP/gRPC endpoint (`EMBEDDING_MODEL_TEI_URL`) accessible by both the `indexer` and the `Go API`. It outputs **384-dimensional vectors** and scales horizontally via KEDA on `tei_queue_size`.
-* **Qdrant Vector DB (ADR-0002):** Self-hosted distributed vector database running via Helm on persistent On-Demand compute nodes with AWS EBS (gp3) storage provisioned by Layer 1 storage drivers. Configured with native Dense (384-dim) and Sparse indexing. Uses single-stage filtering and Scalar Quantization (SQ) to reduce RAM consumption by ~75%.
+* **KEDA (Kubernetes Event-driven Autoscaling):** Monitors SQS queue lengths natively and dynamically provisions standard Kubernetes `Job` workloads up to quota limits.
+* **TEI Service (HuggingFace Text Embeddings Inference - ADR-0005):** Standalone, shared Kubernetes deployment running the Rust-based TEI container. Loads `BAAI/bge-small-en-v1.5`. Exposes a private HTTP/gRPC endpoint accessible by both the indexer and the Go API. Outputs 384-dimensional vectors.
+* **Qdrant Vector DB (ADR-0002):** Self-hosted distributed vector database running via Helm on persistent On-Demand compute nodes with AWS EBS (gp3). Uses single-stage filtering and Scalar Quantization (SQ) to reduce RAM consumption by ~75%. Configured with native Payload Text Indexing (`FieldTypeText`) for deterministic alphanumeric lookup.
 
 ### Synchronous Query Path
 
-* **Go API (`apps/api`):** Minimalist service using `net/http` or `go-chi`. Serves static frontend assets and handles synchronous search queries (Target latency: p95 < 200ms).
-* **Stage 1: Hybrid Retrieval:** Executes synchronized hybrid query against Qdrant (Dense Vector Index + Sparse Vector Index for BM25-like matching).
-* **Word Count Match & Penalty Algorithm (ADR-0006):** Applies a deterministic token-frequency penalty algorithm to prevent keyword stuffing:
-    * $$Score_{final} = Score_{raw} \times \frac{1}{\log_{10}(TermCount + 10)}$$
-* **Stage 2: Semantic Reranking (RRF):** Merges dense and sparse result sets using **Reciprocal Rank Fusion (RRF)** with constant $k=60$ directly on CPU.
-* **Context Pruning (ADR-0007):** Formats payload into a compact JSON string, stripping all non-essential metadata before passing it to the LLM to slash token costs.
-* **Stage 3: Serverless Response Synthesis:** Invokes AWS Bedrock via native Go SDK v2. The request is bound within the private VPC boundary via an AWS Bedrock VPC Endpoint, passing the pruned context to Meta Llama 3.1 (8B Instruct) on an On-Demand pay-per-token billing layout.
-
+* **Go API (`apps/api`):** Serves static frontend assets and handles synchronous search queries (Target latency: p95 < 200ms).
+* **Stage 1: Single-Roundtrip Native Retrieval:** Executes a single gRPC `PrefetchQuery` combining Dense Vector Index (semantic), Sparse Vector Index (SPLADE), and Payload Text Index (exact keyword matches).
+* **Stage 2: Database-Native RRF Reranking:** Delegated hybrid retrieval and rank merging natively to Qdrant using gRPC `NewQueryRRF` with constant $k=60$. Eliminates client-side CPU normalization and excessive network payload serialization overhead.
+* **Stage 3: Context Pruning & LLM (ADR-0007):** Strips all non-essential metadata before passing it to the LLM to slash token costs. Invokes AWS Bedrock via native Go SDK v2. The request is bound within the private VPC boundary via an AWS Bedrock VPC Endpoint, passing the pruned context to Meta Llama 3.1 (8B Instruct).
 ---
 
 ## 5. Security and Network Isolation
 
-1. **Identity Security (IAM IRSA):** Zero hardcoded credentials. Pods utilize dedicated Kubernetes `ServiceAccounts` mapped to AWS IAM Roles via OIDC. `chunker` has read-only S3 access and read/write SQS access. `indexer` has exclusive read/delete access to SQS Stage 2. `apps/api` has an IAM policy granting `bedrock:InvokeModel` strictly for `us.meta.llama3-1-8b-instruct-v1:0`.
+1. **Identity Security (EKS Pod Identity & IRSA):** Zero hardcoded credentials. The platform primarily leverages the newer **EKS Pod Identity** approach for mapping AWS IAM Roles to Kubernetes workloads. **IAM IRSA (OIDC)** is utilized exclusively for Karpenter, as it runs on AWS Fargate where Pod Identities are not supported. `chunker` has read-only S3 access and read/write SQS access. `indexer` has exclusive read/delete access to SQS Stage 2. `apps/api` has an IAM policy granting `bedrock:InvokeModel` strictly for `us.meta.llama3-1-8b-instruct-v1:0`.
 2. **Network Topology (Cilium NetworkPolicies):**
     * `chunker`: Outbound allowed only to AWS S3, SQS, and internal CoreDNS.
-    * `indexer`: Outbound allowed only to AWS SQS, Qdrant gRPC, and the shared TEI Service endpoint. Direct egress to the internet is denied.
+    * `indexer`: Outbound allowed only to AWS SQS, Qdrant gRPC, the shared TEI Service endpoint, and specific internet domains (e.g., `huggingface.co`, `hf.co`) required for dynamic model downloading.
     * `Go API`: Inbound allowed from Cilium Gateway API endpoints. Outbound allowed strictly to Qdrant cluster gRPC/HTTP ports, the shared TEI Service endpoint, and the internal IP addresses of the AWS Bedrock VPC Interface Endpoint. Public internet access is denied at the network policy layer.
 
 ---
