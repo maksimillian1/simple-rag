@@ -68,6 +68,14 @@ def build_haystack_pipeline(splade_model):
         prefer_grpc=config.QDRANT_PREFER_GRPC,
         use_sparse_embeddings=True,
         embedding_dim=config.DENSE_EMBEDDING_DIM
+#         on_disk=True,
+#         quantization_config=models.ScalarQuantization(
+#             scalar=models.ScalarQuantizationConfig(
+#                 type=models.ScalarType.INT8,
+#                 quantile=0.99,
+#                 always_ram=True,
+#             ),
+#         ),
     )
 
     pipeline.add_component("writer", DocumentWriter(document_store=document_store))

@@ -17,6 +17,29 @@ promtail:
   config:
     clients:
       - url: http://monitoring-loki:3100/loki/api/v1/push
+    pipelineStages:
+      - match:
+          selector: '{namespace="default"}'
+          stages:
+            - json:
+                expressions:
+                  duration_ms: duration_ms
+                  processed_docs: processed_docs
+                  status: status
+                  app_name: app
+            - metrics:
+                rag_processing_duration_ms:
+                  type: Histogram
+                  description: "Processing duration derived from application logs"
+                  source: duration_ms
+                  config:
+                    buckets: [50, 100, 250, 500, 1000, 2500, 5000, 10000]
+                rag_processed_documents_total:
+                  type: Counter
+                  description: "Total documents processed derived from application logs"
+                  source: processed_docs
+                  config:
+                    action: inc
   resources:
     requests:
       cpu: "50m"

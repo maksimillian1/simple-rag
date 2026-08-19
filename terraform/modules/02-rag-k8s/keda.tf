@@ -7,7 +7,7 @@ resource "helm_release" "keda" {
   create_namespace = true
 
   set {
-    name  = "crds.install"
+    name  = "prometheus.operator.enabled"
     value = "true"
   }
 
