@@ -1,24 +1,25 @@
 # Executive Engineering Report — simple-rag
 
-What the ingestion and inference paths of a RAG feature actually cost, and where adding
-concurrency stops buying throughput.
+What asynchronous document ingestion actually costs, and where adding concurrency stops
+buying throughput.
 
 | | |
 | :--- | :--- |
 | Report | `simple-rag` · v1.0 |
-| Application under test | image digests: api `⟨sha256:…⟩` · chunker `⟨…⟩` · indexer `⟨…⟩` |
+| Application under test | image digests: chunker `⟨sha256:…⟩` · indexer `⟨…⟩` |
 | Price basis | region `⟨fill⟩` · AWS public price list retrieved `⟨date⟩` |
-| Runs | E1 ingestion sweep · E2 24h idle window · E4 query load |
+| Runs | `sweep` — ingestion concurrency, 5 points · `idle` — 24h floor window |
 | Raw data | `docs/report/data/` |
 | Supersedes | — |
 
 > **Provenance:** every figure is measured unless marked.
 > ᴬ arithmetic (price list × count) · ᴹᵒ modeled (extrapolated) · ᴱ estimated (judgement).
 
-**Scope.** This report prices two paths of one feature: asynchronous document ingestion
-and synchronous query serving. The Kubernetes platform they run on exists for other
-workloads too; §4.1 separates what belongs to the feature from what is shared, and
-prices both.
+**Scope.** This report prices one path of one feature: asynchronous document ingestion.
+The synchronous query path is deliberately out of scope — it has its own frontier axis and
+its own denominator, and mixing the two produces a number that supports no decision. The
+Kubernetes platform both run on exists for other workloads too; §4.1 separates what
+belongs to the feature from what is shared, and prices both.
 
 ---
 
@@ -27,9 +28,10 @@ prices both.
 | # | Decision | Blocks |
 | :--- | :--- | :--- |
 | D1 | Region and price basis | all of §4 |
-| D2 | Second unit of work (per page) — yes / no | §2.1, §3.1, §4.2 |
-| D3 | Number of features assumed to share the platform, for the allocation row | §4.1 block A |
-| D4 | Does E4 include the concurrent ingest + query point | §3.6 |
+
+*Closed:* per-page second denominator — **no**, one denominator. Platform allocation
+divisor — **no**, Blocks A/B/C answer the question without an arbitrary divisor.
+Combined ingest+query point — **no**, query path is out of scope.
 
 Placeholders are written `⟨like this⟩`. None may remain in the published version.
 
@@ -48,7 +50,6 @@ value it is compared against, and a plain sentence saying what it means.
 | Ingestion cost at the optimum | ⟨§4.2⟩ | vs ⟨§4.4 Fargate⟩ | what one million documents cost to ingest, and whether the Spot approach beat the serverless one |
 | Feature idle floor | ⟨§4.1 block B⟩ /mo | vs ⟨§4.1 block C⟩ standalone | what this feature burns on a weekend with zero traffic, on top of a platform that already exists |
 | Peak stable ingest rate | ⟨§3.1⟩ docs/min at N=⟨§3.3⟩ | plateau begins at N=⟨§3.3⟩ | past this concurrency you pay more and get nothing |
-| Query SLO under load | p95 = ⟨§3.6⟩ ms at ⟨§3.6⟩ RPS | target < 200 ms | whether the latency promise made in article 1 survives real load |
 | Primary constraint | ⟨§3.5⟩ | cost to remove: ⟨§3.5⟩ ᴬ | which component decides throughput, and the price of the next scaling step |
 
 **Verdict:** ⟨one sentence naming one action⟩
@@ -76,12 +77,9 @@ capacity planning, and the compute-mode comparison in §4.4.
 **Ingestion unit:** ⟨one sentence — e.g. one PDF ingested end to end, counted when its
 final chunk batch is committed to Qdrant⟩
 
-**Query unit:** ⟨one sentence — e.g. one search request answered end to end⟩
-
-**Open (D2):** the corpus is book-length PDFs with a wide page distribution, so a
-per-document figure is partly a property of the fixture rather than of the architecture.
-A per-page figure transfers to a different corpus and costs nothing extra to compute from
-the same run. Decide whether the report carries one denominator or two.
+**One denominator, not two.** A per-page figure would transfer better to a different
+corpus, but it doubles every table in §3 and §4 for a conversion the reader can perform
+themselves: the page distribution is printed in §2.2.
 
 ### 2.2 Workload fixture
 
@@ -111,78 +109,95 @@ wall-clock time alone in §3.1 — no per-worker instrumentation required.
 
 **Ingest trigger:** the corpus is uploaded to the S3 raw bucket by a bulk upload script.
 Upload is not part of the system under test — the measurement window opens at the first
-`s3:ObjectCreated` event and closes when both SQS queues reach depth zero. Upload
-duration and cost are excluded.
+`s3:ObjectCreated` event and closes when the ingestion NodePool reaches zero nodes plus a
+five-minute buffer. Upload duration and cost are excluded.
 
 ### 2.3 Envelope
 
 > **Yields:** the boundary of every claim in the report. Without it the numbers silently
 > overclaim.
-> **From:** §2.2 profile plus the cluster configuration actually under test.
+> **From:** §2.2 profile plus the frozen configuration actually under test.
 > **Before the run:** nothing. Written after §2.2, forward-looking, never as an apology
 > and never as a closing "untested" list.
 
-Fill this template from numbers already recorded above:
-
 > These figures hold for **⟨corpus shape from §2.2 — e.g. text-layer PDFs, median ⟨n⟩
 > pages⟩** ingested as a bulk drop, at **ingestion concurrency N ≤ ⟨max swept value⟩**,
-> on **⟨cluster shape — e.g. EKS with Karpenter-managed Spot for ingestion, Qdrant
-> self-hosted on dedicated On-Demand gp3 nodes, bge-small-en-v1.5 at 384 dimensions via a
-> shared TEI service⟩**, in **⟨region⟩**. Outside these conditions, re-measure.
+> on **EKS with a Karpenter Spot NodePool pinned to `⟨instance type⟩` for ingestion
+> (approximately ⟨n⟩ workers per node), Qdrant self-hosted on a dedicated On-Demand gp3
+> node with INT8 scalar quantization enabled and `indexing_threshold = ⟨value⟩`, and
+> bge-small-en-v1.5 at 384 dimensions served by a shared TEI service**, in **⟨region⟩**.
+> Outside these conditions, re-measure.
 
-Then a short list of what is deliberately outside it, so nobody assumes coverage:
-⟨e.g. scanned PDFs requiring OCR · GPU-backed embedding · corpora above ⟨n⟩ GB⟩.
+**Two Envelope entries that are conditions, not findings.**
+
+*Worker packing density.* The ingestion NodePool is pinned to a single instance type for
+the sweep, giving roughly ⟨n⟩ workers per node. Denser packing amortises per-node warm-up
+across more work and shifts the sweet spot in §3.3 to the right. The figures here are
+conditional on this ratio.
+
+*Scalar quantization.* INT8 SQ is enabled as a fixed configuration parameter, chosen for
+memory footprint. **Its effect on retrieval quality is not measured in this report** and
+is not claimed either way — see "Not covered".
+
+Deliberately outside the envelope: ⟨e.g. scanned PDFs requiring OCR · GPU-backed
+embedding · corpora above ⟨n⟩ GB⟩, and the entire synchronous query path.
 
 ### 2.4 Frontier X axis
 
 > **Yields:** the parameter swept in §3 — the report's main curve is a curve *of* this.
 > **From:** definition.
 > **Before the run:** it must be a knob that moves end-to-end throughput. A knob on a
-> component that is not the constraint produces a flat curve, and E1 is spent for nothing.
+> component that is not the constraint produces a flat curve, and the sweep is spent for
+> nothing.
 
-**Ingestion axis (§3):** `N` = concurrency of the ingestion pipeline — KEDA
-`maxReplicaCount`, swept over **N ∈ {4, 8, 12, 16, 20, 24}**. Six points. The upper values
-exist to produce the rising branch of the cost curve and to shift the bottleneck far
-enough that a second constraint tier becomes observable (§3.5).
+**Ingestion axis:** `N` = concurrency of the ingestion pipeline — KEDA `maxReplicaCount`.
 
-Which ScaledJob the knob applies to — indexer only, or both stages together — follows from
-the constraint hypothesis in §3.5 and must be fixed before the first point.
+Swept **coarse to fine**: three points at N ∈ {4, 12, 24}, then two refinement points
+placed by the shape those three produce. Five points total. A linear sweep of six spends
+its entire budget before revealing the one failure that matters most — that the range
+itself was wrong, because unit cost was still falling at the top of it.
 
-**Query axis (§3.6):** requests per second against the Go API. Separate run, separate
-unit, separate curve. Inference and ingestion do not share a denominator and must not
-share an axis.
+Which ScaledJob the knob applies to — indexer only, or both stages together — is fixed
+before the first point and follows from the constraint hypothesis in §3.5.
 
 ### 2.5 Measurement architecture
 
 > **Yields:** nothing on its own. It is the precondition of §3 and §4.
 > **From:** live scrape state, checked by query — not by reading config.
-> **Before the run:** every row returns data. A component that is not scraped cannot be
-> named as the constraint, because an absent series looks exactly like an idle one.
+> **Before the run:** every "required" row returns data. A component that is not scraped
+> cannot be named as the constraint, because an absent series looks exactly like an idle
+> one.
 
 | Source | Supplies | Feeds | Status |
 | :--- | :--- | :--- | :--- |
-| Wall clock over the frozen corpus | documents per minute, per point | §3.1 | trivially available |
-| `keda_scaler_metrics_value` | SQS depth; its rate of change is the drain-rate signal over time | §3.1 | scraped |
-| `kube_node_labels` by instance and capacity type | how many billable nodes existed at each moment → node-hours | §3.1, §3.4, §4.2 | scraped |
-| cAdvisor / kube-state-metrics | worker CPU and peak RSS per component | §3.5, §5 | scraped |
-| **Karpenter** | node lifecycle timestamps and Spot interruption events | §3.1 validity, §3.4 | **⟨hard blocker⟩** |
-| **TEI** | `te_queue_size`, `te_request_inference_duration`, `te_batch_next_size` | §3.5 | **⟨hard blocker⟩** |
-| **Qdrant** `/metrics` :6333 | write latency, RSS, `points_count` | §3.5, §3.6, §4.5 | **⟨hard blocker⟩** |
-| Go API | request latency histogram | §3.6 | ⟨missing⟩ |
-| AWS Cost Explorer, by tag | idle spend split by component | §4.1 | ⟨tags not activated⟩ |
+| Wall clock over the frozen corpus | documents per minute, per point | §3.1 | required · available |
+| `keda_scaler_metrics_value` | SQS depth; its derivative is the drain-rate cross-check | §3.1 | required · scraped |
+| `kube_node_labels` by instance and capacity type | how many billable nodes existed at each moment → node-hours | §3.1, §3.4, §4.2 | required · scraped |
+| `kube_node_created` + pod start time | warm-up window per node | §3.4 | required · scraped |
+| cAdvisor / kube-state-metrics | worker CPU and peak RSS per component | §3.5, §5 | required · scraped |
+| `run-point.py` watch loop | window boundaries, node-set changes during a run, `points_count` | §3.1 validity | required · script |
+| TEI | `te_queue_size`, `te_request_inference_duration` | §3.5 Tier 2 | optional · ServiceMonitor pending |
+| Qdrant `/metrics` :6333 | write / upsert latency | §3.5 Tier 2 | optional · ServiceMonitor pending |
+| AWS Cost Explorer, by tag | idle spend split by component | §4.1 | required · tags activated ⟨date⟩ |
 
-**Why the three marked rows are hard blockers.** Throughput tells you *that* the system
-stopped scaling; only per-component metrics tell you *what* stopped it. Without TEI and
-Qdrant instrumentation §3.5 collapses to a single unproven guess, and the second tier —
-the whole reason for sweeping six points instead of four — cannot be claimed at all.
+**What the two optional rows change.** Throughput tells you *that* the system stopped
+scaling; per-component metrics tell you *what* stopped it. Tier 1 is provable from worker
+CPU, which is scraped today. Tier 2 requires TEI and Qdrant instrumentation — if it is
+absent, this report claims one tier and says so, rather than delaying the measurement or
+guessing the second.
 
-**Deliberately not instrumented in v1.0: per-execution worker summaries.** Attributing
-documents to individual worker executions would require a structured exit-summary line
-from each worker plus log-derived metrics. It is not needed here: the corpus is frozen, so
-document counts come from the fixture, and drain rate comes from queue depth. Spot
-interruptions — the one thing that could distort a sweep point — are visible in Karpenter
-events without touching application code. The pattern remains valuable and is deferred to
-v2.0, where reliability economics requires knowing *why* an execution ended.
+**Deliberately not instrumented in v1.0.**
+
+*Per-execution worker summaries.* Attributing documents to individual worker executions
+would require a structured exit-summary line from each worker plus log-derived metrics. It
+is not needed here: the corpus is frozen, so document counts come from the fixture, and
+drain rate comes from queue depth. Node loss during a run — the one thing that could
+distort a point — is detected by `run-point.py` as a change in the node set while the
+queue is non-empty.
+
+*Go API request metrics.* No query-path run exists to consume them, and instrumentation
+without a consumer generates work rather than evidence. Deferred to v2.0 together with the
+run that needs it.
 
 ---
 
@@ -201,23 +216,22 @@ and never discover the second.*
 ### 3.1 Run matrix
 
 > **Yields:** every other number in §3, and the marginal cost in §4.2.
-> **From:** E1 — six runs over the frozen corpus.
+> **From:** the `sweep` run — five points over the frozen corpus.
 > **Before the run:** identical image digests at every point; only the concurrency value
-> changes. Between points, both SQS queues at depth zero and the ingestion NodePool at
-> zero nodes — a warm node inherited from the previous point invalidates the comparison.
+> changes. Between points, both SQS queues at depth zero, the ingestion NodePool at zero
+> nodes, and the Qdrant collection wiped — all three enforced by `run-point.py` preflight.
 
-| N | Config commit | Docs/min | Wall time | Node-hours by type · spot/on-demand | $/run | $/1M docs | Saturation signal | Spot interruptions |
+| N | Config commit | Docs/min | Wall time | Node-hours spot / on-demand | $/run | $/1M docs | Saturation signal | Interruptions |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 4 | | | | | | | | |
-| 8 | | | | | | | | |
 | 12 | | | | | | | | |
-| 16 | | | | | | | | |
-| 20 | | | | | | | | |
 | 24 | | | | | | | | |
+| ⟨refine⟩ | | | | | | | | |
+| ⟨refine⟩ | | | | | | | | |
 
 **Config commit** — the sweep parameter lives in Git, so each point has its own commit.
 That is expected and does not break the comparison; the application image digests in the
-header are what must stay identical.
+header are what must stay identical, and they are frozen against a recorded baseline.
 
 **Docs/min is measured twice, from independent sources.** Wall clock against the known
 corpus size gives the point value; the derivative of SQS queue depth gives the shape over
@@ -225,24 +239,24 @@ time and catches a run that stalled and recovered rather than draining steadily.
 two disagree by more than a few percent, the point is not trusted.
 
 **$/run is computed, not billed.** AWS billing updates roughly daily and cannot see a
-twenty-minute run at all:
+twenty-minute run at all. Because the NodePool is pinned to one instance type, this is a
+product rather than a sum over types:
 
 ```
-$/run = Σ_instance_type ( node_count × duration_hours × price_per_hour )
+$/run = node_hours_spot × price_spot + node_hours_on_demand × price_on_demand
 ```
 
-Spot and On-Demand priced separately; node count over time comes from `kube_node_labels`
-integrated across the run window.
+Node count over time comes from `kube_node_labels`, integrated across the run window.
 
 **Saturation signal** — which component was at its ceiling when throughput stopped growing
 at this point. One of: chunker CPU pinned · TEI request queue growing · Qdrant write
 latency rising · queue not draining despite idle workers. This column is the raw material
 of §3.5; an empty cell means that point contributes nothing to the constraint ladder.
 
-**Spot interruptions** — count during the run, from Karpenter events. **Validity rule:**
-a point with interruptions carries extra warm-up cost that belongs to no concurrency
-level, and its `$/1M docs` cell is not comparable. Either re-run the point or mark the
-figure ᴱ and exclude it from the curve fit. Do not average it in silently.
+**Interruptions** — node loss detected during the run. **Validity rule:** a point with
+interruptions carries extra warm-up cost that belongs to no concurrency level, and its
+`$/1M docs` cell is not comparable. Either re-run the point or mark the figure ᴱ and
+exclude it from the curve fit. Do not average it in silently.
 
 ### 3.2 Chart — throughput and unit cost against concurrency
 
@@ -251,9 +265,8 @@ figure ᴱ and exclude it from the curve fit. Do not average it in silently.
 
 One chart, dual Y axis, X axis = N:
 
-- **Left axis:** docs/min (column 3). Expected shape — rises, then flattens.
-- **Right axis:** $/1M docs (column 7). Expected shape — falls, reaches a minimum, rises
-  again.
+- **Left axis:** docs/min. Expected shape — rises, then flattens.
+- **Right axis:** $/1M docs. Expected shape — falls, reaches a minimum, rises again.
 
 Plot script and generated image committed under `docs/report/charts/`.
 
@@ -268,10 +281,10 @@ Plot script and generated image committed under `docs/report/charts/`.
 | **Sweet spot** | the N with the lowest value in the `$/1M docs` column | | |
 | **Waste boundary** | the first N where a step up raises `$/run` substantially while adding under 10 % throughput | | |
 
-**Edge rule.** If the sweet spot lands on N=4 — the lowest point swept — it sits on the
-boundary of the range and is not proven to be a minimum, because there is no descending
-branch to its left. In that case add one point at N=1 or N=2 before claiming it. This is
-a conditional seventh run, triggered by the result, not planned in advance.
+**Boundary rule.** A minimum that lands on the lowest or highest N actually swept sits on
+the edge of the range and is not proven — there is no descending branch on one side of it.
+The refinement pass (§2.4) exists to place points on both sides of the candidate minimum;
+if it still lands on an edge after refinement, say so rather than claiming a minimum.
 
 **The gap between knee and sweet spot is the finding of this section.** State it as a
 sentence: how much extra you pay per document to run at the knee instead of the sweet
@@ -282,8 +295,7 @@ sweet spot; the knee is documented as the ceiling for a hurry.
 
 > **Yields:** the mechanism behind the U-curve. Without it §3.3 is a chart with no
 > explanation and the reader assumes noise.
-> **From:** node lifecycle timestamps from Karpenter, per node, per run.
-> **Before the run:** Karpenter scraped, or this section cannot be written.
+> **From:** node creation and first-pod-ready timestamps, per node, per run.
 
 Every node is billed from the moment it is provisioned, but produces work only after it
 has booted, pulled the container image and initialised the runtime — roughly 60–90 seconds
@@ -298,33 +310,36 @@ the entire mechanism of the U-curve.
 
 Decompose node-hours at the lowest and highest N:
 
-| N | Provisioning | Image pull | Init | Productive work | Consolidation tail | Overhead share |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 4 | | | | | | |
-| 24 | | | | | | |
+| N | Warm-up (created → first pod ready) | Productive work | Consolidation tail | Overhead share |
+| :--- | :--- | :--- | :--- | :--- |
+| ⟨low⟩ | | | | |
+| ⟨high⟩ | | | | |
 
-For scale-to-zero ephemeral workers this is the dominant cost effect and is almost never
+The report needs the overhead *share*, not its attribution across provisioning, image pull
+and runtime init — which is why the sub-phase breakdown is not instrumented. For
+scale-to-zero ephemeral workers this is the dominant cost effect and is almost never
 quantified in published architectures.
 
 ### 3.5 Constraint ladder
 
 > **Yields:** the constraint named in BLUF and the price of removing it.
 > **From:** the saturation column of §3.1 plus per-component metrics, read at each point.
-> **Before the run:** TEI and Qdrant scraped. Without them only one tier is claimable.
+> **Note:** Tier 1 is provable from worker CPU alone. Tier 2 requires TEI and Qdrant
+> metrics; if they were unavailable, this section reports one tier.
 
 | Tier | Component | Proof metric and where it saturated | Relieved by | Cost to remove ᴬ |
 | :--- | :--- | :--- | :--- | :--- |
 | 1 | | | | |
 | 2 | | | | |
 
-**Why six points can prove a second tier.** A constraint ladder is the order in which
-ceilings are hit. A tier counts as proven only when the previous one was actually relieved
-and a new saturation was then observed — never because its numbers "looked close".
+**What proves a second tier.** A constraint ladder is the order in which ceilings are hit.
+A tier counts as proven only when the previous one was actually relieved and a new
+saturation was then observed — never because its numbers "looked close".
 
 Sweeping concurrency relieves tiers on its own. If chunker CPU is the ceiling at N=4, then
-at N=20 there are five times as many chunkers and that ceiling is gone; whatever saturates
+at N=24 there are six times as many chunkers and that ceiling is gone; whatever saturates
 instead — TEI queue depth, Qdrant write latency — is a genuinely proven Tier 2, observed
-under relief rather than guessed. This is the reason the sweep runs to 24 rather than 16.
+under relief rather than guessed. This is the reason the sweep runs to 24 rather than 12.
 
 **No third tier is claimed**, regardless of what the numbers suggest. An unproven tier
 weakens the tiers that were proven.
@@ -335,25 +350,6 @@ chunker: PyMuPDF text extraction on a 300-page PDF is single-threaded CPU work a
 dominate embedding time by an order of magnitude. If the hypothesis inverts, the inversion
 stays in the report — *"we expected to saturate inference and saturated PDF parsing
 instead"* is what makes the measurement credible.
-
-### 3.6 Query path
-
-> **Yields:** the SLO row of BLUF, and whether ingestion load degrades query latency.
-> **From:** E4 — load against the Go API at increasing RPS, plus one combined point.
-> **Before the run:** Go API latency histogram and Qdrant metrics scraped.
-
-| RPS | p50 | p95 | p99 | Qdrant search latency | Error rate |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| ⟨low⟩ | | | | | |
-| ⟨mid⟩ | | | | | |
-| ⟨high⟩ | | | | | |
-
-**Combined-load point (D4).** One extra measurement: the mid RPS level run *while* an
-ingestion point is active at the sweet-spot concurrency. This is the only measurement that
-shows whether the two paths contend on Qdrant, and it costs roughly thirty minutes. Report
-the p95 delta against the idle-cluster row above.
-
-Article 1 claimed p95 under 200 ms. This table confirms that under load or replaces it.
 
 ---
 
@@ -374,9 +370,9 @@ Monthly Cost = Floor + ( Marginal_per_unit × Volume )
 ### 4.1 Floor — what it costs at zero load
 
 > **Yields:** the idle-floor row of BLUF and the budget alarm in §5.
-> **From:** E2 — a 24-hour window with zero traffic, spend pulled by tag at daily
-> granularity. Lines Cost Explorer cannot resolve are computed from the price list and
-> marked ᴬ.
+> **From:** the `idle` run — a 24-hour window with zero traffic, spend pulled by tag at
+> daily granularity. Lines Cost Explorer cannot resolve are computed from the price list
+> and marked ᴬ.
 > **Before the run:** cost allocation tags applied **and activated** in the billing
 > console — activation is a separate step, applies going forward only, up to 24 hours of
 > delay. During the window: no deploys, no config changes, no manual commands. ArgoCD
@@ -386,7 +382,8 @@ For an asynchronous ingestion architecture the floor is where the entire value p
 lives, so it is split rather than totalled.
 
 **Block A — shared platform.** Exists whether or not this feature is deployed. Shown in
-full for honesty, allocated for the BLUF.
+full for honesty. Not divided by an assumed number of tenant features — that divisor would
+be arbitrary, and Blocks B and C already answer both questions a reader can ask.
 
 | Line | Fixed / Variable | $/month | |
 | :--- | :--- | :--- | :--- |
@@ -395,14 +392,13 @@ full for honesty, allocated for the BLUF.
 | NAT Gateway — hourly charge plus per-GB processing | Fixed | | |
 | EBS gp3 — Prometheus 10 Gi + Loki 10 Gi | Fixed | | |
 | **Block A total** | | | |
-| **Allocated share** ᴬ | | | Block A ÷ ⟨D3⟩ |
 
 **Block B — feature-dedicated.** Disappears entirely if the RAG feature is removed.
 **This is the number that goes to BLUF and drives §4.3.**
 
 | Line | Fixed / Variable | $/month | |
 | :--- | :--- | :--- | :--- |
-| `database-on-demand` node group — Qdrant | Fixed | | |
+| `database-on-demand` node group — Qdrant | Fixed | | see quantization note below |
 | EBS gp3 — Qdrant volume | Fixed | | |
 | TEI serving capacity at idle | ⟨fixed or scale-to-zero — confirm⟩ | | |
 | VPC Interface Endpoints — Bedrock, SQS, S3, billed per AZ | Fixed | | |
@@ -413,23 +409,29 @@ full for honesty, allocated for the BLUF.
 
 **Block C — standalone scenario.** `A + B`, one line: what this feature would cost as the
 only workload on its own cluster. The number a greenfield reader needs, and the honest
-counterweight to the allocated figure.
+counterweight to the shared-platform framing.
 
-**Two notes this table exists for.**
+**Three notes this table exists for.**
 
-The **NAT Gateway** is the hidden line of this architecture class and is missing from
-almost every published version of it. Billed hourly regardless of traffic, and again per
-gigabyte processed — including container image pulls and the indexer's model weight
-downloads from HuggingFace.
+*The NAT Gateway* is the hidden line of this architecture class and is missing from almost
+every published version of it. Billed hourly regardless of traffic, and again per gigabyte
+processed — including container image pulls and the indexer's model weight downloads from
+HuggingFace.
 
-Article 1 advertised **"$0.00 on idle."** This table states for exactly how many rows that
+*Quantization sets the database instance class.* INT8 scalar quantization is enabled as a
+fixed configuration parameter. At 1M points × 384 dimensions, float32 vectors require
+1.536 GB and INT8 requires 0.384 GB ᴬ — which is why the `database-on-demand` line above
+is as small as it is. Measured Qdrant RSS at teardown: ⟨R5⟩. **The retrieval cost of this
+compression is not measured here** — see "Not covered".
+
+*Article 1 advertised "$0.00 on idle."* This table states for exactly how many rows that
 is true. A deepening of the claim with data in hand, not a retraction — which is the more
 credible of the two positions.
 
 ### 4.2 Marginal — cost per unit at the sweet spot
 
 > **Yields:** the coefficient in the spine equation.
-> **From:** E1 at the sweet-spot N, decomposed by cost component.
+> **From:** the sweep point at the sweet-spot N, decomposed by cost component.
 > **Before the run:** components must sum to the total. Floor lines from §4.1 are excluded
 > here by definition — mixing them inflates marginal cost and silently corrupts §4.4.
 
@@ -474,13 +476,13 @@ lower bound of where this design makes economic sense.
 
 > **Yields:** the reference value for the BLUF cost row. An absolute cost figure supports
 > no decision without one.
-> **From:** arithmetic on measured E1 data against published Fargate pricing. No
+> **From:** arithmetic on measured sweep data against published Fargate pricing. No
 > additional run.
 
 The relevant alternative is not a different platform — the cluster exists regardless. It is
-the compute mode for the same ingestion Jobs. Fargate removes node provisioning,
-per-node image pull and Spot interruption handling entirely, and charges per vCPU-second
-and GB-second at a premium over EC2 Spot.
+the compute mode for the same ingestion Jobs. Fargate removes node provisioning, per-node
+image pull and Spot interruption handling entirely, and charges per vCPU-second and
+GB-second at a premium over EC2 Spot.
 
 The comparison is direct because §3.1 already measured what a run consumes:
 
@@ -497,30 +499,6 @@ Output is one sentence of the shape: *"Spot is cheaper per million documents by 
 that discount is paid for with the interruption-handling code in the workers; below Y
 documents per month the difference is smaller than the engineering cost of maintaining
 it."*
-
-### 4.5 Quality bought with cost — scalar quantization
-
-> **Yields:** one guardrail and one line of §4.1 Block B. Included because this saving is
-> purchased with retrieval accuracy, and an unpriced accuracy loss is not a saving.
-> **From:** roughly 200 queries against both indexes locally, measuring top-10 result
-> overlap. Ground truth is the system's own float32 index — no labelled dataset needed.
-> **Before the run:** Qdrant RSS observable.
-
-Framed as a money lever: RAM determines the instance class of the `database-on-demand`
-node, a permanently billed line in the floor. Recall determines business risk. Not a
-standalone ML benchmark; kept to one table.
-
-| | float32 baseline | INT8 scalar quantization |
-| :--- | :--- | :--- |
-| Vector memory at 1M points, 384 dimensions | 1.536 GB ᴬ | 0.384 GB ᴬ |
-| Qdrant RSS, measured | | |
-| Smallest viable instance class | | |
-| Resulting `database-on-demand` $/month | | |
-| Top-10 overlap against baseline | 100 % by definition | |
-
-Only the arithmetic row is defensible in advance. Article 1 claimed roughly 75 % RAM
-reduction at under 1 % accuracy loss — this table confirms that on this corpus or replaces
-it.
 
 ---
 
@@ -540,7 +518,6 @@ committed, it does not belong in this table.*
 | Max input file size | `MAX_ALLOWED_SIZE_BYTES: ⟨confirm 100 MB⟩` | §3.5 tail behaviour · ADR-0001 | `apps/chunker/` env |
 | Chunks per SQS message | `⟨confirm 30⟩` | §4.2 SQS line · ADR-0004 | `apps/chunker/` env |
 | Ingestion backlog alert | `⟨§3.1 drain rate × alert window⟩` | §3.1 | `prometheus/rules.yaml` |
-| Query latency alert | `p95 > ⟨§3.6⟩ ms` | §3.6 | `prometheus/rules.yaml` |
 | Budget alarm | `$⟨§4.1 Block B × 1.4⟩` | §4.1 | `terraform/budgets.tf` |
 
 ---
@@ -551,7 +528,9 @@ committed, it does not belong in this table.*
 
 | Not included | What it would have supported | Why |
 | :--- | :--- | :--- |
-| Spot interruption injected under load | Reliability economics — cost of the resilience mechanism, recovery time, duplicate count | Idempotency via deterministic point IDs is designed in and verifiable by count comparison; pricing the mechanism needs its own run and its own instrumentation, deferred to v2.0 |
+| Query path under load — latency percentiles, error rate, ingest/query contention on Qdrant | Whether the p95 target holds under real traffic, and the cost of serving queries | Requires its own frontier axis (API and TEI replica count × RPS) and its own denominator. A single fixed-replica measurement is a number without an axis and supports no decision. The `p95 < 200 ms` figure in `architecture.md` is a design target and is labelled as unverified. Scoped to v2.0 |
+| Retrieval configuration study — quantization variants, rescore and oversampling, dense vs sparse vs hybrid ablation, `hnsw_ef` sweep | Which retrieval configuration to run in production, and what each costs in recall and latency | Its own frontier axis, incompatible with the ingestion-concurrency axis of this report. INT8 scalar quantization is treated here as a fixed parameter chosen for memory footprint, with no claim about its retrieval cost. The study runs locally against the collection snapshot committed at teardown (R5) — no cluster required. Scoped to v2.0 |
+| Spot interruption injected under load | Reliability economics — cost of the resilience mechanism, recovery time, duplicate count | Idempotency via deterministic point IDs is designed in and verifiable by count comparison; pricing the mechanism needs its own run and its own instrumentation. Scoped to v2.0 |
 | Per-execution worker attribution | Documents and exit reason per worker execution | Not required for throughput, which comes from the frozen corpus and queue depth; needed only for the reliability run above |
-| Third constraint tier | §3.5 | Two tiers are provable from this sweep; a third would be a guess and would weaken the two that are proven |
+| Third constraint tier | §3.5 | At most two tiers are provable from this sweep; a third would be a guess and would weaken the ones that were proven |
 | Regression against a previous report | — | Unavailable at v1.0; becomes the strongest available section from v2.0 |

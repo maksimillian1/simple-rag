@@ -55,6 +55,39 @@ prometheus:
           - source_labels: [__meta_kubernetes_pod_container_port_number]
             action: keep
             regex: '9962'
+      - job_name: 'tei-embeddings'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [ 'rag-platform' ]
+        relabel_configs:
+          - source_labels: [ __meta_kubernetes_pod_label_app ]
+            action: keep
+            regex: tei-embeddings
+          - source_labels: [ __meta_kubernetes_pod_container_port_number ]
+            action: keep
+            regex: '8080'
+          - source_labels: [ __meta_kubernetes_pod_name ]
+            target_label: pod
+          - source_labels: [ __meta_kubernetes_namespace ]
+            target_label: namespace
+
+      - job_name: 'qdrant'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [ 'rag-platform' ]
+        relabel_configs:
+          - source_labels: [ __meta_kubernetes_pod_label_app_kubernetes_io_name ]
+            action: keep
+            regex: qdrant
+          - source_labels: [ __meta_kubernetes_pod_container_port_number ]
+            action: keep
+            regex: '6333'
+          - source_labels: [ __meta_kubernetes_pod_name ]
+            target_label: pod
+          - source_labels: [ __meta_kubernetes_namespace ]
+            target_label: namespace
 
 grafana:
   nodeSelector:
