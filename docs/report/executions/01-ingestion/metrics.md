@@ -1,99 +1,54 @@
-# Execution · 01 · Ingestion concurrency — Instrumentation
+# 01 · Ingestion concurrency — Metrics
 
-> Belongs to `index.md` §1 Plan. Extracted because it is long. **Frozen with the Plan,
-> before the first point.**
+Belongs to `index.md` §1 Plan. **Frozen with the Plan, before the first point.** Refs are
+cited from outside as `01-ingestion/M5`.
 
-Scope: **what this run reads and how**. The metric names themselves are a property of the
-system and live in `00-baseline/metrics.md` — referenced here, never redefined.
+Confirm every name against the live endpoint before writing a query. A wrong name returns NO
+DATA and is indistinguishable from a missing scrape target.
 
----
+## Read from instruments
 
-## Series read
+| Ref | What it measures | Source | Status | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| M1 | SQS depth over the window, both queues | `keda_scaler_metrics_value{scaledObject=…}` | ⟨confirmed YYYY-MM-DD⟩ | one series per queue, **never summed**. Its derivative is `D15` |
+| M2 | billable nodes at each moment, by capacity type | `kube_node_labels{label_karpenter_sh_nodepool="apps-compute"}` | ⟨confirmed YYYY-MM-DD⟩ | Spot and On-Demand kept apart — they are priced apart. Unfiltered it counts the Qdrant node as ingestion capacity and inflates every `$/run` by a plausible-looking constant |
+| M3 | node creation timestamp | `kube_node_created` | ⟨confirmed YYYY-MM-DD⟩ | warm-up window, open side · node selector as M2 → `00-baseline/K7` |
+| M4 | first-pod-ready timestamp | `kube_pod_start_time` ⟨confirm⟩ | **unconfirmed** — name varies by kube-state-metrics version | warm-up window, close side · pods owned by the ingestion `ScaledJob`s |
+| M5 | worker CPU as a fraction of the frozen limit | `container_cpu_usage_seconds_total` (cAdvisor) | ⟨confirmed YYYY-MM-DD⟩ | **Tier 1 proof.** Selector `namespace` + `container!=""` + `container!="POD"` + per component. Read as a rate against the limit frozen in `00-baseline` §2, never as an absolute |
+| M6 | worker peak working set | `container_memory_working_set_bytes` | ⟨confirmed YYYY-MM-DD⟩ | selector as M5. Source of two guardrail rows |
+| M7 | egress bytes, NAT-bound | Cilium eBPF ⟨confirm series⟩ | ⟨unconfirmed — must separate NAT-bound from cluster-internal⟩ | optional: feeds one line of `D20`. If unresolved that line is priced from the rate card and marked ᴱ |
+| M8 | TEI inference queue depth | `te_queue_size` ⟨confirm⟩ | **pending** ServiceMonitor | Tier 2 candidate → `00-baseline/K5` |
+| M9 | TEI inference duration | `te_request_inference_duration` ⟨confirm `_bucket` suffix and unit⟩ | **pending** ServiceMonitor | Tier 2 candidate |
+| M10 | Qdrant write / upsert latency | ⟨confirm at `:6333/metrics`⟩ | **pending** ServiceMonitor | Tier 2 candidate |
 
-| Ref | Read as | Filter | Gates |
-| :--- | :--- | :--- | :--- |
-| E1 | queue depth over the window; its derivative is the drain rate | per queue — never summed | C2 · the "queue not draining despite idle workers" saturation reading |
-| E2 | billable nodes at each moment, by capacity type | `label_karpenter_sh_nodepool="apps-compute"` | C3 → C4 → C5. **Without it there is no cost figure at all** |
-| E3 | node creation timestamp | same node selector | C6 |
-| E4 | first-pod-ready timestamp | pods owned by the ingestion `ScaledJob`s | C6 → report §3.4. Without it the U-curve has a shape and no mechanism |
-| E5 | egress bytes over the window | ⟨NAT-bound selector — `00-baseline` §7.5⟩ | the NAT data-processing line of C7 |
-| E10 | worker CPU as a fraction of the frozen limit | `namespace` + per-component `container` | **Tier 1 proof** (report §3.5) |
-| E11 | worker peak working set | as E10 | two memory guardrails (report §5) |
-| E20 | TEI queue depth | job selector | report §3.5 Tier 2 — **one claim only** |
-| E21 | TEI inference duration | job selector, histogram | report §3.5 Tier 2 |
-| E30 | Qdrant write / upsert latency | job selector | report §3.5 Tier 2 |
+**Required for a point to count** — M1, M2, M3, M4, M5, M6. A point missing any of them has
+no cost figure, no mechanism, or no Tier 1, and is not worth its cluster time.
 
-**Required:** E1, E2, E3, E4, E10, E11 — these gate the run itself. A point missing any of
-them has no cost, no mechanism or no Tier 1 and is not worth its cluster time.
+**Optional** — M7 degrades one line of `D20` to estimated · M8, M9, M10 gate Tier 2 and
+nothing else.
 
-**Optional:** E5 (degrades one line of C7 to ᴬ from the price list), E20, E21, E30 (gate
-Tier 2 and nothing else). A campaign that waits on a nice-to-have is a campaign that does
-not happen.
-
-**Read once per point over REST, not scraped:** Qdrant `points_count` at the end of the
-window, by `run-point.py` — the completeness check against the corpus document count.
-
-Query file: `./scripts/queries.txt` — one line per series, written with confirmed names
-only · dry run clean: ⟨date⟩
-
-> Prometheus retention is ⟨3 d⟩. **Export after every point, no exceptions.** Extra points in
-> an export are harmless; missing ones require re-running at full cost.
-
----
-
-## Derived figures
-
-Computed, not measured. Everything here carries ᴬ in the report.
-
-| Ref | Definition | From |
-| :--- | :--- | :--- |
-| C1 | docs/min = `doc_count ÷ wall_time` | `00-baseline` §3 · R1 |
-| C2 | throughput cross-check = derivative of E1 | E1 |
-| C3 | node-hours per point = E2 integrated over the window, **Spot and On-Demand kept separate** | E2 · R1 |
-| C4 | `$/run = node_hours_spot × price_spot + node_hours_od × price_od` | C3 · `00-baseline` §4 |
-| C5 | `$/1M docs = $/run ÷ doc_count × 1e6` | C4 · `00-baseline` §3 |
-| C6 | warm-up share = `((E3 → E4) + consolidation tail) ÷ total node-hours` | E3 · E4 · E2 |
-| C7 | marginal decomposition at the sweet spot — chunker, indexer, TEI share, warm-up overhead, SQS, S3, NAT; components sum to the total | C4 · E5 · `00-baseline` §4 |
-| C8 | effective `$/doc` across volumes = `(Block B floor + C7 × V) ÷ V` | C7 · `00-baseline` §5 |
-| C9 | Fargate equivalent = `vCPU-hours × rate + GB-hours × rate`, from the frozen pod requests × C3 | C3 · `00-baseline` §2, §4 |
-
-**Because the NodePool is pinned to one instance type, C4 is a product, not a sum over
-types.** That is the whole reason for pinning it beyond comparability.
-
-**C7 excludes every floor line by definition.** Mixing them inflates the coefficient and
-silently corrupts the break-even in report §4.4.
-
-**C8 uses Block B, not Block C.** For a feature on a cluster that exists anyway, the question
-is what *this feature* costs to keep alive.
-
----
+Query file: `./scripts/queries.txt`, written with confirmed names only · dry run clean ⟨date⟩.
+Prometheus retention is ⟨3 d⟩: **export after every point.** Extra points in an export are
+harmless; a missing one costs a full re-run.
 
 ## Recorded by hand
 
-Unrecoverable. If it is not written down at the time, the point is lost.
+| Ref | What it measures | Source | Status | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| R11 | run log — point id, N, config commit, UTC start and end, interruption count, validity decision | emitted by `run-point.py` at the end of each point into `./data/⟨point⟩.point.md` | active | Prometheus does not know when a run began; a window reconstructed a week later is a different run |
+| R12 | saturation signal — which component sat at its ceiling, and the metric it was read from | read in Grafana at ⟨immediately after each point⟩ · ⟨who⟩ | active | no query returns "the chunker was the bottleneck". Candidates: chunker CPU (M5) · TEI queue (M8) · Qdrant write latency (M10) · queue not draining despite idle workers (M1). **The only field of the point block the script cannot fill.** A point with R12 empty still contributes its cost row and nothing to report §3.5 |
+| R13 | Qdrant `points_count` at window close | one REST read by `run-point.py` at ⟨window close⟩ | active | completeness check against the frozen corpus count — if it disagrees, the denominator lies |
 
-| Ref | What | Why nothing else produces it |
-| :--- | :--- | :--- |
-| R1 | **Run log** — point id, N, config commit, UTC start and end, `points_count`, interruption count, validity decision | Prometheus does not know when a run began, and a window guessed a week later is a different run. *Emitted by `run-point.py`* into `./data/⟨point⟩.point.md` |
-| R2 | **Saturation signal** — which component was at its ceiling at this point, and the metric it was read from. Candidates: chunker CPU (E10) · TEI queue depth (E20) · Qdrant write latency (E30) · queue not draining despite idle workers (E1) | No query returns "the chunker was the bottleneck". It is a reading across E10–E30, and it is the entire raw material of the constraint ladder. **The only field of the point block the script cannot fill** — read it in Grafana immediately after the point |
+## Derived
 
-A point with an empty R2 contributes nothing to report §3.5. It still contributes its cost
-row, so it is not wasted — but the ladder is built from R2 alone.
-
----
-
-## Window boundaries
-
-The most commonly mis-set values, and the usual reason a sweep is thrown away. Enforced by
-`run-point.py`; stated here because the script encodes the rule and nothing else explains
-it.
-
-- **Start** — the first `s3:ObjectCreated` event. The bulk upload script writes this
-  timestamp to a marker file consumed by `--start-marker`. Upload itself is outside the
-  system under test, and its duration and cost are excluded.
-- **End** — `apps-compute` NodePool at **zero nodes**, plus a 5-minute buffer.
-
-The window does not close when the SQS queues drain. Nodes bill through `consolidateAfter`
-and teardown, producing zero documents at full price — and that tail is precisely what makes
-the unit-cost curve turn back up at high N. Closing on "queue empty" silently deletes the
-mechanism the report exists to demonstrate.
+| Ref | What it measures | Source | Status | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| D14 | docs/min | `00-baseline` §2 unit count `÷` wall time from R11 | active | cross-checked against D15 |
+| D15 | drain rate | derivative of M1 | active | catches a run that stalled and recovered rather than draining steadily |
+| D16 | node-hours per point | M2 integrated over the window, **Spot and On-Demand kept separate** | active | |
+| D17 | `$/run` | `D16_spot × price_spot + D16_od × price_od`, prices from `00-baseline` §2 | active | a product, not a sum over types — the NodePool is pinned |
+| D18 | `$/1M docs` | `D17 ÷ doc_count × 1e6` | active | the frontier's y-axis |
+| D19 | warm-up share | `((M3 → M4) + consolidation tail) ÷ D16` | active | the U-curve mechanism → `00-baseline/K7` |
+| D20 | marginal decomposition at the sweet spot | `D17` · M7 · price basis — chunker, indexer, TEI share, warm-up, SQS, S3, NAT; components sum to the total | active | **floor lines excluded by definition** (`methodology.md` §9); mixing them inflates the coefficient and corrupts D22 |
+| D21 | effective `$/doc` across volumes | `(Block B + D20 × V) ÷ V`, Block B from `00-baseline` §2 Floor | active | Block B, not C: for a feature on a cluster that exists anyway the question is what this feature costs to keep alive |
+| D22 | Fargate equivalent | `vCPU-hours × rate + GB-hours × rate`, from frozen pod requests × D16 | active | the realistic alternative — a different compute mode on the same platform |
