@@ -1,8 +1,5 @@
 # Execution · 00 · Baseline — Metrics
 
-> Extracted from `index.md` §1. It belongs there; it lives here because eleven metrics
-> across six components make that section unreadable.
-
 Scope: **what is observable** — a property of the system, like a component's version. What a
 given run *reads*, with which filters and gating which claim, is method and lives in that
 execution's `metrics.md`.

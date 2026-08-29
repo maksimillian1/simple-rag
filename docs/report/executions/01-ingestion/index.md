@@ -1,131 +1,99 @@
-# Execution · 01 · Ingestion concurrency
+# 01 · Ingestion concurrency
 
-| | |
+| Field | Value |
 | :--- | :--- |
-| Produces | ⟨decided at Close — see §3⟩ · expected: report §3 in full, plus the marginal coefficient §4.2 consumes |
-| Preconditions | `00-baseline` §7.6 gate rows §2, §7.2-required, §7.3 green. **Not** §7.4 — Cost Explorer data is not an input to this run |
-| Data | `./data/` — one `⟨point⟩.point.md` and one export per point |
-| Scripts | `./scripts/queries.txt` — pinned to the data beside it. Driver is `../../scripts/run-point.py` |
-| Metrics | `./metrics.md` — series read, derived figures, hand-recorded fields |
+| Why this execution exists | how throughput and unit cost respond to ingestion concurrency on a Spot pool that scales to zero — *how do we configure it?* |
+| Produces | the efficiency frontier, the constraint ladder, and the marginal cost per document that report §4 cannot compute itself |
+| Expected *(recorded ⟨date⟩, before the first point)* | **Tier 1 is the Stage-1 chunker, not TEI** — PyMuPDF extraction is single-threaded CPU work and may dominate embedding time by an order of magnitude. The original design assumed inference saturates first. Corollary: the unit-cost minimum sits below the throughput knee, driven by warm-up share rather than by any component ceiling |
 | Status | ⟨planned · running · closed · abandoned⟩ |
+| Plan frozen | ⟨date⟩ · commit ⟨sha⟩ |
+| Inherits | `00-baseline` — Constants · Metrics register · Applicability |
+| Data · Scripts | `./data/` one `⟨point⟩.point.md` + one export per point · `./scripts/queries.txt` · driver `../../scripts/run-point.py` |
+| Optional files | `./concepts.md` · `./metrics.md` — none |
 
-> **Three phases. The Plan is frozen before the first point and is not edited afterwards.**
-> A plan written after the result cannot support a recorded hypothesis, and the recorded
-> hypothesis is what makes an inverted finding credible instead of embarrassing. If the plan
-> turns out wrong, say so in Close — do not rewrite §1.
->
-> **Where the result lands is decided at Close**, against the finished report.
+> §1 is frozen before the first point and is not edited afterwards. If it turns out wrong,
+> say so in Retro — `methodology.md` §7.
 
 ---
 
 # 1 · Plan  *(frozen ⟨date⟩)*
 
-### What this execution measures
+## Axis
 
-How ingestion throughput and unit cost respond to ingestion concurrency, over a frozen
-corpus, on a Spot NodePool that scales to zero. It answers the engineering question — *how
-do we configure it?* — and supplies §4 with one number it cannot compute itself: the
-marginal cost per document at the best setting. The finding it exists to produce is that
-throughput plateaus at one concurrency level and unit cost bottoms out at a different,
-usually lower one.
-
-### Axis and points
-
-| | |
+| Field | Value |
 | :--- | :--- |
-| Varied | KEDA `maxReplicaCount` (N) on ⟨indexer only / both stages — `00-baseline` §2⟩ |
+| Varied | KEDA `maxReplicaCount` (N) on ⟨indexer only · both stages⟩ → M3 |
 | Candidate grid | N ∈ {4, 8, 12, 16, 20, 24} |
-| Executed | **coarse to fine** — {4, 12, 24} first, then two refinement points chosen from the grid by the shape those three produce. Five points total |
-| Held constant | image digests · corpus · TEI replicas · Qdrant config · instance types · every row of `00-baseline` §2 |
+| Order | coarse to fine — {4, 12, 24}, then two refinement points chosen by the shape those three produce. Five points total (`methodology.md` §8) |
+| Held constant | image digests · corpus · TEI replicas · Qdrant config · instance type · every row of `00-baseline` Constants |
 
-A linear sweep of six spends its entire budget before revealing the one failure that matters
-most: that the range itself was wrong, because unit cost was still falling at the top of it.
-Coarse-to-fine reveals that on the third run and reads as a refinement pass rather than as a
-mistake.
+The config commit moves between points and that is expected — the swept value lives in Git.
+What must not move is the pair of image digests.
 
-**Config commit moves between points and that is expected** — the swept value lives in Git.
-What must stay identical is the pair of image digests, frozen against a recorded baseline.
+## Conditions added on top of baseline Applicability
 
-### Conditions
-
-Baseline envelope applies in full (`00-baseline/index.md` §6). This execution adds:
-
-> Bulk-drop arrival pattern — the whole corpus uploaded at once, not a steady stream.
-> Between points: both SQS queues at depth zero, `apps-compute` at zero nodes, Qdrant
-> collection wiped.
-
-**Two conditions that are conclusions in disguise:**
-
-*Worker packing density.* ≈ ⟨n⟩ workers per node follows from the pinned instance type and
-the frozen resource requests. Denser packing amortises per-node warm-up across more work and
-shifts the sweet spot to the right. Every figure in §3 is conditional on this ratio, and it
-belongs in the report Envelope, not in a footnote.
-
-*Which `ScaledJob` N applies to.* Fixed before the first point and following from the
-hypothesis below. A knob on a component that is not the constraint produces a flat curve and
-spends the sweep for nothing.
-
-### Window rule
-
-| | |
-| :--- | :--- |
-| Opens | first `s3:ObjectCreated` — timestamp written to a marker file by the bulk upload script, consumed by `run-point.py --start-marker`. Upload itself is outside the system under test |
-| Closes | `apps-compute` NodePool at **zero nodes**, plus a 5-minute buffer |
-
-**The window does not close when the queues drain.** Nodes bill through `consolidateAfter`
-and teardown, producing zero documents at full price — and that tail is precisely what makes
-unit cost turn back up at high N. Closing on "queue empty" silently deletes the mechanism
-report §3.4 exists to demonstrate. `run-point.py` enforces this; do not override it.
-
-### Validity criteria
-
-- [ ] Identical across points: image digests, corpus snapshot, `00-baseline` §2 values
-- [ ] Reset between points: both queues to zero depth, `apps-compute` to zero nodes, Qdrant
-  collection recreated (`--wipe-mode recreate`)
-- [ ] Docs/min agrees within a few percent between its two independent sources — wall clock
-  over the frozen corpus (C1) and the derivative of queue depth (C2). Disagreement means the
-  run stalled and recovered rather than draining steadily; the point is not trusted
-- [ ] `points_count` at the end of the run equals the corpus document count. A short count
-  means documents were dropped and the denominator lies
-- [ ] **Node loss during the run** → the point carries warm-up cost that belongs to no
-  concurrency level. Either re-run it, or mark `$/1M docs` ᴱ and exclude it from the curve
-  fit. Averaging it in silently is not a defensible third option
-
-### Instrumentation
-
-Full detail in `./metrics.md`. Names live in `00-baseline/metrics.md` — referenced, never
-redefined.
-
-| Ref | Read as | Gates |
+| Condition | True only during | Mechanism |
 | :--- | :--- | :--- |
-| E1 | queue drain over time | C2 cross-check · saturation candidate |
-| E2 | billable nodes over the window, by capacity type | C3 → C4 → C5 — every cost figure |
-| E3, E4 | warm-up window per node | C6 → report §3.4, the U-curve mechanism |
-| E5 | egress bytes | the NAT line of report §4.2 |
-| E10 | worker CPU against limit | **Tier 1 proof** |
-| E11 | worker peak RSS | two guardrail rows |
-| E20, E21, E30 | TEI and Qdrant saturation | report §3.5 Tier 2 — optional, one claim |
+| Bulk-drop arrival — the whole corpus uploaded at once, not a stream | every point | — |
+| Reset between points: both queues at zero, `apps-compute` at zero nodes, collection wiped | every point | — |
+| Worker packing density ≈ ⟨n⟩ per node | every point | → M2, and it belongs in the report Envelope |
+| N applies to ⟨which ScaledJob⟩ | every point | → M3 |
 
-Query file: `./scripts/queries.txt` · dry run clean: ⟨date⟩
+## Window rule
 
-### Hypothesis  *(recorded ⟨date⟩, before the first point)*
+| Boundary | Signal | Recorded by |
+| :--- | :--- | :--- |
+| Opens | first `s3:ObjectCreated` — marker file written by the upload script | `run-point.py --start-marker` |
+| Closes | `apps-compute` at **zero nodes**, plus a 5-minute buffer — not queue drain → M1 | `run-point.py` |
 
-**Tier 1 will be the Stage-1 chunker, not TEI.** PyMuPDF text extraction on a 300-page PDF
-is single-threaded CPU work and may dominate embedding time by an order of magnitude. The
-original design assumed inference would saturate first.
+## What this run reads
 
-Corollary expected: unit cost minimum below the throughput knee, with the gap driven by
-warm-up share (C6) rather than by any component ceiling.
+Names live in `00-baseline/metrics.md` — referenced, never redefined.
 
-If this inverts, the inversion goes into the report verbatim. *"We expected to saturate
-inference and saturated PDF parsing instead"* is what makes a measurement credible.
+| Ref | Read as | Selector | Gates | Required |
+| :--- | :--- | :--- | :--- | :--- |
+| E1 | queue depth; its derivative is the drain rate | per queue, never summed | drain-rate cross-check · saturation candidate | yes |
+| E2 | billable nodes over the window, by capacity type | `label_karpenter_sh_nodepool="apps-compute"` | node-hours → every $ figure | yes |
+| E3 · E4 | node created → first pod ready | node selector as E2 · pods owned by the ScaledJobs | warm-up share → report §3.4 | yes |
+| E10 | worker CPU as a fraction of the frozen limit | `namespace` + per-component `container` | **Tier 1 proof** | yes |
+| E11 | worker peak working set | as E10 | two guardrail rows | yes |
+| E5 | egress bytes, NAT-bound | ⟨`00-baseline` Open⟩ | the NAT line of the marginal decomposition | no |
+| E20 · E21 · E30 | TEI queue, TEI duration, Qdrant write latency | job selector | report §3.5 Tier 2 — one claim → `00-baseline` M5 | no |
 
-### Cost and stop condition
-
-| | |
+| Field | Value |
 | :--- | :--- |
-| Estimated cost | 5 points × ⟨wall time⟩ · ⟨$⟩ ᴱ, Spot |
-| Stop if | three consecutive points are invalidated by node loss — the Spot pool cannot hold a run long enough to measure, which is itself a finding for the reliability execution, not something to push through |
+| Read once per point, not scraped | Qdrant `points_count` at window close, over REST, by `run-point.py` |
+| Recorded by hand | the saturation signal — which component was at its ceiling, and from which metric → M5 |
+| Query file | `./scripts/queries.txt` · dry run clean ⟨date⟩ |
+| Export | after every point. Retention is ⟨3 d⟩; a missing point costs a full re-run |
+
+## Validity criteria
+
+| Criterion | What happens when it fails |
+| :--- | :--- |
+| Identical across points: image digests, corpus, `00-baseline` Constants | point excluded |
+| Reset between points, collection recreated (`--wipe-mode recreate`) | point excluded |
+| Docs/min agrees within a few percent between wall clock and the drain-rate derivative | the run stalled and recovered rather than draining steadily — point not trusted |
+| `points_count` at close equals the corpus document count | documents were dropped and the denominator lies — re-run |
+| No node lost during the window | the point carries warm-up belonging to no concurrency level — re-run, or mark `$/1M docs` estimated and exclude from the curve fit. Averaging it in silently is not a third option |
+
+## Cost and stop condition
+
+| Field | Value |
+| :--- | :--- |
+| Estimated | 5 points × ⟨wall time⟩ · ⟨$⟩ estimated, Spot |
+| Stop if | three consecutive points are invalidated by node loss — the Spot pool cannot hold a run long enough to measure, which is a finding about resilience, not something to push through |
+
+## What this execution owes the report
+
+| Report section | Expected to produce |
+| :--- | :--- |
+| §3.1 · §3.2 | run matrix and the frontier chart |
+| §3.3 | knee · sweet spot · waste boundary, and the gap cost between them |
+| §3.4 | warm-up share at lowest and highest N — the U-curve mechanism |
+| §3.5 | constraint ladder, Tier 1 proven; Tier 2 only if observed |
+| §4.2 · §4.3 · §4.4 | marginal decomposition, amortization, Fargate break-even |
+| §5 | guardrails on N and on worker memory limits |
 
 ---
 
@@ -137,53 +105,39 @@ One invocation. The script does preflight, window timing, interruption detection
 `points_count`, export, Qdrant reset, and emits the point block.
 
 ```bash
-../../scripts/run-point.py --run ingestion-n04 --n 4 --doc-count ⟨00-baseline §3⟩
+../../scripts/run-point.py --run ingestion-n04 --n 4 --doc-count ⟨00-baseline Constants⟩
 ```
 
-Exit codes: `0` clean · `1` preflight failed · `2` export gaps, **nothing wiped** ·
-`3` interruptions, point suspect · `4` timeout, nothing exported.
-
-Then, by hand and only by hand:
-
-1. **R2 · saturation signal** — read E10 / E20 / E30 in Grafana *now*, while the window is
-   fresh. No query returns "the chunker was the bottleneck". Write it into the block.
-2. Paste `./data/ingestion-n⟨nn⟩.point.md` under the matching heading below.
-
-> On exit code 2: do not start the next point. Prometheus retention is ⟨3 d⟩, the window is
-> still recoverable, and the collection has deliberately not been wiped.
+| Exit | Meaning | Next action |
+| :--- | :--- | :--- |
+| 0 | clean | paste the block, then read the saturation signal in Grafana **now** → M5 |
+| 1 | preflight failed | nothing ran |
+| 2 | export gaps, **nothing wiped** | do not start the next point — the window is still inside retention |
+| 3 | interruptions, point suspect | apply the node-loss rule above |
+| 4 | timeout, nothing exported | point lost |
 
 ## Points
 
-| Point | Date UTC | Config commit | Outcome | Data |
-| :--- | :--- | :--- | :--- | :--- |
-| `ingestion-n04` | | | | |
-| `ingestion-n12` | | | | |
-| `ingestion-n24` | | | | |
-| `ingestion-n⟨⟩` | | | | |
-| `ingestion-n⟨⟩` | | | | |
+| Point | Date UTC | Window | Config commit | Valid | Data |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `ingestion-n04` | | | | | |
+| `ingestion-n12` | | | | | |
+| `ingestion-n24` | | | | | |
+| `ingestion-n⟨⟩` | | | | | |
+| `ingestion-n⟨⟩` | | | | | |
 
-### Coarse pass — read the shape, then choose
+## Coarse pass — read the shape, then choose
 
 | What the three points show | Refine with |
 | :--- | :--- |
-| `$/1M docs` minimum at N=12 | N=8, N=16 |
+| minimum at N=12 | N=8, N=16 |
 | minimum at N=4 — range boundary, **not proven** | N=2, N=8 |
 | minimum at N=24 — range boundary, **not proven** | N=16, N=32 |
 | still falling at N=24 | **the range was wrong** — N=32, N=48 |
 
 Decision after coarse pass: ⟨⟩
 
-### `ingestion-n04`
-
-⟨paste block⟩
-
-### `ingestion-n12`
-
-### `ingestion-n24`
-
-### `ingestion-n⟨⟩`
-
-### `ingestion-n⟨⟩`
+### ⟨point blocks pasted here⟩
 
 ## Anomalies and validity decisions
 
@@ -191,84 +145,118 @@ Decision after coarse pass: ⟨⟩
 | :--- | :--- | :--- | :--- |
 | | | | |
 
-State the rule, not just the outcome. "Re-run" and "excluded and marked ᴱ" are both
-defensible; averaging an anomalous point in silently is not.
+---
+
+# 3 · Results
+
+| Block | Present | Feeds |
+| :--- | :--- | :--- |
+| Matrix | yes | report §3.1–§3.3 |
+| Metrics — figures | yes | report §3.4 · §4.2–§4.4 |
+| Saturation | yes | report §3.5 |
+| Guardrails | yes | report §5 |
+| Constants · Applicability | no — adds conditions only, listed in §1 | |
+| Routing · Open · Retro | yes | |
 
 ---
 
-# 3 · Close
+## Matrix
 
-## Result matrix
+**Finding:** ⟨one sentence — throughput plateaus at N=⟨⟩, unit cost bottoms at N=⟨⟩⟩
 
-Assembled from §2. The seven-column form goes to report §3.1; the validity columns stay
-here.
+| N | Docs/min | Wall | Node-h Spot | Node-h On-Dem | $/run | $/1M docs | Source | Valid |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 4 | | | | | | | | |
+| 12 | | | | | | | | |
+| 24 | | | | | | | | |
+| ⟨⟩ | | | | | | | | |
+| ⟨⟩ | | | | | | | | |
 
-| N | Config commit | Docs/min | Wall | Node-h Spot | Node-h On-Dem | $/run | $/1M docs | Saturation (R2) | Interrupts | Valid |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 4 | | | | | | | | | | |
-| 12 | | | | | | | | | | |
-| 24 | | | | | | | | | | |
-| ⟨⟩ | | | | | | | | | | |
-| ⟨⟩ | | | | | | | | | | |
+| Field | Value |
+| :--- | :--- |
+| Knee | N=⟨⟩ — last point with a meaningful docs/min gain · threshold used ⟨⟩ |
+| Sweet spot | N=⟨⟩ — minimum `$/1M docs` |
+| Waste boundary | N=⟨⟩ — `$/run` up substantially, throughput up under 10 % |
+| Gap cost | ⟨⟩ extra per 1M docs paid at the knee versus the sweet spot |
+| Reference value | ⟨the pre-sweep default N⟩ · Fargate equivalent below |
+| Raw data | `./data/frontier.csv` · chart by `./scripts/plot-frontier.py` |
 
-Derived — all ᴬ:
+---
 
-| | Value | From |
-| :--- | :--- | :--- |
-| Knee | N=⟨⟩ | last point with a meaningful docs/min gain — threshold used: ⟨⟩ |
-| Sweet spot | N=⟨⟩ | minimum `$/1M docs` (C5) |
-| Waste boundary | N=⟨⟩ | `$/run` up substantially, throughput up under 10 % |
-| Gap cost | ⟨⟩ | extra `$/1M docs` paid at the knee versus the sweet spot |
-| Tier 1 constraint | ⟨⟩ | R2 at low N |
-| Tier 2 constraint | ⟨⟩ | R2 after Tier 1 relieved — **only if E20/E30 landed and it was observed** |
-| Warm-up share, lowest vs highest N | ⟨⟩ / ⟨⟩ | C6 |
+## Metrics — figures
 
-## Export manifest
-
-| Artifact | Written | Gaps | Notes |
+| Figure | Formula | Inputs | Value |
 | :--- | :--- | :--- | :--- |
-| `./data/ingestion-n⟨nn⟩.point.md` × 5 | | | |
-| Prometheus exports per point | | | retention ⟨3 d⟩ — exported after each point |
-| `./data/frontier.csv` | | | input to the report chart |
-| `./scripts/plot-frontier.py` + rendered chart | | | report §3.2 |
+| Docs/min | `doc_count ÷ wall_time` | `00-baseline` Constants · run log | |
+| Drain-rate cross-check | derivative of E1 | E1 | |
+| Node-hours | E2 integrated over the window, **Spot and On-Demand never summed** | E2 · run log | |
+| `$/run` | `node_h_spot × price_spot + node_h_od × price_od` | node-hours · `00-baseline` price basis → M4 | |
+| `$/1M docs` | `$/run ÷ doc_count × 1e6` | `$/run` · Constants | |
+| Warm-up share | `((E3 → E4) + consolidation tail) ÷ total node-hours` | E3 · E4 · E2 | |
+| Marginal decomposition | chunker · indexer · TEI share · warm-up · SQS · S3 · NAT — components sum to the total, **floor lines excluded** | `$/run` · E5 · price basis → M6 | |
+| Amortization | `(Block B + marginal × V) ÷ V` across volumes | marginal · `00-baseline` floor → M6 | |
+| Fargate equivalent | `vCPU-h × rate + GB-h × rate` from frozen pod requests × node-hours | node-hours · Constants · price basis | |
 
-## Routing — where the result went
+All rows above are derived. Sources feeding them are marked in the Matrix.
 
-Decided here, against the finished report.
+---
 
-| Destination | When it applies | Used |
+## Saturation
+
+| Axis value | Component at its ceiling | Evidence | Relieved by |
+| :--- | :--- | :--- | :--- |
+| low N | ⟨expected: chunker⟩ | E10 at the frozen limit | more workers at higher N |
+| high N | ⟨Tier 2 — only if observed⟩ | E20 · E21 · E30 | ⟨not attempted⟩ |
+
+> A tier counts as proven only when the previous ceiling was actually relieved and a new one
+> was then observed — `methodology.md` §9. A point with no recorded saturation signal
+> contributes its cost row and nothing to this table → M5.
+
+---
+
+## Guardrails
+
+| Value | Where it is set | From |
 | :--- | :--- | :--- |
-| **The whole report** | this is the only execution | no — `00-baseline` §5 is also in it |
-| **A report section**, table inline | the material is significant and fits | ⟨expected: §3.1–§3.5, and the coefficient §4.2 consumes⟩ |
-| **A benchmark**, cited from a section | too detailed for the report, or needed as the regression unit across revisions | ⟨only if the validity columns must travel with the matrix⟩ |
-| **`00-baseline` sections** | it is a given, not a finding, with two or more consumers | ⟨e.g. a resource limit that stops being an axis⟩ |
-| **Nothing** | measured, and insignificant against the rest — or the hypothesis did not hold | |
+| `maxReplicaCount: ⟨n⟩` | KEDA ScaledJob, both stages | Matrix — sweet spot |
+| chunker `memory.limit: ⟨⟩` | `deploy/k8s/apps/chunker` | E11 peak + headroom ⟨⟩ |
+| indexer `memory.limit: ⟨⟩` | `deploy/k8s/apps/indexer` | E11 peak + headroom ⟨⟩ |
+| `consolidateAfter: ⟨⟩` | `apps-compute` NodePool | warm-up share, if the tail proves material |
 
-> **Do not create `benchmarks/` speculatively.** Detail is the trigger, not the existence of
-> the folder. A five-row matrix fits in §3; it moves out when it grows per-point journals or
-> when v1.1 needs to diff against it revision to revision.
+Rows whose source number does not survive the runs are deleted, not left blank.
+
+---
+
+## Routing
 
 | Result | Destination | Applied |
 | :--- | :--- | :--- |
-| Run matrix (7 columns) | report §3.1 | |
-| Chart | report §3.2 | |
-| Knee / sweet spot / waste boundary | report §3.3 + guardrail §5 | |
-| Warm-up decomposition (C6) | report §3.4 | |
+| Run matrix, publishable columns | report §3.1 | |
+| Frontier chart | report §3.2 | |
+| Knee · sweet spot · waste boundary | report §3.3 + guardrail | |
+| Warm-up share | report §3.4 | |
 | Constraint ladder | report §3.5 | |
-| Marginal decomposition (C7) | report §4.2 | |
-| Amortization (C8) | report §4.3 | |
-| Fargate equivalent (C9) | report §4.4 | |
-| Peak RSS → memory limits (E11) | report §5 guardrails | |
+| Marginal · amortization · Fargate equivalent | report §4.2–§4.4 | |
+| Peak RSS → memory limits | report §5 | |
+| Validity columns and per-point journals | stay here — `benchmarks/` only if v1.1 needs a revision-to-revision diff | |
 
-## Hypothesis outcome
+---
 
-- [ ] Confirmed — Tier 1 is the chunker
-- [ ] Inverted — ⟨what actually happened; this goes into the report verbatim⟩
-- [ ] Untestable — ⟨why⟩
+## Open
+
+| Item | What it invalidates if wrong | Resolved |
+| :--- | :--- | :--- |
+| E5 separates NAT-bound from cluster-internal egress | one line of the marginal decomposition, silently | |
+| Spot price during the run windows matches the frozen basis | every `$/run` | |
+| ⟨E20 · E21 · E30 landed⟩ | Tier 2 only | |
+
+---
 
 ## Retro
 
-- What did this execution cost against its estimate?
-- Which precondition should have been checked earlier?
-- Which run was wasted, and which gate should have caught it?
-- What belongs back in `report-kit`?
+| Field | Value |
+| :--- | :--- |
+| Expectation | ⟨held · **inverted** — what actually saturated, in the words that go into the report⟩ |
+| Cost against estimate | |
+| What should have been checked earlier | ⟨and which validity criterion should have caught it⟩ |
+| What belongs back in the kit | |
