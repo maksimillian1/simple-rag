@@ -24,6 +24,9 @@
 The config commit moves between points and that is expected: the swept value lives in Git. What
 must not move is the pair of image digests.
 
+N is a ceiling, not a setting. What the axis actually delivers is M5, and the two are compared
+at every point in §1 Validity.
+
 ### Window
 
 The window opens at the first `s3:ObjectCreated`, taken from the marker file the upload script
@@ -33,30 +36,55 @@ does not close when the queues drain → K1.
 
 ### Metrics
 
-The register is in `./metrics.md`. M1 through M6 are required: a point missing any of them has
-no cost figure, no mechanism, or no Tier 1, and is not worth its cluster time. M7 and M8 through
-M10 are optional. M7 missing degrades one line of D20 to estimated. M8 through M10 gate the
-second constraint tier and nothing else, so the campaign starts without them rather than waiting.
+The register is in `./metrics.md`.
+
+M1 through M8 are required. A point missing any of them has no cost figure, no mechanism, or no
+Tier 1, and is not worth its cluster time.
+
+M9 is required for the campaign and blocks no point. Its source is CloudWatch, which stays
+readable for months, so it is collected once after the last point rather than per point. If it
+never lands, one line of D22 is priced from the rate card and marked ᴱ.
+
+M10 through M13 are optional. M10 through M12 gate the second constraint tier and nothing else.
+M13 confirms one sizing number once, at the highest-N point. The campaign starts without them
+rather than waiting for the ServiceMonitors.
 
 The query file is `./scripts/queries.txt`, written with confirmed names only, dry run clean
-⟨date⟩. Prometheus retention is ⟨3 d⟩, so export runs after every point. Extra points in an
-export are harmless; a missing one costs a full re-run.
+⟨date⟩. M7 is exported at ⟨5 s⟩ while the rest of the file runs at ⟨15 s⟩. That is a partial
+mitigation, not a fix: the sample rate is why M8 exists.
+
+Selectors for M4, M6 and M7 cannot be confirmed on an idle cluster. Worker containers do not
+exist at zero nodes, the query returns NO DATA, and that is indistinguishable from a missing
+scrape target. Confirm them during a smoke run under load, not during preflight.
+
+Prometheus retention is ⟨3 d⟩, so export runs after every point. Extra points in an export are
+harmless; a missing one costs a full re-run.
 
 ### Validity
 
 A point is excluded when image digests, corpus or `00-baseline` §2 differ from the other points.
+
 A point is excluded when the reset did not run and the collection was not recreated with
 `--wipe-mode recreate`.
 
-A point is not trusted when D14 and D15 disagree by more than a few percent. That means the run
-stalled and recovered rather than draining steadily.
+A point is not trusted when M1 does not fall steadily: a plateau in the middle of the window
+means the run stalled and recovered rather than draining, and the wall time behind D17 then
+describes a stall rather than a concurrency level.
 
-A point is re-run when R13 at close differs from the frozen corpus count. Documents were dropped
+A point is labelled with M5 rather than with N when the two disagree. Spot capacity was short,
+the point ran at what was granted, and filing it under the requested N puts a wrong x-value on
+the frontier. Both numbers go in the matrix.
+
+A point is re-run when R16 at close differs from the frozen corpus count. Documents were dropped
 and the denominator lies.
 
 A point is re-run when a node was lost during the window. It carries warm-up belonging to no
-concurrency level. The alternative is to mark D18 estimated and exclude the point from the curve
+concurrency level. The alternative is to mark D20 estimated and exclude the point from the curve
 fit. Averaging it in silently is not a third option.
+
+A non-zero M8 does not invalidate the point's cost row. It invalidates the memory guardrail
+derived from M7: a limit that produced an OOM is not a ceiling, and the replacement is raised
+rather than fitted to the observed peak.
 
 ### Safeguards
 
@@ -68,7 +96,7 @@ fit. Averaging it in silently is not a third option.
 ## 2 · Journal
 
 One invocation per point. The script does preflight, window timing, interruption detection, the
-R13 read, export, Qdrant reset, and emits the point block into `./data/`.
+R16 read, export, Qdrant reset, and emits the point block into `./data/`.
 
 ```bash
 ../../scripts/run-point.py --run ingestion-n04 --n 4 --doc-count ⟨00-baseline §2⟩
@@ -100,6 +128,9 @@ and nothing was exported. The point is lost.
 ### Close
 
 - [ ] Saturation identified, or headroom confirmed at the top of the grid.
+- [ ] M9 read from CloudWatch for the whole campaign, or the D22 egress line marked ᴱ.
+- [ ] M13 read at the highest-N point and compared against D25, or the comparison declared not made.
+- [ ] Collection point count written back into `00-baseline` §2 Envelope.
 - [ ] Every figure in §3 marked: unmarked · ᴰ · ᴿ · ᴱ.
 - [ ] Outcome compared against Expected in Retro, inversion included.
 
@@ -111,48 +142,60 @@ and nothing was exported. The point is lost.
 
 ### Matrix
 
-| Run | N | Docs/min | Wall time | Node-h Spot | Node-h On-Dem | $/run | $/1M docs | Saturation signal |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| #01 | 4 | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
-| #02 | 12 | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
-| #03 | 24 | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
-| #04 | ⟨⟩ | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
-| #05 | ⟨⟩ | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
+| Run | N set | N reached | Docs/min | Wall time | Node-h Spot | Node-h On-Dem | $/run | $/1M docs | Saturation signal |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| #01 | 4 | ⟨⟩ | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
+| #02 | 12 | ⟨⟩ | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
+| #03 | 24 | ⟨⟩ | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
+| #04 | ⟨⟩ | ⟨⟩ | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
+| #05 | ⟨⟩ | ⟨⟩ | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
+
+`N reached` is M5, time-weighted mean with the peak in brackets. The curve is fitted against it,
+not against `N set`.
 
 - **Knee** — N=⟨⟩, the last point with a meaningful docs/min gain. Threshold used ⟨⟩
 - **Sweet spot** — N=⟨⟩, the minimum `$/1M docs`. A minimum landing on the lowest or highest N swept is not proven (`methodology.md` §7)
 - **Waste boundary** — N=⟨⟩, where `$/run` rises substantially for under 10 % throughput
 - **Gap cost** — ⟨⟩ extra per 1M docs paid at the knee rather than at the sweet spot → report §3.3
-- **Reference value** — ⟨the pre-sweep default N⟩, and the Fargate equivalent D22
+- **Reference value** — ⟨the pre-sweep default N⟩, and the Fargate equivalent D24
 - **Condition boundary** — `00-baseline` §2 Envelope, plus packing density and bulk-drop arrival
 - **Raw data** — `./data/frontier.csv` · chart by `./scripts/plot-frontier.py` → `../../assets/`
 
-**Warm-up share** — D19 at the lowest and highest N: ⟨⟩ → ⟨⟩ → report §3.4
+**Warm-up share** — D21 at the lowest and highest N: ⟨⟩ → ⟨⟩ → report §3.4
 
-**Marginal decomposition** — D20 at the sweet spot → report §4.2 · amortization D21 → §4.3 ·
-Fargate equivalent D22 → §4.4
+**Marginal decomposition** — D22 at the sweet spot → report §4.2 · amortization D23 → §4.3
+
+**Fargate equivalent** — D24 → report §4.4. It prices this workload at Fargate rates and is a
+lower bound on what Fargate would actually cost. Three mechanisms move it upward and none move
+it down: no Spot capacity type exists for Fargate on EKS, so the comparison runs against
+On-Demand rates; requests are billed at the next step of a fixed vCPU and memory grid; and each
+task gets its own microVM, so image pull is paid per worker rather than amortised across a node.
+The claim the report makes is therefore the conservative one.
+
+**Sizing check** — D25 against M13: ⟨agree · disagree by ⟨⟩⟩. A disagreement is a `00-baseline`
+revision, not a row here.
 
 ### Saturation
 
 **Tier 1 — ⟨component⟩ at N=⟨⟩, run #⟨n⟩**
 
-- **Evidence** — M5 at the frozen limit, with R12 recorded at the point
+- **Evidence** — M6 at the frozen limit, with R15 recorded at the point
 - **Relieved by** — more workers at higher N. Cost of the next step ⟨$⟩ ᴰ
 
 **Tier 2 — ⟨claimed only if a new ceiling was observed after Tier 1 was actually relieved⟩**
 
-- **Evidence** — M8, M9 or M10, if they landed
+- **Evidence** — M10, M11 or M12, if they landed
 - **Relieved by** — ⟨not attempted⟩
 
-No third tier is claimed (`methodology.md` §8). A point with R12 empty contributes its cost row
+No third tier is claimed (`methodology.md` §8). A point with R15 empty contributes its cost row
 and nothing here.
 
 ### Guardrails
 
 - **`maxReplicaCount` = ⟨n⟩** — from the sweet spot in Matrix · `deploy/k8s/apps/⟨…⟩/scaledjob.yaml` → report §5
-- **chunker `limits.memory` = ⟨⟩** — from M6 peak plus ⟨30⟩ % · `deploy/k8s/apps/chunker` → report §5
-- **indexer `limits.memory` = ⟨⟩** — from M6 peak plus ⟨30⟩ % · `deploy/k8s/apps/indexer` → report §5
-- **`consolidateAfter` = ⟨⟩** — from D19, only if the tail proves material · `apps-compute` NodePool → report §5
+- **chunker `limits.memory` = ⟨⟩** — from M7 peak plus ⟨30⟩ %, valid only where M8 is zero · `deploy/k8s/apps/chunker` → report §5
+- **indexer `limits.memory` = ⟨⟩** — from M7 peak plus ⟨30⟩ %, valid only where M8 is zero · `deploy/k8s/apps/indexer` → report §5
+- **`consolidateAfter` = ⟨⟩** — from D21, only if the tail proves material · `apps-compute` NodePool → report §5
 
 Rows whose source number does not survive the runs are deleted, not left blank.
 
@@ -162,4 +205,5 @@ Rows whose source number does not survive the runs are deleted, not left blank.
 - **Cost against estimate** — ⟨⟩
 - **What should have been caught before the first run** — ⟨and which validity criterion should have caught it⟩
 - **Spot basis** — ⟨did the frozen historical average match the actual run windows⟩
+- **Concurrency delivered** — ⟨did M5 track N across the grid, or did the Spot pool cap the top⟩
 - **Back into the kit** — ⟨⟩

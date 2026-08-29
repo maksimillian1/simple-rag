@@ -6,6 +6,7 @@
 - **Status** — ⟨planned · running · closed · abandoned⟩
 - **Plan frozen** — ⟨date⟩ · commit `⟨sha⟩`
 - **Givens** — `00-baseline` §2, cited from there. The collection is restored from the `00-baseline` snapshot taken after `01-ingestion` closed
+- **Optional files** — `./concepts.md` mechanisms
 
 ---
 
@@ -16,15 +17,15 @@
 - **Varied parameter** — offered arrival rate R, in requests per second, set at the load generator
 - **Candidate grid** — R ∈ {⟨5, 25, 50, 100, 200⟩}
 - **Sweep order** — coarse to fine: the two ends and one midpoint, then two refinement points placed by the shape those three produce (`methodology.md` §7)
-- **Held constant** — Go API replicas, TEI replicas, Qdrant collection config, image digests, the restored collection, and every row of `00-baseline` §2 Configuration freeze
-- **Second pass** — replicas, only if the first pass shows the ceiling is a replica count rather than a per-replica limit
+- **Held constant** — Go API replicas, TEI replicas, Qdrant collection config, image digests, the Bedrock stub delay, the restored collection, and every row of `00-baseline` §2 Configuration freeze
+- **Second pass** — replicas, only if the first pass shows the ceiling is a replica count rather than a per-replica limit. The winning count then returns to `00-baseline` §2 as a given, and the Go API and TEI Floor lines move with it
 
 ### Unit and window
 
 A unit is one search request, complete when the retrieved context is written to the response.
-Generation in Bedrock is outside the unit. Bedrock runs under an account-level quota, so a rate
-sweep that includes it measures the provider's throttle rather than this configuration. The cost
-of generation is priced separately from token counts in E14.
+
+Generation is stubbed at the fixed delay frozen in `00-baseline` §2, and no run calls Bedrock
+→ K1. The cost of generation is priced separately from assumed token counts in E15.
 
 The window opens ⟨60⟩ s after the generator reaches the target rate, so connection ramp and
 warm-up are excluded. It closes when the generator stops. The load generator runs ⟨inside the
@@ -33,42 +34,45 @@ network latency sit inside the measured number, and it is frozen with this Plan.
 
 ### Metrics
 
-Refs are cited from outside as `02-inference/M2`.
+Refs are cited from outside as `02-inference/M2`. Required refs are M1 through M7. M8 and M9
+gate one claim — whether the ceiling sits in embedding or in retrieval — and the campaign starts
+without them.
 
 | Ref | What it measures | Source | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | M1 | requests served per second | `⟨http_requests_total⟩` on the Go API ⟨confirm⟩ | ⟨confirmed YYYY-MM-DD⟩ | required · compared against the offered rate to prove the generator was not the limit |
-| M2 | request duration distribution | `⟨http_request_duration_seconds_bucket⟩` ⟨confirm⟩ | ⟨confirmed YYYY-MM-DD⟩ | required · histogram, p50 p95 p99 read from buckets, never averaged across the window |
+| M2 | request duration distribution | `⟨http_request_duration_seconds_bucket⟩` ⟨confirm⟩ | ⟨confirmed YYYY-MM-DD⟩ | required · histogram, p50 p95 p99 read from buckets, never averaged across the window · generation is stubbed, so this is a retrieval-path number and not an end-to-end SLO → K1 |
 | M3 | error rate by status class | same family, status label | ⟨confirmed YYYY-MM-DD⟩ | required · a rate held at the cost of errors is not a sustained rate |
 | M4 | Go API and TEI container CPU against the frozen limits | `container_cpu_usage_seconds_total` | ⟨confirmed YYYY-MM-DD⟩ | required · constraint proof · selector `namespace` plus `container!=""` plus `container!="POD"` plus component |
-| M5 | Go API and TEI peak working set | `container_memory_working_set_bytes` | ⟨confirmed YYYY-MM-DD⟩ | required · guardrail source |
-| M6 | billable nodes on the serving pool | `kube_node_labels{label_karpenter_sh_nodepool="apps-serving"}` | ⟨confirmed YYYY-MM-DD⟩ | required · without it there is no cost figure |
-| M7 | TEI inference duration and queue depth | `te_request_inference_duration` · `te_queue_size` ⟨confirm⟩ | pending ServiceMonitor | optional · separates embedding time from retrieval time inside the p95 |
-| M8 | Qdrant search latency | ⟨confirm at `:6333/metrics`⟩ | pending ServiceMonitor | optional · the other half of the same split |
-| R9 | run log — offered rate, replica counts, UTC window, config commit, validity decision | emitted by `run-rate.py` into `./data/⟨point⟩.point.md` | active | the window is not recoverable afterwards |
-| R10 | saturation signal — which component sat at its ceiling | read in Grafana immediately after each point · ⟨who⟩ | active | candidates are TEI CPU, Go API CPU, Qdrant search latency, or the generator itself |
-| D11 | sustained rate | the highest swept rate holding p95 under ⟨200⟩ ms with M3 under ⟨0.1⟩ % | active | the headline number of this execution |
-| D12 | node-hours over the window | M6 integrated over the window | active | |
-| D13 | `$/1k queries`, compute only | `(D12 × price) ÷ queries_served × 1000` | active | floor lines excluded; this is spend above the always-on replicas |
-| E14 | `$/1k queries`, generation | ⟨n⟩ input and ⟨n⟩ output tokens × the Bedrock rate in `00-baseline` §2 | active | estimated, because the token count is assumed rather than swept · reported beside D13 and never added into it silently |
+| M5 | Qdrant container CPU against its limit | same family, Qdrant pod | ⟨confirmed YYYY-MM-DD⟩ | required · the third component on the query path, and the only one both paths share · the taint isolates Qdrant from other pods but nothing isolates search from upsert inside the process · without this the contention pass records that the rate dropped and cannot say whether it ran out of cores or out of page cache |
+| M6 | Go API and TEI peak working set | `container_memory_working_set_bytes` | ⟨confirmed YYYY-MM-DD⟩ | required · guardrail source · a serving process holds a steadier working set than a batch worker, so the sampling caveat on `01-ingestion/M7` bites less here |
+| M7 | billable nodes on the serving pool | `kube_node_labels{label_karpenter_sh_nodepool="apps-serving"}`, split on `label_karpenter_sh_capacity_type` | ⟨confirmed YYYY-MM-DD⟩ | required · without it there is no cost figure · the pool is mixed Spot and On-Demand, so the split is not optional here either |
+| M8 | TEI inference duration and queue depth | `te_request_inference_duration` · `te_queue_size` ⟨confirm⟩ | pending ServiceMonitor | optional · separates embedding time from retrieval time inside the p95 |
+| M9 | Qdrant search latency | ⟨confirm at `:6333/metrics`⟩ | pending ServiceMonitor | optional · the other half of the same split · also the second reading in the contention pass, where CPU headroom with latency rising points at page cache rather than cores |
+| R10 | run log — offered rate, replica counts, UTC window, config commit, stub delay, validity decision | emitted by `run-rate.py` into `./data/⟨point⟩.point.md` | active | the window is not recoverable afterwards |
+| R11 | saturation signal — which component sat at its ceiling | read in Grafana immediately after each point · ⟨who⟩ | active | candidates are TEI CPU, Go API CPU, Qdrant CPU or search latency, or the generator itself |
+| D12 | sustained rate | the highest swept rate holding p95 under ⟨200⟩ ms with M3 under ⟨0.1⟩ % | active | the headline number of this execution |
+| D13 | node-hours over the window | M7 integrated over the window | active | |
+| D14 | `$/1k queries`, compute only | `(D13 × price) ÷ queries_served × 1000` | active | floor lines excluded; this is spend above the always-on replicas |
+| E15 | `$/1k queries`, generation | ⟨n⟩ input and ⟨n⟩ output tokens × the Bedrock rate in `00-baseline` §2 | active | estimated, because the token count is assumed rather than swept, and because no run called Bedrock · reported beside D14 and never added into it silently |
 
-M7 and M8 gate one claim: whether the ceiling sits in embedding or in retrieval. The campaign
-starts without them. If they never land, the constraint is named at component granularity from
-M4 and the split goes to report Coverage.
+If M8 and M9 never land, the constraint is named at component granularity from M4 and M5, and
+the embedding-versus-retrieval split goes to report Coverage.
 
 The query file is `./scripts/queries.txt`, dry run clean ⟨date⟩. Export runs after every point;
 Prometheus retention is ⟨3 d⟩.
 
 ### Validity
 
-A point is excluded when the served rate falls short of the offered rate by more than a few
-percent. That means the generator, not the system, was the limit.
+A point is excluded when the served rate on M1 falls short of the offered rate by more than a
+few percent. That means the generator, not the system, was the limit.
 
-A point is excluded when the collection differs from the restored snapshot, or when replica
-counts moved during the window.
+A point is excluded when the collection differs from the restored snapshot, when replica counts
+moved during the window, or when the stub delay differs from the frozen value. All three change
+what the p95 describes.
 
-A point is not trusted when the error rate exceeds ⟨0.1⟩ %. Latency measured while requests are
-failing describes a system that is already broken.
+A point is not trusted when M3 exceeds ⟨0.1⟩ %. Latency measured while requests are failing
+describes a system that is already broken.
 
 A point is re-run when a serving node was lost during the window.
 
@@ -104,6 +108,7 @@ A point is re-run when a serving node was lost during the window.
 ### Close
 
 - [ ] Saturation identified, or headroom confirmed at the top of the grid.
+- [ ] Contention pass run at the point nearest D12.
 - [ ] Every figure in §3 marked: unmarked · ᴰ · ᴿ · ᴱ.
 - [ ] Outcome compared against Expected in Retro, inversion included.
 
@@ -111,8 +116,8 @@ A point is re-run when a serving node was lost during the window.
 
 ## 3 · Results
 
-**Finding** — ⟨one sentence: the configuration sustains ⟨R⟩ req/s at p95 = ⟨W⟩ ms, and the
-ceiling is ⟨component⟩⟩ → report §3.7
+**Finding** — ⟨one sentence: the configuration sustains ⟨R⟩ req/s at p95 = ⟨W⟩ ms on the
+retrieval path, and the ceiling is ⟨component⟩⟩ → report §3.7
 
 ### Matrix
 
@@ -124,27 +129,33 @@ ceiling is ⟨component⟩⟩ → report §3.7
 | #04 | ⟨⟩ | | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
 | #05 | ⟨⟩ | | | | | | ⟨⟩ ᴰ | ⟨⟩ ᴰ | ⟨⟩ ᴿ |
 
-- **Sustained rate** — D11 = ⟨⟩ req/s → report §3.7
+Every latency column excludes generation, which was stubbed at ⟨n⟩ ms → K1.
+
+- **Sustained rate** — D12 = ⟨⟩ req/s → report §3.7
 - **Reference value** — the `p95 < 200 ms` line in `architecture.md`, which was a design target and not a measurement
-- **Condition boundary** — fixed replica counts, the restored collection, generator placement, and `00-baseline` §2 Envelope
+- **Condition boundary** — fixed replica counts, the stubbed generation path, the restored collection, generator placement, and `00-baseline` §2 Envelope
 - **Raw data** — `./data/frontier.csv` · chart by `./scripts/plot-rate.py` → `../../assets/`
 
-**Cost** — D13 = ⟨⟩ compute, E14 = ⟨⟩ generation → report §4.2
+**Cost** — D14 = ⟨⟩ compute, E15 = ⟨⟩ generation → report §4.2
 
 ### Contention pass
 
-Repeat the point nearest D11 with ingestion running at the `01-ingestion` guardrail value.
-Qdrant serves both paths from one node, so a query run against an idle ingestion path measures
-a state the system is not in during a backfill.
+Repeat the point nearest D12 with ingestion running at the `01-ingestion` guardrail value.
+Qdrant serves both paths from one node and one process, so a query run against an idle ingestion
+path measures a state the system is not in during a backfill. Upsert builds HNSW links on the
+same cores that serve search, the optimizer keeps rebuilding segments after ingestion stops, and
+writes evict from page cache what search reads back from disk. Those produce the same symptom
+and take different remedies, which is what M5 and M9 separate.
 
 - **Sustained rate under ingestion** — ⟨⟩ req/s, against ⟨⟩ without → report §3.8
+- **What gave way** — ⟨M5 at its ceiling: cores · M5 with headroom and M9 rising: page cache or optimizer · neither, the drop is elsewhere⟩ ᴿ
 - **Decision** — ⟨the query guardrail holds · a separate backfill-window guardrail is needed⟩
 
 ### Saturation
 
 **Tier 1 — ⟨component⟩ at ⟨R⟩ req/s, run #⟨n⟩**
 
-- **Evidence** — M4 at the frozen limit, with R10 recorded at the point. If M7 and M8 landed, the p95 is split into embedding and retrieval
+- **Evidence** — M4 or M5 at the frozen limit, with R11 recorded at the point. If M8 and M9 landed, the p95 is split into embedding and retrieval
 - **Relieved by** — ⟨replica increase⟩ at ⟨$⟩ ᴰ per month
 
 No second tier is claimed unless the first was actually relieved and a new ceiling was then
@@ -152,9 +163,9 @@ observed (`methodology.md` §8).
 
 ### Guardrails
 
-- **Go API `replicas` = ⟨n⟩** — from D11 · `deploy/k8s/apps/api` → report §5
+- **Go API `replicas` = ⟨n⟩** — from D12 · `deploy/k8s/apps/api` → report §5
 - **TEI `replicas` = ⟨n⟩** — from the constraint above · `deploy/k8s/apps/tei` → report §5
-- **Query rate alert at ⟨⟩ req/s** — D11 × 0.8 · `prometheus/rules.yaml` → report §5
+- **Query rate alert at ⟨⟩ req/s** — D12 × 0.8 · `prometheus/rules.yaml` → report §5
 - **Latency alert at p95 > ⟨⟩ ms for ⟨⟩ min** — from the Matrix · `prometheus/rules.yaml` → report §5
 - **Backfill `maxReplicaCount` = ⟨n⟩** — from the contention pass, only if it differs from the `01-ingestion` value → report §5
 
@@ -165,4 +176,5 @@ Rows whose source number does not survive the runs are deleted, not left blank.
 - **Expectation** — ⟨held · inverted — what actually saturated, in the words that go into the report⟩
 - **Cost against estimate** — ⟨⟩
 - **What should have been caught before the first run** — ⟨and which validity criterion should have caught it⟩
+- **Stub delay** — ⟨did the frozen value sit far enough below the retrieval path to leave the ceiling visible⟩
 - **Back into the kit** — ⟨⟩

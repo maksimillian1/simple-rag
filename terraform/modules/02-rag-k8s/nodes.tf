@@ -33,7 +33,12 @@ module "eks_core_nodes" {
   labels = {
     "node.kubernetes.io/cni-welcome" = "cilium"
     "tier"                           = "core-on-demand"
+    "feature"                        = "simple-rag"
   }
+
+  tags = merge(var.tags, {
+    tier = "core-on-demand"
+  })
 
   iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
@@ -100,7 +105,12 @@ module "eks_database_nodes" {
   labels = {
     "node.kubernetes.io/cni-welcome" = "cilium"
     "tier"                           = "database"
+    "feature"                        = "simple-rag"
   }
+
+  tags = merge(var.tags, {
+    tier = "database"
+  })
 
   iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
