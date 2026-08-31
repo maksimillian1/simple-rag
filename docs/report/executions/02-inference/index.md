@@ -62,16 +62,16 @@ sits in embedding or in retrieval.
 | M1 | requests served per second | `⟨http_requests_total⟩` on the Go API ⟨confirm⟩ | ⟨confirmed YYYY-MM-DD⟩ | required · compared against the offered rate at every point. A shortfall means the generator was the limit and the point is excluded → K3 |
 | M2 | request duration distribution | `⟨http_request_duration_seconds_bucket⟩` ⟨confirm⟩ | ⟨confirmed YYYY-MM-DD⟩ | required · histogram, p50 p95 p99 read from buckets, never averaged across the window · generation is stubbed, so this is a retrieval-path number and not an end-to-end SLO → K1 |
 | M3 | error rate by status class | same family, status label | ⟨confirmed YYYY-MM-DD⟩ | required · a rate held at the cost of errors is not a sustained rate |
-| M4 | Go API and TEI container CPU against the frozen limits | `container_cpu_usage_seconds_total` | ⟨confirmed YYYY-MM-DD⟩ | required · constraint proof, and the reading that works whatever the scaler trigger turns out to be · selector `namespace` plus `container!=""` plus `container!="POD"` plus `component` · read per replica, since replica count moves between points |
+| M4 | Go API and TEI container CPU against the frozen limits | `container_cpu_usage_seconds_total` | ⟨confirmed YYYY-MM-DD⟩ | required · constraint proof, and the reading that works whatever the scaler trigger turns out to be · selector `namespace` plus `container!=""` plus `container!="POD"` plus `app` · read per replica, since replica count moves between points |
 | M5 | Qdrant container CPU against its limit | same family, Qdrant pod | ⟨confirmed YYYY-MM-DD⟩ | required · the third component on the query path, and the only one both paths share · Qdrant does not autoscale, so it is the one component whose ceiling cannot be relieved by the scaler · without this the contention pass records that the rate dropped and cannot say whether it ran out of cores or out of page cache |
 | M6 | Go API and TEI peak working set | `container_memory_working_set_bytes` | ⟨confirmed YYYY-MM-DD⟩ | required · guardrail source · a serving process holds a steadier working set than a batch worker, so the sampling caveat on `01-ingestion/K3` bites less here |
 | M7 | API and TEI replicas over the window | `kube_deployment_status_replicas`, both deployments | ⟨confirmed YYYY-MM-DD⟩ | required · the observed column of this execution and the source of both replica guardrails → K2 · converged value, with the peak and the time to converge from the point's open · equal to `maxReplicaCount` means the ceiling bound and the point is excluded |
 | M8 | nodes on the serving pool, by capacity type | `kube_node_labels{label_karpenter_sh_nodepool="apps-serving"}`, split on `label_karpenter_sh_capacity_type` | ⟨confirmed YYYY-MM-DD⟩ | required · the pool is mixed Spot and On-Demand and the split is not optional · a node arriving mid-window means convergence was declared too early and the point is re-run |
 | M9 | serving pool cost over the window | CUR 2.0 · `line_item_unblended_cost` where `line_item_line_item_type='Usage'` and `resource_tags_user_tier='apps-serving'`, over the hourly buckets covering the window | ⟨confirmed YYYY-MM-DD⟩ | required for the campaign, blocks no point · gross, before the floor is removed · same instrument and same subtraction as `01-ingestion/M11`, on the same pool → `01-ingestion/K6` |
-| M10 | pod-level split of M9 — api, tei, and capacity used by neither | CUR 2.0 split cost allocation columns, grouped by the `component` pod label ⟨confirm column name⟩ | ⟨confirmed YYYY-MM-DD⟩ | required for the campaign · says which of the two deployments the marginal cost went to, which is the cost-side answer to the same question the constraint answers · an allocation rule rather than a measurement → `01-ingestion/K5` |
+| M10 | pod-level split of M9 — api, tei, and capacity used by neither | CUR 2.0 split cost allocation columns, grouped by the `app` pod label ⟨confirm column name⟩ | ⟨confirmed YYYY-MM-DD⟩ | required for the campaign · says which of the two deployments the marginal cost went to, which is the cost-side answer to the same question the constraint answers · an allocation rule rather than a measurement → `01-ingestion/K5` |
 | M11 | TEI inference duration and queue depth | `te_request_inference_duration` · `te_queue_size` ⟨confirm⟩ | pending ServiceMonitor | optional · separates embedding time from retrieval time inside the p95 · a queue that grows while M7 is still climbing is scaler lag, not a capacity ceiling |
 | M12 | Qdrant search latency | ⟨confirm at `:6333/metrics`⟩ | pending ServiceMonitor | optional · the other half of the same split · also the second reading in the contention pass, where CPU headroom with latency rising points at page cache rather than cores |
-| R13 | run log — offered rate, UTC window, config commit, stub delay, convergence time, validity decision | emitted by `run-rate.py` into `./data/⟨point⟩.point.md` | active | the window is not recoverable afterwards, and the cost pass reads its windows from here |
+| R13 | run log — offered rate, UTC window, config commit, stub delay, convergence time, validity decision | emitted by `run-inference-point.py` into `./data/⟨point⟩.point.md` | active | the window is not recoverable afterwards, and the cost pass reads its windows from here |
 | R14 | saturation signal — which component sat at its ceiling | read in Grafana immediately after each point · ⟨who⟩ | active | candidates are TEI CPU, Go API CPU, Qdrant CPU or search latency, the scaler failing to converge, or the generator itself |
 | D15 | sustained rate | the highest swept rate holding p95 under ⟨200⟩ ms with M3 under ⟨0.1⟩ % and M1 matching the offered rate | active | the headline number of this execution → K3 |
 | D16 | marginal `$/1k queries` | `(M9 − serving pool idle rate × window hours) ÷ queries_served × 1000`, idle rate from `00-baseline` §2 | active | measured, because replicas and nodes move with the axis · the subtraction keeps the always-on minimum out of a marginal figure · at low rates it can round to zero, which is a finding rather than an error |
@@ -118,13 +118,15 @@ convergence, times the window, exports Prometheus and emits the point block. It 
 cost.
 
 ```bash
-../../scripts/run-rate.py --run inference-r050 --rate 50 --duration 600
+../../scripts/run-inference-point.py --run inference-r050 --rate 50 --duration 10m
 ```
 
 The cost pass is the same script as `01-ingestion` uses, run once for the campaign:
 
 ```bash
-../../scripts/aws-cur-report-export.py --execution 02-inference --after 48h
+../../scripts/aws-cur-report-export.py --data s3://⟨bucket⟩/⟨prefix⟩ \
+                            --start ⟨window start⟩ --hours 1 \
+                            --tag feature=⟨value⟩ --split --format csv
 ```
 
 ### Run ledger
@@ -179,7 +181,7 @@ Every latency column excludes generation, which was stubbed at ⟨n⟩ ms → K1
 - **Scaling shape** — ⟨replicas against served rate: linear · sublinear, and where⟩ → report §3.6
 - **Reference value** — the `p95 < 200 ms` line in `architecture.md`, which was a design target and not a measurement
 - **Condition boundary** — the two scaler triggers, the stubbed generation path, the restored collection, generator placement, and `00-baseline` §2 Envelope
-- **Raw data** — `./data/frontier.csv` · chart by `./scripts/plot-rate.py` → `../../assets/`
+- **Raw data** — `./data/frontier.csv`. No `plot-rate.py` exists in `docs/report/scripts/` yet — chart by hand or write one before this execution closes
 
 **Cost at the sustained rate** — D16 = ⟨⟩ marginal, D17 = ⟨⟩ floor share, E18 = ⟨⟩ generation
 → report §4.2

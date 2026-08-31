@@ -8,8 +8,9 @@ resource "aws_sqs_queue" "stage_1_dlq" {
 
 # SQS Queue for Stage 1 Parsing (S3 notifications target)
 resource "aws_sqs_queue" "stage_1_queue" {
-  name                      = "${var.resource_prefix}-stage-1-parsing"
-  receive_wait_time_seconds = 20 # Enable Long Polling
+  name                       = "${var.resource_prefix}-stage-1-parsing"
+  receive_wait_time_seconds  = 20  # Enable Long Polling
+  visibility_timeout_seconds = 900 # single-threaded PyMuPDF parse can run well past the 30s default
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.stage_1_dlq.arn
@@ -29,8 +30,9 @@ resource "aws_sqs_queue" "stage_2_dlq" {
 
 # SQS Queue for Stage 2 Indexing (parsed chunks to indexer)
 resource "aws_sqs_queue" "stage_2_queue" {
-  name                      = "${var.resource_prefix}-stage-2-indexing"
-  receive_wait_time_seconds = 20 # Enable Long Polling
+  name                       = "${var.resource_prefix}-stage-2-indexing"
+  receive_wait_time_seconds  = 20  # Enable Long Polling
+  visibility_timeout_seconds = 300 # embedding + Qdrant upsert per chunk batch
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.stage_2_dlq.arn

@@ -68,11 +68,11 @@ spec:
             value: "true"
           resources:
             requests:
-              cpu: "1"
+              cpu: 500m # FASTEMBED_THREADS=1 caps real usage to ~0.4-0.55 core (p95/max measured)
               memory: "2Gi"
             limits:
               cpu: "2"
-              memory: "3Gi"
+              memory: "4Gi" # measured max 2.85Gi against the old 3Gi limit left only ~7% headroom
         restartPolicy: Never
   pollingInterval: 15
   successfulJobsHistoryLimit: 3

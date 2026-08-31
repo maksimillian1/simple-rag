@@ -36,6 +36,13 @@ spec:
               configMapKeyRef:
                 name: sqs-config
                 key: AWS_SQS_STAGE_2_URL
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 3Gi # corpus has PDFs up to ~124MB; image-heavy ones can decode to several times file size
         restartPolicy: Never
   pollingInterval: 15
   successfulJobsHistoryLimit: 3

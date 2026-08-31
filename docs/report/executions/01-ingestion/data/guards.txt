@@ -8,7 +8,7 @@
 # are two files: refs are unique within a file, and the same mechanism is read
 # one way as a series and another as a verdict.
 
-M8|max 0|sum(kube_pod_container_status_last_terminated_reason{namespace="default",reason="OOMKilled"}) or vector(0)
+M8|max 0|sum(kube_pod_container_status_last_terminated_reason{namespace="rag-jobs",reason="OOMKilled"}) or vector(0)
 M2|max 0|count(kube_node_labels{label_karpenter_sh_nodepool="apps-compute"}) or vector(0)
 M1|max 0|sum(keda_scaler_metrics_value{scaledObject=~"chunker|indexer"}) or vector(0)
-M9|max 2|max(kube_deployment_status_replicas{namespace="default",deployment="tei-embeddings"})
+M9|max 2|max(kube_deployment_status_replicas{namespace="rag-platform",deployment="tei-embeddings"})

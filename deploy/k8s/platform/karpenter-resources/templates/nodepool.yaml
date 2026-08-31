@@ -105,15 +105,18 @@ spec:
         - key: karpenter.sh/capacity-type
           operator: In
           values: ["spot"]
-        - key: karpenter.k8s.aws/instance-category
+        # Pinned to one family (compute-optimized Graviton, gen 7) rather than
+        # the previous open category/arch range — both chunker and indexer are
+        # single-threaded and CPU-bound, so c/m/r variety and amd64 bought
+        # nothing but unpredictable per-node pricing and churn. Multiple sizes
+        # are still allowed so Karpenter has somewhere to fall back to if one
+        # size's Spot pool is briefly out of capacity.
+        - key: karpenter.k8s.aws/instance-family
           operator: In
-          values: ["c", "m", "r"]
-        - key: kubernetes.io/arch
-          operator: In
-          values: ["amd64", "arm64"]
+          values: ["c7g"]
         - key: karpenter.k8s.aws/instance-size
-          operator: NotIn
-          values: ["nano", "micro"]
+          operator: In
+          values: ["xlarge", "2xlarge", "4xlarge"]
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass

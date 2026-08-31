@@ -22,14 +22,14 @@
 - [ ] Tagged explicitly: SQS queues, S3 buckets, both Bedrock interface endpoints, the EKS cluster, the load balancer behind the Gateway.
 - [ ] Qdrant volumes tagged in place through the EC2 API, one per replica.
 - [ ] Tag values checked for case.
-- [ ] Every workload carries `component=⟨chunker · indexer · api · tei⟩` as a pod label. Pod names are the split's identifier otherwise, and KEDA generates a new one per Job.
+- [ ] Every workload carries `app=⟨chunker · indexer · api · tei-embeddings⟩` as a pod label. Pod names are the split's identifier otherwise, and KEDA generates a new one per Job.
 - [ ] Every workload declares CPU and memory `requests`. A pod without them can be dropped from the split while the total still reconciles → K2.
 
 **Billing console, same day** → K2
 
 - [ ] Cost allocation tags → both keys → Activate.
 - [ ] Cost Management Preferences → split cost allocation data opted in. Measurement option and CPU-to-memory weighting → `./data/scad-config-⟨YYYY-MM-DD⟩.txt`.
-- [ ] Data Exports → CUR 2.0 export: hourly, resource IDs, split cost allocation data, Parquet, overwrite versioning, into `s3://⟨bucket⟩/⟨prefix⟩`. Kubernetes label import enabled for `component`.
+- [ ] Data Exports → CUR 2.0 export: hourly, resource IDs, split cost allocation data, Parquet, overwrite versioning, into `s3://⟨bucket⟩/⟨prefix⟩`. Kubernetes label import enabled for `app`.
 
 **Confirmed before the window opens**
 
@@ -91,7 +91,7 @@ names.
 | Qdrant sharding | `shard_number` ⟨n⟩ · `replication_factor` ⟨n⟩                                                           | Helm values                                         | decides whether the second node holds data or is paid for and idle |
 | Qdrant collection config | INT8 SQ on · 384 dims · sparse on · `hnsw_m` ⟨n⟩ · `hnsw_ef` ⟨n⟩                                        | Helm values                                         | changes write cost, read latency and RAM together |
 | Bedrock stub delay | 2000 ms                                                                                                 | `apps/api/core/domain.go` mock_delay_ms query param | every latency figure in this report is read against it |
-| Component pod label | `component=⟨chunker · indexer · api · tei⟩`                                                             | every workload manifest                             | the grouping key for pod-level cost; generated Job names are not one |
+| App pod label | `app=⟨chunker · indexer · api · tei-embeddings⟩`                                                        | every workload manifest                             | the grouping key for pod-level cost; generated Job names are not one |
 | Job history retention | `successfulJobsHistoryLimit` ⟨n⟩ · `failedJobsHistoryLimit` ⟨n⟩ · `ttlSecondsAfterFinished` ⟨n⟩         | `deploy/k8s/apps/⟨…⟩/scaledjob.yaml`                | worker concurrency and termination reasons are read from Job and Pod objects, and garbage collection removes those series mid-window |
 | Image digests | chunker `⟨sha256:…⟩` · indexer `⟨sha256:…⟩` · api `⟨sha256:…⟩` · tei `⟨sha256:…⟩` · qdrant `⟨sha256:…⟩` |                                                     | the one thing that must not move while the config commit does · the Qdrant digest is an `arm64` manifest and the rest are `x86_64` |
 

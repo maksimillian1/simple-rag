@@ -402,8 +402,8 @@ def main() -> int:
     p.add_argument("--doc-count", type=int,
                    help="frozen corpus count from 00-baseline §2")
     p.add_argument("--env", default=str(lk.default_env_path()))
-    p.add_argument("--series", default=str(exec_dir / "series.txt"))
-    p.add_argument("--guards", default=str(exec_dir / "guards.txt"))
+    p.add_argument("--series", default=str(exec_dir / "data" / "series.txt"))
+    p.add_argument("--guards", default=str(exec_dir / "data" / "guards.txt"))
     p.add_argument("--start", help="explicit window start, RFC3339")
     p.add_argument("--start-marker",
                    help="file holding the first s3:ObjectCreated timestamp")
