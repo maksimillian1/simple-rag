@@ -124,7 +124,7 @@ alertmanager:
         cpu: "100m"
         memory: "128Mi"
 
-kubeStateMetrics:
+kube-state-metrics:
   metricLabelsAllowlist:
     - "nodes=[karpenter.sh/nodepool,karpenter.sh/capacity-type]"
   nodeSelector:
