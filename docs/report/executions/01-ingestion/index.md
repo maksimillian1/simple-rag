@@ -6,7 +6,6 @@
 - **Status** — ⟨planned · running · closed · abandoned⟩
 - **Plan frozen** — ⟨date⟩ · commit `⟨sha⟩`
 - **Givens** — `00-baseline` §2, cited from there
-- **Optional files** — `./metrics.md` register · `./concepts.md` mechanisms
 
 ---
 
@@ -14,132 +13,65 @@
 
 ### Axis
 
-- **Varied parameter** — KEDA `maxReplicaCount` (N), set to the same value on both ScaledJobs, in `deploy/k8s/apps/⟨…⟩/scaledjob.yaml`
+- **Varied parameter** — KEDA `maxReplicaCount` (N), one value on both ScaledJobs, in `deploy/k8s/apps/⟨…⟩/scaledjob.yaml`. Fixing one stage while sweeping the other makes the fixed stage the ceiling by construction, and the hypothesis names a stage. The split between them comes from M6 → K7
 - **Candidate grid** — N ∈ {4, 8, 12, 16, 20, 24}
 - **Sweep order** — coarse to fine: {4, 12, 24}, then two refinement points placed by the shape those three produce (`methodology.md` §7). Five points total
-- **Held constant** — image digests, corpus, Qdrant collection config, instance types, the TEI trigger, and every row of `00-baseline` §2 Configuration freeze
+- **Held constant** — image digests, corpus, Qdrant collection config, instance types, the TEI trigger, and every row of `00-baseline` §2 Configuration freeze. The config commit moves between points: the swept value lives in Git
 - **Not held constant, and measured instead** — TEI replicas. The indexer drives the same autoscaler the query path drives, so TEI scales during a run and its cost above the two-replica floor belongs to this execution → K5
 - **Reset between points** — both queues at zero, `apps-compute` at zero nodes, TEI back at 2 replicas, collection recreated
 - **Conditions carried to report §2** — bulk-drop arrival, worker packing density of ≈ ⟨n⟩ per node → K2, and the TEI trigger frozen in `00-baseline` §2
 
-Here the potential is bounded by the queue, not by the client: the corpus is dropped in full
-before the window opens, so work is always waiting and a higher ceiling is immediately consumed.
-That is what makes a ceiling the right axis here and the wrong one in `02-inference`.
-
-One N drives both stages. Fixing one stage while sweeping the other would make the fixed stage
-the ceiling by construction, and the hypothesis above names a stage. The component split comes
-from M6, whose selector already separates them.
-
-The config commit moves between points and that is expected: the swept value lives in Git. What
-must not move is the set of image digests.
-
-N is a ceiling, not a setting. What the axis actually delivers is M5, and the two are compared
-at every point in §1 Validity.
-
 ### Window
 
-The window opens at the first `s3:ObjectCreated`, taken from the marker file the upload script
-writes, and recorded by `run-point.py --start-marker`. Upload itself is outside the system under
-test. The window closes when `apps-compute` reaches zero nodes **and** TEI has returned to two
-replicas, plus a five-minute buffer. It does not close when the queues drain → K1.
-
-**Points are scheduled one per clock hour.** Cost is read from hourly CUR buckets, and two
-points sharing a bucket cannot be told apart inside it → K6. A point starts near the top of an
-hour and the next one starts no earlier than the following hour.
-
-No query load runs during this execution. TEI serves both paths and a concurrent query would
-put its scale-out cost in two executions at once.
+- **Opens** — first `s3:ObjectCreated`, from the marker the upload script writes · recorded by `run-point.py --start-marker`. Upload is outside the system under test
+- **Closes** — `apps-compute` at zero nodes **and** TEI back at 2 replicas, plus ⟨5⟩ min. Not at queue drain → K1
+- **Spacing** — one point per clock hour → K6
+- **Excluded from the window** — query load. TEI is shared, and its scale-out would be priced in two executions at once → K5
 
 ### Metrics
 
-The register is in `./metrics.md`.
-
-M1 through M9 are Prometheus-sourced and perishable. Retention is ⟨3 d⟩, so each of them gates
-its point at the moment the point closes. A point missing any of them has no mechanism, no
-Tier 1, or no denominator, and is not worth its cluster time.
-
-M10 through M14 are CUR-sourced and cannot be read at point close: the export is delivered daily
-and revised until the month ends → K6. They gate the campaign, not a point. The cost pass runs
-once, at least 48 h after the last point, and fills the cost columns of every row in one go.
-
-M15 through M18 are optional. M15 through M17 gate the second constraint tier and nothing else.
-M18 confirms one sizing number once, at the highest-N point.
-
-The Prometheus query file is `./scripts/queries.txt`, written with confirmed names only, dry run
-clean ⟨date⟩. M7 is exported at ⟨5 s⟩ while the rest of the file runs at ⟨15 s⟩. That is a
-partial mitigation, not a fix: the sample rate is why M8 exists → K3.
-
-Selectors for M4, M6 and M7 cannot be confirmed on an idle cluster. Worker containers do not
-exist at zero nodes, the query returns NO DATA, and that is indistinguishable from a missing
-scrape target. Confirm them during a smoke run under load, not during preflight.
+The register is in `./metrics.md`. PromQL for M1–M9 is in `./promql.txt`, confirmed names only, dry run clean ⟨date⟩.
 
 ### Validity
 
-A point is excluded when image digests, corpus or `00-baseline` §2 differ from the other points.
+| Condition | Action | Ref |
+| :--- | :--- | :--- |
+| image digests, corpus or `00-baseline` §2 differ from the other points | exclude | |
+| reset did not run — collection not recreated, or TEI above 2 at open | exclude | K5 |
+| the window shares an hourly CUR bucket with another point | exclude | K6 |
+| M1 does not fall steadily | not trusted — the wall time behind D22 describes a stall | |
+| M5 disagrees with N | file the point under M5, both numbers in the matrix | K7 |
+| a node was lost during the window | re-run, or mark ᴱ and drop it from the curve fit | K1 |
+| R21 differs from the frozen corpus count | re-run — the denominator lies | |
+| split cost allocation returns no rows for the point's pods | keep the cost row, drop the M12 decomposition | K5 |
+| M8 non-zero | the cost row stands; the memory guardrail it fed is void | K3 |
 
-A point is excluded when the reset did not run: the collection was not recreated with
-`--wipe-mode recreate`, or TEI had not returned to two replicas before the window opened. A run
-that starts with TEI already warm carries capacity it did not pay for.
-
-A point is excluded when its window shares an hourly CUR bucket with another point. The compute
-cost of the two cannot be separated after the fact, and both lose their cost row → K6.
-
-A point is not trusted when M1 does not fall steadily: a plateau in the middle of the window
-means the run stalled and recovered rather than draining, and the wall time behind D22 then
-describes a stall rather than a concurrency level.
-
-A point is labelled with M5 rather than with N when the two disagree. Spot capacity was short,
-the point ran at what was granted, and filing it under the requested N puts a wrong x-value on
-the frontier. Both numbers go in the matrix.
-
-A point is re-run when R21 at close differs from the frozen corpus count. Documents were dropped
-and the denominator lies.
-
-A point is re-run when a node was lost during the window. It carries warm-up belonging to no
-concurrency level. The alternative is to mark the point estimated and exclude it from the curve
-fit. Averaging it in silently is not a third option.
-
-A point loses its M12 decomposition, but keeps its cost row, when split cost allocation returns
-no rows for its pods. The total is billed either way; only the per-component share depends on
-the feature → K5.
-
-A non-zero M8 does not invalidate the point's cost row. It invalidates the memory guardrail
-derived from M7: a limit that produced an OOM is not a ceiling, and the replacement is raised
-rather than fitted to the observed peak → K3.
-
-### Safeguards
-
-- **Estimated cost and duration** — 5 points × ⟨wall time⟩ · ⟨$⟩ ᴱ on Spot, spread over ⟨n⟩ hours by the one-point-per-hour rule
-- **Abort condition** — three consecutive points invalidated by node loss. The Spot pool cannot hold a run long enough to measure, which is a finding about resilience rather than something to push through
+Averaging an excluded point back in silently is not a third option.
 
 ---
 
 ## 2 · Journal
 
-One invocation per point. The script does preflight, window timing, interruption detection, the
-R21 read, Prometheus export, TEI and Qdrant reset, and emits the point block into `./data/`. It
-does not read cost.
+One invocation per point. The runner does preflight, window timing, interruption detection, the
+R21 read, Prometheus export, and the TEI and Qdrant reset. It does not read cost. Exit codes and
+what to do with each are in `run-point.py --help`.
 
 ```bash
-../../scripts/run-point.py --run ingestion-n04 --n 4 --doc-count ⟨00-baseline §2⟩
+../../scripts/run-point.py --profile ./profile.yaml --promql ./promql.txt \
+                           --run ingestion-n04 --n 4
 ```
 
-Exit 0 means the point is clean. Paste the block, then read the saturation signal in Grafana
-now, while the window is still in retention. Exit 1 means preflight failed and nothing ran.
-Exit 2 means the export has gaps and nothing was wiped. Do not start the next point: the window
-is still inside retention and can be re-exported. Exit 3 means interruptions were detected and
-the point is suspect. Apply the node-loss rule in §1 Validity. Exit 4 means the run timed out
-and nothing was exported. The point is lost.
-
-The cost pass is a second script, run once for the whole campaign:
+The cost pass runs once for the whole campaign, at least 48 h after the last point, over the
+windows recorded in R19 → K6:
 
 ```bash
-../../scripts/cur-window.py --execution 01-ingestion --after 48h
+../../scripts/aws-cur-report-export.py --data s3://⟨bucket⟩/⟨prefix⟩ \
+                            --start ⟨window start⟩ --hours 1 \
+                            --tag feature=⟨value⟩ --split --format csv
 ```
 
-It reads every window from the point blocks, sums M10 through M14 over the matching hourly
-buckets, subtracts the serving pool idle rate from `00-baseline` §2, and writes the cost columns
-back into `./data/frontier.csv`.
+One invocation per point window. The serving pool idle rate from `00-baseline` §2 is subtracted
+before the figures land in `./data/frontier.csv`.
 
 ### Run ledger
 
@@ -197,7 +129,7 @@ not against `N set`. `TEI peak` is M9. `Compute $` is M10 and is billed rather t
 - **Gap cost** — ⟨⟩ extra per 1M docs paid at the knee rather than at the sweet spot → report §3.3
 - **Reference value** — ⟨the pre-sweep default N⟩, and the Fargate equivalent D29
 - **Condition boundary** — `00-baseline` §2 Envelope, plus packing density, bulk-drop arrival and the TEI trigger
-- **Raw data** — `./data/frontier.csv` · chart by `./scripts/plot-frontier.py` → `../../assets/`
+- **Raw data** — `./data/frontier.csv` · chart by `../../scripts/plot-frontier.py` → `../../assets/`
 
 **Warm-up and unused capacity** — D26 at the lowest and highest N: ⟨⟩ → ⟨⟩ → report §3.4
 
@@ -240,7 +172,6 @@ Rows whose source number does not survive the runs are deleted, not left blank.
 ### Retro
 
 - **Expectation** — ⟨held · inverted — what actually saturated, in the words that go into the report⟩
-- **Cost against estimate** — ⟨⟩
 - **What should have been caught before the first run** — ⟨and which validity criterion should have caught it⟩
 - **Concurrency delivered** — ⟨did M5 track N across the grid, or did the Spot pool cap the top⟩
 - **TEI response** — ⟨did TEI scale at all under ingestion, and did its share of `$/run` grow with N⟩

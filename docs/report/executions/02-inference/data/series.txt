@@ -1,0 +1,27 @@
+# 02 · Inference — query path. ref|promql. Range queries, exported at close.
+#
+# Refs are placeholders Q1..Q10 until reconciled with ./metrics.md. Rename them
+# to their M and D numbers before the Plan is frozen: the ref in this file lands
+# in the exported record, and one that resolves to nothing is worse than one that
+# is missing.
+#
+# Generation is stubbed, so every latency here describes retrieval and no p95 is
+# an end-to-end SLO → K1.
+#
+# The three http_ names assume the Go API's exporter. If it is instrumented
+# differently these are the only lines that change.
+
+Q1|sum(rate(http_requests_total{namespace="default",job=~".*api.*"}[1m]))
+Q2|sum(rate(http_requests_total{namespace="default",job=~".*api.*",code=~"5.."}[1m])) or vector(0)
+Q3|histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="default",job=~".*api.*"}[1m])))
+Q4|histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="default",job=~".*api.*"}[1m])))
+Q5|kube_deployment_status_replicas{namespace="default",deployment=~"api|tei-embeddings"}
+Q6|keda_scaler_metrics_value{namespace="default",scaledObject=~"api-scaler|tei-embeddings-scaler"}
+Q7|container_cpu_usage_seconds_total{namespace="default",container!="",container!="POD",container=~"api|tei"}
+Q8|container_memory_working_set_bytes{namespace="default",container!="",container!="POD",container=~"api|tei"}
+Q9|kube_node_labels{label_karpenter_sh_nodepool="apps-serving"}
+Q10|container_memory_working_set_bytes{namespace="default",container="qdrant"}
+
+# Optional — Tier 2 candidates, blocked on a ServiceMonitor.
+# Q11|te_queue_size
+# Q12|te_request_inference_duration_bucket

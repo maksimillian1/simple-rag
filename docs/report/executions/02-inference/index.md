@@ -6,7 +6,6 @@
 - **Status** — ⟨planned · running · closed · abandoned⟩
 - **Plan frozen** — ⟨date⟩ · commit `⟨sha⟩`
 - **Givens** — `00-baseline` §2, cited from there. The collection is restored from the snapshot taken after `01-ingestion` closed
-- **Optional files** — `./concepts.md` mechanisms
 
 ---
 
@@ -125,7 +124,7 @@ cost.
 The cost pass is the same script as `01-ingestion` uses, run once for the campaign:
 
 ```bash
-../../scripts/cur-window.py --execution 02-inference --after 48h
+../../scripts/aws-cur-report-export.py --execution 02-inference --after 48h
 ```
 
 ### Run ledger

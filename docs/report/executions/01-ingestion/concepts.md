@@ -1,135 +1,74 @@
 # 01 · Ingestion concurrency — Concepts
 
-Mechanisms only. Values are in `index.md` and `metrics.md`, cited by block. Refs are cited from
-outside as `01-ingestion/K1`.
+Mechanisms only. Values are in `index.md` and `metrics.md`. Cited from outside as
+`01-ingestion/K1`.
 
-## K1 · The run window closes at zero nodes, not at queue drain
+## K1 · A node bills before its first pod and after its last
 
-**One line** — nodes keep billing after the last document, and that tail is the mechanism the
-report exists to demonstrate.
-
-A node is billed from the moment it is provisioned. It produces work only after it boots, pulls
-the container image and initialises the runtime. It is billed again for a tail after the last
-document, until consolidation removes it. Both windows produce zero units at full price.
-
-Closing the window when the queues empty excludes that tail from every cost figure. The unit
-cost then falls monotonically with concurrency, because the thing that makes it turn back up has
-been measured out of existence. The chart keeps its shape and loses its mechanism.
-
-The same argument decides where node-hours come from. A Kubernetes-sourced node series opens at
-kubelet registration and closes at node object deletion, and both edges sit inside the billed
-interval. The slivers it excludes are boot and teardown, which are the two intervals this
-concept is about. The bill does not exclude them, so the bill is the source and the Kubernetes
-series is the shape.
+Boot, image pull and the consolidation tail are billed and produce zero units. Closing the window
+at queue drain excludes them, and the unit cost then falls monotonically because the thing that
+turns it back up was measured out of existence. The Kubernetes node series starts at kubelet
+registration and ends at object deletion, so it misses both edges — the bill does not.
 
 **Consequence** — every `$/run`, and whether the U-curve exists in the report at all.
 
 ## K2 · Packing density is a condition, not a result
 
-**One line** — how many workers fit on one node decides how much warm-up each document pays for,
-and it is fixed by two frozen values rather than measured.
+Pod requests and the pinned instance type set workers per node, and no run varies either. Denser
+packing spreads one node's warm-up across more documents and moves the unit-cost minimum right.
 
-Pod requests and the pinned instance type together set workers per node. Denser packing spreads
-one node's warm-up across more documents and moves the unit-cost minimum to the right. Sparser
-packing moves it left.
+**Consequence** — where the sweet spot sits, and why a later change to pod requests invalidates
+the concurrency guardrail without touching anything the guardrail names.
 
-No run varies it. Every figure on the frontier is conditional on the ratio, so the ratio belongs
-in the report envelope rather than among its findings. A later change to pod requests invalidates
-the concurrency guardrail without changing anything the guardrail names.
+## K3 · The sampled peak is a floor; the OOM count is the ceiling
 
-**Consequence** — where the sweet spot sits, and whether the guardrail derived from it survives a
-change to pod requests.
+A SPLADE forward pass allocates and releases inside one call, shorter than any scrape interval,
+so the sampled maximum is always low. The kernel misses nothing: zero terminations at a limit
+proves that limit held, and a non-zero count proves it did not.
 
-## K3 · A sampled peak is a lower bound, and the OOM count is what bounds it
+*A crossed limit is raised, never refitted to a peak already known to be too low.*
 
-**One line** — the allocation the memory guardrail is meant to survive is shorter than the
-interval that samples it, so the sampled figure is a floor and not a ceiling.
+**Consequence** — whether the two memory guardrails are ceilings or wishes.
 
-A SPLADE forward pass allocates a tensor sized by batch and sequence length, and releases it
-inside the same call. A sampler reading every few seconds returns whatever the process happened
-to hold at the sample instant, never the maximum it reached. Shortening the export interval
-narrows the gap and cannot close it.
+## K4 · The sizing arithmetic and the memory reading are not the same quantity
 
-The termination counter is the other half of the pair, and it carries authority the sampler does
-not. A limit under which no container was killed is a proven ceiling whether or not the sampler
-caught the spike, because the kernel observed every allocation. A non-zero count says the
-opposite with the same authority: the limit was crossed, and a replacement fitted to the sampled
-peak would be fitted to a number already known to be too low. A crossed limit is raised, not
-refitted.
+The formula prices one INT8 copy of the dense vectors and omits the HNSW graph and the sparse
+index; the container reading includes page cache on memory-mapped segments. One is biased down,
+the other up.
 
-**Consequence** — whether the two memory guardrails are ceilings or wishes, and what a run with
-zero terminations is entitled to claim.
+*The reading rises with query traffic and falls after a restart while the collection is
+unchanged.*
 
-## K4 · Quantization and page cache make the sizing check a magnitude test
+**Consequence** — that the check is a magnitude test, never an equality.
 
-**One line** — the arithmetic prices one copy of the dense vectors and the measurement reads
-everything the container has touched, so the two agree only by coincidence.
+## K5 · TEI is shared and elastic, so part of a serving bill is an ingestion cost
 
-Under scalar quantization Qdrant holds a one-byte-per-dimension copy resident and leaves the
-float32 originals on disk. Reading bytes per dimension as four overstates the resident set
-fourfold. The arithmetic also prices dense vectors alone: the HNSW graph is a separate term that
-grows with the configured link count, and the sparse index built from SPLADE output is not in
-the formula at all. Two of those omissions push the estimate down and one pushes it up.
+The indexer drives the same autoscaled deployment the API drives, so a run raises the serving
+pool bill with no worker node on that pool. Subtracting the pool's idle rate removes the
+always-on floor; the split between pods inside a node is an AWS allocation rule over requests
+with a fixed CPU-to-memory weighting, not a measurement.
 
-The measurement carries the opposite bias. Working set for the Qdrant container includes page
-cache charged to its cgroup, and collection segments are memory-mapped. The reading therefore
-describes how much of the collection has been touched since the process started, not how much
-must stay resident. It rises with query traffic and falls after a restart while the collection is
-unchanged.
+*Unused cost is the exception — capacity billed with no pod on it needs no convention.*
 
-**Consequence** — whether the sizing check can be stated as an equality, and what the instance
-class behind the Qdrant floor line was actually sized against.
-
-## K5 · TEI is shared, elastic, and split by an allocation rule
-
-**One line** — the embedding tier is not frozen and not owned by either path, so part of a
-serving bill belongs to an ingestion run, and the boundary that assigns it is drawn by AWS.
-
-The indexer calls the same TEI deployment the query API calls, and that deployment autoscales
-from two replicas. A concurrent ingestion run therefore raises the serving pool bill without any
-worker node existing on that pool. Reading only the ingestion pool would understate the run;
-reading the whole serving pool would fold two always-on replicas into a marginal figure. What
-belongs to the run is the difference between the two, which is why the idle rate of the pool is
-captured at baseline and subtracted from every window.
-
-The subtraction is a floor removal, not an allocation. The allocation problem sits one level
-down, inside a node that holds several pods. Only the instance is billed; the division of that
-one charge across the pods on it is performed by AWS using their CPU and memory against a fixed
-weighting. The total is exact — it is the line item. The internal boundary is a convention, and
-a different convention would move it without any pod behaving differently.
-
-Two properties of the convention matter. The CPU-to-memory weighting is fixed by AWS and does
-not follow the instance type actually running, so a memory-heavy pod on a CPU-heavy node is
-charged against a ratio the hardware does not have. And allocation reads pod requests, so a pod
-that declares none can be dropped from the split rather than estimated — which would make a
-worker vanish from a decomposition whose total still matches the bill.
-
-The unused figure is the useful half and carries none of that ambiguity. Capacity billed with no
-pod on it is warm-up before the first pod starts, the tail after the last one exits, and the
-slack left by pods that do not tile the node evenly. That is one number for the whole mechanism
-behind the U-curve, measured rather than reconstructed from two timestamps.
-
-**Consequence** — whether an ingestion run is priced completely, how far the per-component row
-in the marginal table can be pushed, and why a run must open with the shared tier at its minimum.
+**Consequence** — whether a run is priced completely, and why a point must open with the shared
+tier at its minimum.
 
 ## K6 · The bill is hourly and it arrives late
 
-**One line** — cost is aggregated into clock hours and delivered a day or more afterwards, which
-decides how points are scheduled and when a cost figure may be written down.
+Line items carry sub-hour amounts but aggregate into clock hours, so two runs in one hour arrive
+as one summed row that cannot be separated afterwards. Delivery is daily and figures are revised
+until the month closes, so cost cannot be read when a run ends.
 
-Line items carry sub-hour usage amounts but are aggregated into hourly buckets. A twenty-minute
-run inside one hour is visible and correctly priced. Two runs inside the same hour are not: they
-arrive as one row per resource with one summed amount, and nothing in the export says which
-minutes belonged to which. The ingestion pool sits at zero between points, so a bucket that
-contains one window contains one point and nothing else — provided no second point is started
-before the hour rolls over.
+**Consequence** — one point per hour, and a cost pass days after the campaign rather than a
+column filled at close.
 
-Delivery is the second half. The export is written at least daily and revised as the month
-progresses, so a figure read the same day is provisional and a figure read before the export
-lands does not exist. Nothing about a run recovers this by waiting differently: the window and
-the saturation signal are perishable and belong to the moment the run ends, while the cost
-belongs to a pass run days later. Treating them as one step means either the run ledger waits
-for the bill, or the bill is guessed.
+## K7 · N is a ceiling, and only a full queue makes it behave like a setting
 
-**Consequence** — the minimum spacing between points, which columns of the run ledger are filled
-when, and whether a cost figure in the report is final or still moving.
+`maxReplicaCount` grants permission to run N workers; KEDA fills it only while messages wait.
+The corpus is dropped in full before the window opens, so a raised ceiling is consumed
+immediately. What each point actually ran at is M5, and it diverges from N when Spot capacity
+is short. On a client-driven path the same axis moves nothing, which is why `02-inference`
+sweeps arrival rate instead.
+
+**Consequence** — that the frontier's x-axis is M5 rather than N, and that this axis does not
+transfer to the query path.

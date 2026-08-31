@@ -1,0 +1,32 @@
+# 01 · Ingestion concurrency — ref|promql. Range queries, exported to ./data/ at
+# window close. The ref is the register entry in ./metrics.md.
+#
+# Required M1..M9: a point missing any of them has no mechanism, no Tier 1, or no
+# denominator, and is not worth its cluster time.
+#
+# M4, M6 and M7 cannot be confirmed on an idle cluster. Worker containers do not
+# exist at zero nodes, the query returns NO DATA, and that is indistinguishable
+# from a missing scrape target. Confirm them under a smoke run.
+#
+# M6 is exported as a raw counter, not a rate. The ceiling claim is read as
+# increase() over the window divided by workers × window × limit, and a rate()
+# taken here cannot be turned back into that.
+
+M1|keda_scaler_metrics_value{scaledObject=~"chunker|indexer"}
+M2|kube_node_labels{label_karpenter_sh_nodepool="apps-compute"}
+M3|kube_node_created * on(node) group_left() kube_node_labels{label_karpenter_sh_nodepool="apps-compute"}
+M4|container_start_time_seconds{namespace="default",container=~"chunker|indexer"}
+M5|kube_job_status_active{namespace="default",job_name=~"chunker.*|indexer.*"}
+M6|container_cpu_usage_seconds_total{namespace="default",container!="",container!="POD",container=~"chunker|indexer"}
+M7|container_memory_working_set_bytes{namespace="default",container!="",container!="POD",container=~"chunker|indexer"}
+M8|kube_pod_container_status_last_terminated_reason{namespace="default",reason="OOMKilled"}
+M9|kube_deployment_status_replicas{namespace="default",deployment="tei-embeddings"}
+
+# Optional — Tier 2 candidates, blocked on a ServiceMonitor. Kept commented: an
+# uncommented line with no target exits 2 on a gap that is not a gap.
+# M15|te_queue_size
+# M16|te_request_inference_duration_bucket
+# M17|⟨confirm at :6333/metrics⟩
+
+# Optional — read at the highest-N point only, against a loaded collection.
+# M18|container_memory_working_set_bytes{namespace="default",container="qdrant"}

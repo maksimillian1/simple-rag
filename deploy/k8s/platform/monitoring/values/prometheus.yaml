@@ -125,6 +125,8 @@ alertmanager:
         memory: "128Mi"
 
 kubeStateMetrics:
+  metricLabelsAllowlist:
+    - "nodes=[karpenter.sh/nodepool,karpenter.sh/capacity-type]"
   nodeSelector:
     tier: core-on-demand
   resources:

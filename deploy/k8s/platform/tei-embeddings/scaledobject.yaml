@@ -8,7 +8,7 @@ spec:
     kind: Deployment
     name: tei-embeddings
   minReplicaCount: 2
-  maxReplicaCount: 10
+  maxReplicaCount: 30
   triggers:
   - type: prometheus
     metadata:

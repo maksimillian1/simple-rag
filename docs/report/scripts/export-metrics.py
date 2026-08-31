@@ -2,12 +2,19 @@
 """
 export-metrics.py — snapshot Prometheus range queries before retention expires.
 
-    ./export-metrics.py --run smoke  --last 10m --dry-run
-    ./export-metrics.py --run e1-n08 --start 2026-08-20T10:00:00Z --end 2026-08-20T10:25:00Z
+    ./export-metrics.py --run smoke --queries ../executions/01-ingestion/promql.txt \
+                        --last 10m --dry-run
+
+    ./export-metrics.py --run ingestion-n04 \
+                        --queries ../executions/01-ingestion/promql.txt \
+                        --start 2026-08-20T10:00:00Z --end 2026-08-20T10:25:00Z
 
 Stdlib only — no curl, no jq, no pip install.
 Prometheus reachable at $PROM_URL (default http://localhost:9090):
     kubectl -n monitoring port-forward svc/monitoring-kube-prometheus-prometheus 9090:9090
+
+The query name is the register ref. It is printed before the run and carried into
+the record, so a block pasted into a Journal names the refs it actually holds.
 
 Exit codes:
     0  all queries returned data
@@ -65,14 +72,15 @@ def healthy() -> None:
 
 # --------------------------------------------------------------------------- time
 
+_UNITS = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days"}
+
+
 def parse_duration(text: str) -> timedelta:
     """'90s' '10m' '2h' '1d' -> timedelta"""
     m = re.fullmatch(r"(\d+)([smhd])", text.strip())
     if not m:
         die(f"bad duration: {text!r} (use 30s, 10m, 2h, 1d)")
-    n, unit = int(m.group(1)), m.group(2)
-    return timedelta(**{"s": "seconds", "m": "minutes", "h": "hours", "d": "days"}[unit] and
-                     {{"s": "seconds", "m": "minutes", "h": "hours", "d": "days"}[unit]: n})
+    return timedelta(**{_UNITS[m.group(2)]: int(m.group(1))})
 
 
 def rfc3339(dt: datetime) -> str:
@@ -89,7 +97,7 @@ def parse_instant(text: str) -> datetime:
 # --------------------------------------------------------------------------- queries
 
 def load_queries(path: Path) -> list[tuple[str, str]]:
-    """One 'name|promql' per line. '#' comments and blanks ignored."""
+    """One 'ref|promql' per line. '#' comments and blanks ignored."""
     if not path.is_file():
         die(f"query file not found: {path}")
     out: list[tuple[str, str]] = []
@@ -102,14 +110,14 @@ def load_queries(path: Path) -> list[tuple[str, str]]:
         name, query = line.split("|", 1)
         name, query = name.strip(), query.strip()
         if not name or not query:
-            die(f"{path}:{lineno} empty name or query")
+            die(f"{path}:{lineno} empty ref or query")
         out.append((name, query))
     if not out:
         die(f"{path} contains no queries")
     names = [n for n, _ in out]
     dupes = {n for n in names if names.count(n) > 1}
     if dupes:
-        die(f"duplicate query names: {', '.join(sorted(dupes))}")
+        die(f"duplicate refs: {', '.join(sorted(dupes))}")
     return out
 
 
@@ -174,13 +182,15 @@ def die(msg: str) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(add_help=True, description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--run", required=True, help="run id, e.g. e1-n08")
+    p.add_argument("--run", required=True, help="point id, e.g. ingestion-n04")
+    p.add_argument("--queries", required=True,
+                   help="path to the execution's promql.txt · never defaulted: a "
+                        "file picked up next to this script belongs to whichever "
+                        "execution wrote it last")
     p.add_argument("--start", help="RFC3339, e.g. 2026-08-20T10:00:00Z")
     p.add_argument("--end", help="RFC3339")
     p.add_argument("--last", help="window ending now, e.g. 25m")
     p.add_argument("--step", default=os.environ.get("STEP", "15s"))
-    p.add_argument("--queries", default=os.environ.get(
-        "QUERY_FILE", str(Path(__file__).with_name("queries.txt"))))
     p.add_argument("--out-dir", default=os.environ.get("OUT_DIR", "docs/report/data"))
     p.add_argument("--dry-run", action="store_true", help="check only, write nothing")
     p.add_argument("--force", action="store_true", help="overwrite an existing run file")
@@ -199,6 +209,7 @@ def main() -> int:
 
     start, end = rfc3339(start_dt), rfc3339(end_dt)
     queries = load_queries(Path(args.queries))
+    refs = [name for name, _ in queries]
 
     out_path = Path(args.out_dir) / f"{args.run}.jsonl"
     if out_path.exists() and not args.dry_run and not args.force:
@@ -214,6 +225,7 @@ def main() -> int:
 
     print(f"{ARROW} window     : {start} .. {end}  step={args.step}")
     print(f"{ARROW} queries    : {args.queries} ({len(queries)})")
+    print(f"{ARROW} refs       : {', '.join(refs)}")
     print(f"{ARROW} output     : {'(dry run)' if args.dry_run else out_path}")
     print()
 
@@ -255,6 +267,7 @@ def main() -> int:
         manifest.write_text(json.dumps({
             "run": args.run, "start": start, "end": end, "step": args.step,
             "prometheus": PROM_URL, "query_file": str(args.queries),
+            "refs": refs,
             "exported_at": rfc3339(datetime.now(timezone.utc)),
             "queries_total": len(queries), "queries_with_data": len(records),
             "gaps": gaps,
