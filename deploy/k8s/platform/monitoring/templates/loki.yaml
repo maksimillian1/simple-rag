@@ -28,5 +28,5 @@ spec:
         valueFiles:
         - $values/deploy/k8s/platform/monitoring/values/loki.yaml
     - repoURL: 'https://github.com/maksimillian1/simple-rag.git'
-      targetRevision: master
+      targetRevision: SR-system-configuration-for-report
       ref: values

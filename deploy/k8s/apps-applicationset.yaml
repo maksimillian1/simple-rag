@@ -7,7 +7,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/maksimillian1/simple-rag.git
-        revision: master
+        revision: SR-system-configuration-for-report
         directories:
           - path: deploy/k8s/platform/*
           - path: deploy/k8s/apps/*
@@ -26,7 +26,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/maksimillian1/simple-rag.git
-        targetRevision: master
+        targetRevision: SR-system-configuration-for-report
         path: '{{path}}'
       destination:
         server: https://kubernetes.default.svc
