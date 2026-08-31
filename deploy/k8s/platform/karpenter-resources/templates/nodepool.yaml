@@ -85,7 +85,11 @@ spec:
     cpu: 100
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
-    consolidateAfter: 1m
+    # 1m was shorter than EC2 launch + kubelet + Cilium boot time (~1-2m),
+    # so Karpenter's own disruption controller was deleting a freshly
+    # provisioned node as "Empty" before the pod Karpenter had just
+    # nominated to it could actually bind — endless nodeclaim replace loop.
+    consolidateAfter: 5m
 ---
 # Tier 4: apps-compute Pool (Strict Spot Scale-to-Zero)
 apiVersion: karpenter.sh/v1
