@@ -171,7 +171,7 @@ def preflight(env: lk.Env, args, freeze_file: Path) -> dict:
         failures.append(f"node query failed — {e}")
 
     try:
-        replicas = lk.deployment_replicas(env.namespace, SHARED_TIER)
+        replicas = lk.deployment_replicas(env.namespace_for(SHARED_TIER), SHARED_TIER)
         print(f"[{lk.OK if replicas == SHARED_TIER_FLOOR else lk.BAD}] "
               f"{SHARED_TIER} replicas = {replicas} "
               f"(must open at {SHARED_TIER_FLOOR})")
@@ -197,7 +197,7 @@ def preflight(env: lk.Env, args, freeze_file: Path) -> dict:
         failures.append(f"Qdrant unreachable — {e}")
 
     try:
-        images = lk.frozen_images(env.namespace, FREEZE)
+        images = lk.frozen_images(env, FREEZE)
         facts["images"] = images
         failures += lk.check_freeze(freeze_file, images)
     except RuntimeError as e:
@@ -268,7 +268,7 @@ def watch(env: lk.Env, args) -> dict:
         try:
             depths = {label: lk.sqs_depth(url) for label, url in queues.items()}
             nodes = lk.nodes_by_selector(selector)
-            replicas = lk.deployment_replicas(env.namespace, SHARED_TIER)
+            replicas = lk.deployment_replicas(env.namespace_for(SHARED_TIER), SHARED_TIER)
         except RuntimeError as e:
             print(f"{lk.WARN} poll failed ({e}) — retrying")
             time.sleep(poll)
@@ -424,7 +424,7 @@ def main() -> int:
     forwards = [lk.forward_spec(env, "prometheus"), lk.forward_spec(env, "qdrant")]
     with lk.PortForwards(forwards, enabled=not args.no_port_forward):
         if args.set_freeze:
-            images = lk.frozen_images(env.namespace, FREEZE)
+            images = lk.frozen_images(env, FREEZE)
             freeze_file.parent.mkdir(parents=True, exist_ok=True)
             freeze_file.write_text(json.dumps(images, indent=2, sort_keys=True) + "\n")
             print(json.dumps(images, indent=2, sort_keys=True))

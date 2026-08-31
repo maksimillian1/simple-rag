@@ -104,7 +104,7 @@ def preflight(env: lk.Env, freeze_file: Path) -> dict:
     for gate in GATES:
         name, floor = gate["deployment"], gate["floor"]
         try:
-            replicas = lk.deployment_replicas(env.namespace, name)
+            replicas = lk.deployment_replicas(env.namespace_for(name), name)
         except RuntimeError as e:
             failures.append(f"{name} unreadable — {e}")
             continue
@@ -133,7 +133,7 @@ def preflight(env: lk.Env, freeze_file: Path) -> dict:
         failures.append(f"collection unreachable — {e}")
 
     try:
-        images = lk.frozen_images(env.namespace, FREEZE)
+        images = lk.frozen_images(env, FREEZE)
         facts["images"] = images
         failures += lk.check_freeze(freeze_file, images)
     except RuntimeError as e:
@@ -217,7 +217,7 @@ def wait_for_scale_in(env: lk.Env, run: dict) -> dict:
             sys.exit(lk.EXIT_TIMEOUT)
 
         try:
-            current = {name: lk.deployment_replicas(env.namespace, name)
+            current = {name: lk.deployment_replicas(env.namespace_for(name), name)
                        for name in floors}
         except RuntimeError as e:
             print(f"{lk.WARN} poll failed ({e}) — retrying")
@@ -320,7 +320,7 @@ def main() -> int:
                 lk.forward_spec(env, "api")]
     with lk.PortForwards(forwards, enabled=not args.no_port_forward):
         if args.set_freeze:
-            images = lk.frozen_images(env.namespace, FREEZE)
+            images = lk.frozen_images(env, FREEZE)
             freeze_file.parent.mkdir(parents=True, exist_ok=True)
             freeze_file.write_text(json.dumps(images, indent=2, sort_keys=True) + "\n")
             print(json.dumps(images, indent=2, sort_keys=True))

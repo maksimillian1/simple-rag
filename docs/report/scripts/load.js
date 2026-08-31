@@ -34,9 +34,17 @@ const QUERIES = [
   'How is query latency measured for the search API?',
 ];
 
+// Frozen in 00-baseline §2 Configuration freeze: "Generation — stubbed at the
+// frozen delay. No run in this report calls Bedrock." Without mock_delay_ms
+// in the body, apps/api/search/search.go falls through to a real
+// s.LLM.GenerateAnswer() call — every point would bill real Bedrock usage and
+// its latency would depend on Bedrock rather than the frozen 2000ms constant
+// every other 02-inference figure is read against.
+const MOCK_DELAY_MS = parseInt(__ENV.MOCK_DELAY_MS || '2000', 10);
+
 export default function () {
   const query = QUERIES[Math.floor(Math.random() * QUERIES.length)];
-  const payload = JSON.stringify({ query, top_k: 5 });
+  const payload = JSON.stringify({ query, top_k: 5, mock_delay_ms: MOCK_DELAY_MS });
   const params = {
     headers: { 'Content-Type': 'application/json' },
     tags: { name: 'query' },

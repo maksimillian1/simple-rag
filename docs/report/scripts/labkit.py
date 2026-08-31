@@ -96,6 +96,12 @@ class Env:
     def namespace(self) -> str:
         return str(self.need("namespace"))
 
+    def namespace_for(self, workload: str) -> str:
+        """Per-workload override, e.g. namespaces.tei-embeddings. Falls back to
+        the generic `namespace` key — correct only when every FREEZE/GATE
+        workload for this execution actually lives in one namespace."""
+        return str(self.get(f"namespaces.{workload}", None) or self.namespace)
+
     @property
     def prom_url(self) -> str:
         return str(self.need("prometheus.url")).rstrip("/")
@@ -211,6 +217,22 @@ def read_ref_file(path: Path, fields: int) -> list[list[str]]:
 BOUND_TOKEN = re.compile(r"(min|max)\s+(\S+)")
 
 
+SUBST_TOKEN = re.compile(r"\{(\w+)\}")
+
+
+def _substitute(text: str, subs: dict, path: Path, ref: str) -> str:
+    """Fill {name} placeholders, e.g. {rate}. Uses a narrow token pattern rather
+    than str.format(): a PromQL label matcher like {namespace="x",reason="y"}
+    is also wrapped in braces, and str.format() would try to parse it as a
+    substitution and fail on the first one that isn't a bare identifier."""
+    def repl(m: re.Match) -> str:
+        key = m.group(1)
+        if key not in subs:
+            die(f"{path}: guard {ref} references unknown substitution '{key}'")
+        return str(subs[key])
+    return SUBST_TOKEN.sub(repl, text)
+
+
 def load_guards(path: Path, substitutions: dict | None = None) -> list[dict]:
     """ref|bound|promql. Bound is one or both of 'min <v>' and 'max <v>'.
     Substitutions fill {name} placeholders in bounds and queries — the only
@@ -218,11 +240,8 @@ def load_guards(path: Path, substitutions: dict | None = None) -> list[dict]:
     subs = substitutions or {}
     guards = []
     for ref, bound, query in read_ref_file(path, 3):
-        try:
-            bound = bound.format(**subs)
-            query = query.format(**subs)
-        except KeyError as e:
-            die(f"{path}: guard {ref} references unknown substitution {e}")
+        bound = _substitute(bound, subs, path, ref)
+        query = _substitute(query, subs, path, ref)
         found = BOUND_TOKEN.findall(bound)
         if not found:
             die(f"{path}: guard {ref} has no bound — expected 'min <v>' or "
@@ -417,9 +436,11 @@ def _dig(node: dict, path) -> list:
     return node if isinstance(node, list) else []
 
 
-def frozen_images(namespace: str, refs: list[str]) -> dict[str, list[str]]:
+def frozen_images(env: "Env", refs: list[str]) -> dict[str, list[str]]:
     """refs are 'kind/name'. The sweep compares one artifact across the grid, and
-    this is what proves it did."""
+    this is what proves it did. Namespace is resolved per name — the FREEZE
+    list is not guaranteed to sit in one namespace (chunker/indexer in
+    rag-jobs, tei-embeddings in rag-platform, api in rag-api)."""
     out: dict[str, list[str]] = {}
     for ref in refs:
         if "/" not in ref:
@@ -429,6 +450,7 @@ def frozen_images(namespace: str, refs: list[str]) -> dict[str, list[str]]:
         if path is None:
             die(f"cannot read containers from kind {kind!r} — a ScaledObject "
                 f"scales an existing workload, so freeze that workload instead")
+        namespace = env.namespace_for(name)
         try:
             data = sh_json(["kubectl", "-n", namespace, "get", kind, name,
                             "-o", "json"])

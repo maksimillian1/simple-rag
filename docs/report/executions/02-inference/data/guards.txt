@@ -11,4 +11,4 @@
 
 Q1|min {rate_floor}|sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*"}[5m]))
 Q2|max 0.001|sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*",code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*"}[5m])), 1)
-Q3|max ⟨target seconds⟩|histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="rag-api",job=~".*api.*"}[5m])))
+Q3|max 10|histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="rag-api",job=~".*api.*"}[5m])))

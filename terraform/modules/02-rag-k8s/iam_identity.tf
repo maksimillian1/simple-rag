@@ -112,6 +112,7 @@ resource "aws_iam_policy" "cilium_eni" {
           "ec2:DescribeInstances",
           "ec2:DescribeInstanceTypes",
           "ec2:DescribeNetworkInterfaces",
+          "ec2:DescribeRouteTables",
           "ec2:DescribeTags",
           "ec2:DescribeAvailabilityZones",
           "ec2:CreateTags",

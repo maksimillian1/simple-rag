@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - SR-system-configuration-for-report
     paths:
       - 'apps/indexer/**'
 

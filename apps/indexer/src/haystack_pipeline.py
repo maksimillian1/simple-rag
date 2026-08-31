@@ -2,6 +2,7 @@ import sys
 from typing import List
 from haystack import component, Document, Pipeline
 from haystack.dataclasses import SparseEmbedding
+from qdrant_client import models
 
 from . import config
 from .vector import generate_point_id
