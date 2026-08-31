@@ -75,6 +75,11 @@ resource "helm_release" "cilium" {
   }
 
   set {
+    name  = "prometheus.enabled"
+    value = "true"
+  }
+
+  set {
     name  = "operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key"
     value = "eks.amazonaws.com/compute-type"
   }

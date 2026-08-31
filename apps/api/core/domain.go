@@ -20,6 +20,7 @@ type QueryRequest struct {
 	Dense                 *bool    `json:"dense,omitempty"`
 	Sparse                *bool    `json:"sparse,omitempty"`
 	Debug                 bool     `json:"debug"`
+	MockDelayMs           *int     `json:"mock_delay_ms,omitempty"`
 }
 
 type DebugResult struct {

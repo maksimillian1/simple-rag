@@ -269,10 +269,21 @@ func (s *Service) QueryHandler(c echo.Context) error {
 
 	citations, debugResults := buildCitationsAndDebug(results, isDebug)
 
-	answer, err := s.LLM.GenerateAnswer(ctx, trimmedQuery, citations)
-	if err != nil {
-		log.Printf("[ERROR] [query] LLM answer generation failed: %v", err)
-		return c.String(http.StatusInternalServerError, "Failed to generate answer from LLM: "+err.Error())
+	var answer string
+	if req.MockDelayMs != nil {
+		delay := *req.MockDelayMs
+		log.Printf("[INFO] [query] Mock LLM enabled. Simulating %d ms delay...", delay)
+		if delay > 0 {
+			time.Sleep(time.Duration(delay) * time.Millisecond)
+		}
+		answer = synthesizeAnswer(trimmedQuery, citations)
+	} else {
+		var err error
+		answer, err = s.LLM.GenerateAnswer(ctx, trimmedQuery, citations)
+		if err != nil {
+			log.Printf("[ERROR] [query] LLM answer generation failed: %v", err)
+			return c.String(http.StatusInternalServerError, "Failed to generate answer from LLM: "+err.Error())
+		}
 	}
 
 	response := core.QueryResponse{

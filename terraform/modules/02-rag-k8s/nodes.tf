@@ -33,7 +33,12 @@ module "eks_core_nodes" {
   labels = {
     "node.kubernetes.io/cni-welcome" = "cilium"
     "tier"                           = "core-on-demand"
+    "feature"                        = "simple-rag"
   }
+
+  tags = merge(var.tags, {
+    tier = "core-on-demand"
+  })
 
   iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
@@ -74,7 +79,7 @@ module "eks_database_nodes" {
   cluster_primary_security_group_id = var.cluster_primary_security_group_id
   vpc_security_group_ids            = [var.node_security_group_id]
 
-  instance_types = ["t3.large"]
+  instance_types = ["r7g.large"]
   min_size       = 2
   max_size       = 3
   desired_size   = 2
@@ -82,7 +87,7 @@ module "eks_database_nodes" {
 
   enable_bootstrap_user_data = true
   use_custom_launch_template = true
-  ami_type                   = "AL2023_x86_64_STANDARD"
+  ami_type                   = "AL2023_ARM_64_STANDARD"
 
   taints = {
     cilium = {
@@ -100,7 +105,12 @@ module "eks_database_nodes" {
   labels = {
     "node.kubernetes.io/cni-welcome" = "cilium"
     "tier"                           = "database"
+    "feature"                        = "simple-rag"
   }
+
+  tags = merge(var.tags, {
+    tier = "database"
+  })
 
   iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"

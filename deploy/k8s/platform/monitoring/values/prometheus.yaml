@@ -29,6 +29,66 @@ prometheus:
             requests:
               storage: 10Gi
 
+    additionalScrapeConfigs:
+      - job_name: 'keda-operator'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['keda']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            action: keep
+            regex: keda-operator
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: '8080'
+
+      - job_name: 'cilium-ebpf-metrics'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['kube-system']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_k8s_app]
+            action: keep
+            regex: cilium
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: '9962'
+      - job_name: 'tei-embeddings'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [ 'rag-platform' ]
+        relabel_configs:
+          - source_labels: [ __meta_kubernetes_pod_label_app ]
+            action: keep
+            regex: tei-embeddings
+          - source_labels: [ __meta_kubernetes_pod_container_port_number ]
+            action: keep
+            regex: '8080'
+          - source_labels: [ __meta_kubernetes_pod_name ]
+            target_label: pod
+          - source_labels: [ __meta_kubernetes_namespace ]
+            target_label: namespace
+
+      - job_name: 'qdrant'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [ 'rag-platform' ]
+        relabel_configs:
+          - source_labels: [ __meta_kubernetes_pod_label_app_kubernetes_io_name ]
+            action: keep
+            regex: qdrant
+          - source_labels: [ __meta_kubernetes_pod_container_port_number ]
+            action: keep
+            regex: '6333'
+          - source_labels: [ __meta_kubernetes_pod_name ]
+            target_label: pod
+          - source_labels: [ __meta_kubernetes_namespace ]
+            target_label: namespace
+
 grafana:
   nodeSelector:
     tier: core-on-demand
@@ -65,6 +125,8 @@ alertmanager:
         memory: "128Mi"
 
 kubeStateMetrics:
+  metricLabelsAllowlist:
+    - "nodes=[karpenter.sh/nodepool,karpenter.sh/capacity-type]"
   nodeSelector:
     tier: core-on-demand
   resources:
