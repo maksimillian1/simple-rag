@@ -1,8 +1,8 @@
 # 00 · Baseline
 
-- **Purpose** — system at rest: frozen constants, denominators, price basis, metric register, floor
-- **Produces** — frozen config · price basis · metric register · floor baseline
-- **Expected** — ⟨recorded ⟨date⟩, before capture⟩: Block B is dominated by the Qdrant On-Demand node and its gp3 volume; every other B line is under 10 % of B
+- **Purpose** — system at rest: frozen constants, denominators, cost basis, metric register, floor
+- **Produces** — frozen config · cost attribution · rate card · metric register · floor baseline
+- **Expected** — ⟨recorded ⟨date⟩, before capture⟩: Block B is dominated by the Qdrant On-Demand node and its gp3 volume; the serving pool holding four minimum replicas is second and under half of it
 - **Revision** — v1.0 (supersedes none)
 - **Capture window** — ⟨YYYY-MM-DD HH:MM → HH:MM UTC⟩
 - **Frozen at** — `⟨sha⟩` · by ⟨name⟩
@@ -14,39 +14,55 @@
 
 ### Preflight
 
-- [ ] System frozen at a tagged commit; chunker, indexer and api image digests recorded below.
-- [ ] Every `M` ref below confirmed against a live endpoint and dated.
-- [ ] Every confirmed ref returns data with non-empty label dimensions under its selector.
-- [ ] Cost attribution tags verified active in Terraform rather than the console. Both dimensions: `feature` and `tier`.
-- [ ] Karpenter is configured to tag the nodes it creates, with both dimensions. Attribution is forward-only and never retroactive, and a controller-created resource carries no tag unless the provisioner adds it.
-- [ ] Untagged share of the idle bill measured and under 5 %. Untagged spend lands in no block and silently shrinks whichever block should have carried it.
-- [ ] Price basis captured → `./data/price-⟨YYYY-MM-DD⟩.json`.
+Three of these are forward-only and cannot be recovered afterwards: the CUR export does not
+contain data from before it was created, split cost allocation does not price pods that already
+exited, and a pod that declared no CPU and memory requests may be dropped from the split
+entirely. Tag activation is the exception and can be backfilled.
+
+**Applied by Terraform, in one `apply`**
+
+- [ ] `feature` and `tier` set as provider `default_tags`.
+- [ ] Karpenter `EC2NodeClass.spec.tags` carries both keys on every NodePool, and instance root volumes confirmed to inherit them.
+- [ ] Resources Terraform does not reach tagged explicitly: SQS queues, S3 buckets, interface VPC endpoints, the EKS cluster, ECR repositories, the load balancer behind the Gateway.
+- [ ] Qdrant volume tagged in place through the EC2 API. `StorageClass.parameters` are immutable, so `tagSpecification_1` cannot be added to the live class — it is fixed for future volumes only.
+- [ ] Tag values checked for case. `Simple-rag` and `simple-rag` are two values and split every table.
+- [ ] Every workload carries `component=⟨chunker · indexer · api · tei⟩` as a pod label and declares CPU and memory requests.
+
+**Three actions in the Billing console, same day**
+
+- [ ] Cost allocation tags → both keys selected → Activate. The keys are already listed; nothing is typed by hand.
+- [ ] Cost Management Preferences → split cost allocation data opted in. The measurement option and the CPU-to-memory weighting recorded in `./data/scad-config-⟨YYYY-MM-DD⟩.txt`.
+- [ ] Data Exports → CUR 2.0 export created: hourly, resource IDs, split cost allocation data, Parquet, into `s3://⟨bucket⟩/⟨prefix⟩`. Kubernetes label import enabled for `component`.
+
+**Confirmed before the window opens**
+
+- [ ] First export file present in the bucket.
+- [ ] `resource_tags_user_feature` and `resource_tags_user_tier` non-empty on EC2, EBS, SQS, S3 and endpoint rows.
+- [ ] `split_line_item_*` columns present, and chunker, indexer, api and tei appear as separate rows under a smoke load.
+- [ ] `./scripts/cur-window.py --dry-run` runs against the delivered parquet without a schema error.
+- [ ] Lines that cannot carry a tag enumerated → `./data/untaggable-⟨YYYY-MM-DD⟩.txt`, each assigned to A or B by hand (R5).
+- [ ] Untagged share of taggable spend measured over a normal day and under 5 % (M2).
+
+**Capture**
+
+- [ ] System frozen at a tagged commit; image digests recorded below.
+- [ ] Every `M` ref below confirmed against its live source and dated.
+- [ ] Rate card captured → `./data/price-⟨YYYY-MM-DD⟩.json`.
 - [ ] Corpus profile captured → `./data/corpus-profile.txt`.
 - [ ] Query set captured → `./data/query-set.txt`.
 - [ ] Cluster identity captured → `./data/identity-⟨YYYY-MM-DD⟩.txt`: image digests, chart revisions, AMI IDs.
-- [ ] Idle window scheduled. It spans a full daily cycle, contains zero execution points, and runs with the S3 event notification disabled.
-- [ ] Collection snapshot taken after `01-ingestion` closes → `./data/snapshot-⟨YYYY-MM-DD⟩/`. `02-inference` restores from it, so its query load runs against a known collection.
-
-The idle window has to span a full day for two reasons. The cost backend aggregates into daily
-buckets, and a window shorter than a bucket returns either nothing or a whole bucket attributed
-to a fraction of it. Scheduled reconciliation, log rotation and backup jobs are floor, and they
-are not spread evenly across a day.
+- [ ] Idle window opened: the system is running and idle, not switched off. ArgoCD, Karpenter, Cilium and monitoring keep reconciling, API and TEI sit at their minimum replicas, S3 event notifications are disabled, and the window spans a full daily cycle.
+- [ ] Floor read no earlier than 48 h after the window closes, and re-read after the month closes. Line items are revised until then.
 
 ### Metrics
 
-Refs are cited from outside this execution as `00-baseline/M1`. Confirm every name against the
-live endpoint before writing a query. A wrong name returns NO DATA, which is indistinguishable
-from a missing scrape target.
-
 | Ref | What it measures | Source | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| M1 | idle spend, by service and by tier, over the idle window | Cost Explorer · daily granularity · filter `TAG:feature=simple-rag` · group by `TAG:tier` | ⟨confirmed YYYY-MM-DD⟩ | every Floor line resolves to a row of this. The `tier` dimension is what splits EC2 into `core-on-demand`, Qdrant, TEI and API; without it EC2 arrives as one number and four Floor lines cannot be filled. Both tags must be active in Terraform and in the Karpenter NodePool before the window opens |
-| M2 | share of idle spend arriving with no `feature` tag | same source, tag absent | ⟨confirmed YYYY-MM-DD⟩ | validity gate, not a report figure. Gate at under 5 %, resolved before the A / B split is trusted. Untagged spend lands in neither block and silently shrinks whichever one should have carried it |
-| M3 | node inventory during the idle window | `kube_node_labels` · selector on `label_karpenter_sh_nodepool` | ⟨confirmed YYYY-MM-DD⟩ | proof of idleness — `apps-compute` at zero for the whole window. Unfiltered it counts the Qdrant node as elastic capacity |
-
-Every ref here is measured at rest. Vector memory sizing is not: both its inputs — the point
-count and the resident set it is judged against — exist only after a corpus is loaded, so it
-lives in `01-ingestion/D25` and `01-ingestion/M13`.
+| M1 | idle spend per line over the idle window | CUR 2.0 parquet at `s3://⟨bucket⟩/⟨prefix⟩` · `line_item_unblended_cost` where `line_item_line_item_type='Usage'` and `line_item_usage_start_date` inside the window · grouped by `line_item_product_code`, `resource_tags_user_tier`, `line_item_resource_id` · read by `./scripts/cur-window.py` | ⟨confirmed YYYY-MM-DD⟩ | every Floor line is a group of this. The `tier` tag is what splits EC2 into `core-on-demand`, database and serving lines; without it EC2 arrives as one number. The cost column is frozen below — unblended and amortized are different numbers for the same node under a Savings Plan |
+| M2 | share of taggable idle spend arriving with no `feature` tag | same source, tag column empty, denominator excludes the R5 lines | ⟨confirmed YYYY-MM-DD⟩ | validity gate, not a report figure. Under 5 % before the A / B split is trusted. Untagged spend lands in neither block and silently shrinks whichever one should have carried it |
+| M3 | node inventory during the idle window | `kube_node_labels` · selector on `label_karpenter_sh_nodepool` | ⟨confirmed YYYY-MM-DD⟩ | proof of idleness — `apps-compute` at zero for the whole window, `apps-serving` steady. Node labels are not exported by kube-state-metrics unless `--metric-labels-allowlist` includes them, and without it the query returns nothing on a healthy cluster |
+| D4 | monthly floor per line | `M1 × 730 ÷ window_hours` | active | every `$/month` in the Floor table carries this mark. Lines billed per GB-month arrive already prorated per hour and scale under the same arithmetic |
+| R5 | allocation of untaggable lines to block A or B | hand-recorded from `./data/untaggable-⟨YYYY-MM-DD⟩.txt` · ⟨who⟩ | active | some lines carry no resource-level tag at all. Leaving them out understates a block; folding them into A by default understates B, which is the headline |
 
 ---
 
@@ -56,103 +72,103 @@ lives in `01-ingestion/D25` and `01-ingestion/M13`.
 
 | Parameter | Value | Set in | Why frozen |
 | :--- | :--- | :--- | :--- |
-| `apps-compute` instance type | ⟨⟩ | Karpenter NodePool | makes `$/run` a product rather than a sum over types → `01-ingestion/D19` |
-| `apps-compute` `consolidateAfter` | 30 s | Karpenter NodePool | sits inside the run window by construction → `01-ingestion/K1` |
-| `apps-serving` instance type | ⟨⟩ | Karpenter NodePool | fixes the cost per served request → `02-inference/D14` |
-| chunker requests / limits | ⟨cpu⟩ · ⟨mem⟩ | `deploy/k8s/apps/chunker` | sets worker packing density → `01-ingestion/K2` |
-| indexer requests / limits | ⟨cpu⟩ · ⟨mem 2Gi⟩ | `deploy/k8s/apps/indexer` | packing density → `01-ingestion/K2`. The memory limit is held constant across every point; the guardrail replacing it is derived at Close from `01-ingestion/M7` and `01-ingestion/M8` and lands in the next revision |
-| Go API replicas · requests / limits | ⟨n⟩ · ⟨cpu⟩ · ⟨mem⟩ | `deploy/k8s/apps/api` | the query axis is arrival rate, so replicas must not move under it |
-| TEI replicas · requests / limits | ⟨n⟩ · ⟨cpu⟩ · ⟨mem⟩ | `deploy/k8s/apps/tei` | a moving replica count makes the second constraint tier unattributable in both executions |
-| Bedrock stub delay | ⟨n⟩ ms | `deploy/k8s/apps/api` ⟨env var⟩ | the query path is measured with generation stubbed at a fixed delay; the value sits under every p95 in `02-inference` → `02-inference/K1` |
-| Qdrant collection config | INT8 SQ on · 384 dims · sparse on · `hnsw_ef` ⟨n⟩ | Helm values | changes write cost, read latency and RAM together |
-| Image digests | chunker `⟨sha256:…⟩` · indexer `⟨sha256:…⟩` · api `⟨sha256:…⟩` | | the one thing that must not move while the config commit does |
+| `apps-compute` instance type | ⟨⟩ | Karpenter NodePool | one type keeps the ingestion pool priced at one rate |
+| `apps-compute` `consolidateAfter` | 30 s | Karpenter NodePool | the teardown tail is billed and sits inside every run window |
+| `apps-serving` instance types | ⟨⟩ | Karpenter NodePool | fixes the price of the capacity both serving deployments scale into |
+| `apps-serving` `consolidateAfter` | 1 m | Karpenter NodePool | decides how much of a scale-out tail each query window carries |
+| chunker requests / limits | ⟨cpu⟩ · ⟨mem⟩ | `deploy/k8s/apps/chunker` | sets workers per node, and split cost allocation divides a node by requests |
+| indexer requests / limits | ⟨cpu⟩ · ⟨mem 2Gi⟩ | `deploy/k8s/apps/indexer` | as above; the memory limit is what every termination reading is judged against |
+| Go API `minReplicaCount` | 2 | `api-scaler` ScaledObject | the always-on half of the serving Floor line |
+| Go API `maxReplicaCount` | ⟨50⟩ | `api-scaler` ScaledObject | set deliberately above anything the sweep should reach. A run that hits it measures the ceiling instead of the system, and is excluded |
+| Go API trigger | ⟨type⟩ · ⟨metric⟩ · threshold ⟨n⟩ ⟨confirm⟩ | `api-scaler` ScaledObject | the thing that decides how many replicas appear at a given arrival rate. A change to it changes every point in `02-inference` |
+| Go API requests / limits | ⟨cpu⟩ · ⟨mem⟩ | `deploy/k8s/apps/api` | per-replica capacity, and the denominator every CPU reading is taken against |
+| TEI `minReplicaCount` | 2 | `tei-embeddings-scaler` ScaledObject | the other always-on half of the serving Floor line |
+| TEI `maxReplicaCount` | ⟨50⟩ | `tei-embeddings-scaler` ScaledObject | as above |
+| TEI trigger | ⟨type⟩ · ⟨metric⟩ · threshold ⟨n⟩ ⟨confirm⟩ | `tei-embeddings-scaler` ScaledObject | TEI is shared: the indexer drives it during ingestion and the API during queries, so this row moves figures in both executions |
+| TEI requests / limits | ⟨cpu⟩ · ⟨mem⟩ | `deploy/k8s/apps/tei` | per-replica capacity |
+| Component pod label | `component=⟨chunker · indexer · api · tei⟩` | every workload manifest | the grouping key for pod-level cost; generated Job names are not one |
+| Job history retention | `successfulJobsHistoryLimit` ⟨n⟩ · `failedJobsHistoryLimit` ⟨n⟩ · `ttlSecondsAfterFinished` ⟨n⟩ | `deploy/k8s/apps/⟨…⟩/scaledjob.yaml` | worker concurrency and termination reasons are read from Job and Pod objects, and garbage collection removes those series mid-window |
+| Bedrock stub delay | ⟨n⟩ ms | `deploy/k8s/apps/api` ⟨env var⟩ | every latency figure in this report is read against it |
+| Qdrant collection config | INT8 SQ on · 384 dims · sparse on · `hnsw_m` ⟨n⟩ · `hnsw_ef` ⟨n⟩ | Helm values | changes write cost, read latency and RAM together |
+| Image digests | chunker `⟨sha256:…⟩` · indexer `⟨sha256:…⟩` · api `⟨sha256:…⟩` · tei `⟨sha256:…⟩` | | the one thing that must not move while the config commit does |
 
 ### Input fixtures — the two denominators → report §2
-
-The project has two denominators because it has two physically different paths. They are never
-converted into each other, and no table mixes them.
 
 **Ingestion, per document.** A unit is one source document, complete when its last chunk is
 upserted and counted in Qdrant. Exact count `⟨N⟩`. Distribution: median ⟨X⟩ pages, p95 ⟨Y⟩,
 total ⟨Z⟩ MB, formats ⟨pdf / md / txt split⟩. Arrival is a bulk drop: the whole corpus is
-uploaded at once, not streamed. Frozen ⟨date⟩ in `./data/corpus-profile.txt`. Completeness at
-each point is checked against this count by `01-ingestion/R16`.
+uploaded at once, not streamed. Frozen ⟨date⟩ in `./data/corpus-profile.txt`.
 
 **Query path, per query.** A unit is one search request, complete when the retrieved context is
-written to the response. Generation in Bedrock is outside the unit, and no run calls Bedrock at
-all: the call is stubbed at the fixed delay frozen above. The count is produced by each run
+written to the response. Generation is outside the unit, and no run in this report calls
+Bedrock: the call is stubbed at the fixed delay frozen above. The count is produced by each run
 rather than frozen here. The query set is ⟨n⟩ distinct queries in `./data/query-set.txt`,
 frozen ⟨date⟩.
 
-### Price basis → report §4.3–4.4
+The two are never converted into each other, and no table mixes them.
 
-- **Data file** — `./data/price-⟨YYYY-MM-DD⟩.json`
-- **Rate type** — ⟨On-Demand list · Savings Plan · EDP⟩
+### Cost basis → report §4
+
+- **Source of record** — CUR 2.0, hourly, resource IDs and split cost allocation on, at `s3://⟨bucket⟩/⟨prefix⟩`. Every measured cost figure in this report is a sum over its rows
+- **Cost column** — `⟨line_item_unblended_cost · line_item_amortized_cost⟩`, one choice, used everywhere
 - **Region and currency** — `⟨eu-central-1⟩` · USD
-- **Covers** — EC2 On-Demand and Spot by type · EBS gp3 · EKS control plane · Fargate vCPU/GB · NAT hourly and per-GB · S3 storage and requests · SQS requests · Bedrock per 1K input and output tokens
-- **Spot basis** — historical average over ⟨window⟩, not the instantaneous quote. Whether it matched the actual run windows is checked in `01-ingestion` Retro
-- **Bedrock rates** — carried for `02-inference/E15` only. No run calls Bedrock, so this line prices an assumption rather than a measurement
+- **Rate card** — `./data/price-⟨YYYY-MM-DD⟩.json`, carried only for what no run buys: Fargate vCPU-hour and GB-hour, and Bedrock per 1K input and output tokens. Every other rate is in the CUR rows themselves, already dated
+- **Spot** — priced at what was actually charged in each run hour. No historical average is frozen and none is needed
+- **Query file** — `./scripts/cur-window.sql`, holding the filter for each Floor line and each run window. Run locally over the parquet; no Athena scan is paid
 
 ### Envelope → report §2
 
-- **Platform** — ⟨region⟩ · EKS ⟨version⟩ · Karpenter ⟨version⟩ · pinned instance types, x86_64. Re-measure on any node-type or ARM64 change
-- **Scale range** — one Qdrant node, collection at ⟨n⟩ points, filled in at `01-ingestion` Close from `01-ingestion/R16`. Re-measure on sharded Qdrant or on a materially larger collection
-- **Input** — the frozen corpus profile and query set above. Re-measure on a different format mix, especially the PDF share
-- **Replica counts** — Go API and TEI held at the values frozen above. If `02-inference` runs its second pass, the winning count returns here as a given next revision, and the Go API and TEI Floor lines move with it
-- **Generation** — stubbed. Every latency figure in `02-inference` describes the retrieval path, not an end-to-end SLO → `02-inference/K1`
-- **Environment** — single-tenant cluster, no co-tenant load during any window. Re-measure on a shared cluster
-- **Commercial** — ⟨rate type⟩ as of ⟨date⟩. Re-measure on any rate change
+- **Platform** — ⟨region⟩ · EKS ⟨version⟩ · Karpenter ⟨version⟩ · KEDA ⟨version⟩ · pinned instance types, x86_64. Re-measure on any node-type or ARM64 change
+- **Scale range** — one Qdrant node. The floor is captured against an empty collection. Re-measure on sharded Qdrant
+- **Input** — the corpus profile and query set frozen above. Re-measure on a different format mix, especially the PDF share
+- **Autoscaling** — both serving deployments scale from 2 replicas under the triggers frozen above. Every figure in both executions is conditional on those triggers, not on a replica count. Re-measure on any trigger or threshold change
+- **Generation** — stubbed at the frozen delay. Re-measure on any change to the stub
+- **Environment** — single-tenant cluster, no co-tenant load during any window, and the two executions never run at the same time. Re-measure on a shared cluster
+- **Commercial** — the cost column and rate card above, as of ⟨date⟩. Re-measure on any rate change
 - **Outside** — multi-region, GPU inference, managed vector SaaS
 
 ### Floor → report §4.1
 
-Captured over the idle window with attribution active. ArgoCD, Karpenter, Cilium and the
-monitoring stack keep running with zero load. That is floor, not contamination: turning them
-off to get a cleaner number would measure a system that does not exist.
+Captured over the idle window. Every `$/month` is D4. Line identification lives in
+`./scripts/cur-window.sql`.
+
+The serving pool line prices four pods — two API replicas and two TEI replicas — and the nodes
+Karpenter keeps for them. Everything above that is caused by traffic and belongs to whichever
+execution generated it.
 
 | Line | Block | $/month | Fixed / variable |
 | :--- | :--- | :--- | :--- |
-| EKS control plane | A | ⟨73⟩ ᴰ | fixed |
-| `core-on-demand` node group | A | ⟨⟩ | fixed |
-| Karpenter on Fargate | A | ⟨⟩ | fixed |
+| EKS control plane | A | ⟨⟩ ᴰ | fixed |
+| `core-on-demand` node group | A | ⟨⟩ ᴰ | fixed |
+| Karpenter on Fargate | A | ⟨⟩ ᴰ | fixed |
 | NAT gateway — hourly | A | ⟨⟩ ᴰ | fixed |
-| NAT gateway — per GB | A | ⟨⟩ | variable |
-| Monitoring stack — Prometheus, Loki, Grafana, EBS | A | ⟨⟩ | fixed |
-| Qdrant node — On-Demand | B | ⟨⟩ | fixed |
-| Qdrant gp3 volume | B | ⟨⟩ | fixed |
-| TEI baseline replica | B | ⟨⟩ | fixed |
-| Go API replica | B | ⟨⟩ | fixed |
-| S3 — corpus at rest | B | ⟨⟩ | variable |
-| SQS — idle | B | ⟨0⟩ | variable |
+| NAT gateway — per GB at idle | A | ⟨⟩ ᴰ | variable |
+| Monitoring stack — Prometheus, Loki, Grafana, EBS | A | ⟨⟩ ᴰ | fixed |
+| Interface VPC endpoints — shared | A | ⟨⟩ ᴰ | fixed |
+| `database-on-demand` node — Qdrant | B | ⟨⟩ ᴰ | fixed |
+| Qdrant gp3 volume | B | ⟨⟩ ᴰ | fixed |
+| Qdrant snapshot storage | B | ⟨⟩ ᴰ | variable |
+| `apps-serving` nodes at minimum replicas — 2 API, 2 TEI | B | ⟨⟩ ᴰ | fixed |
+| Interface VPC endpoint — Bedrock | B | ⟨⟩ ᴰ | fixed |
+| Interface VPC endpoint — SQS | B | ⟨⟩ ᴰ | fixed |
+| Load balancer behind the Gateway | ⟨A · B⟩ | ⟨⟩ ᴰ | fixed |
+| ECR storage — application images | B | ⟨⟩ ᴰ | variable |
+| S3 — corpus at rest | B | ⟨⟩ ᴰ | variable |
+| SQS — idle scaler polling | B | ⟨⟩ ᴰ | variable |
 
 - **A · Shared** — ⟨$⟩
 - **B · Dedicated** — ⟨$⟩ → report §1 BLUF
 - **C · Total** — ⟨$⟩ ᴰ
-- **Reference value** — the unqualified idle claim published in article 1
+- **Serving pool idle rate** — ⟨$/hour⟩ ᴰ. Subtracted from every run window in both executions, so no marginal figure carries a floor line
+- **Untaggable lines allocated by hand** — R5, ⟨$⟩ of ⟨$⟩ total
+- **Reference value** — the unqualified idle claim published in article 1. No always-on floor is carried: it prices a different tolerance for cold start rather than a different design
 - **Raw data** — `./data/idle-⟨YYYY-MM-DD⟩.csv`
-
-The A / B seam is decided by one question: if this feature were deleted, which lines leave the
-bill? Shared cluster machinery survives. The vector database, its volume, the embedding service
-and the query API do not.
-
-Block C is `A + B`. It carries the ᴰ mark in report §4.1 and no ref: A and B are subtotals of M1
-rows and have no refs either, and giving one to the sum but not to the two addends sends a
-reader looking for a ref that does not exist.
-
-There is no always-on reference value. An always-on floor prices a different tolerance for cold
-start, not a different design, and comparing the two measures someone else's decision. The
-comparison this report does make is against a different compute mode on the same platform, and
-it sits on the marginal side: `01-ingestion/D24`.
-
-The Qdrant node line is conditional on the instance class, and the class is confirmed in
-`01-ingestion` rather than here. If `01-ingestion/D25` and `01-ingestion/M13` show it was chosen
-wrongly, this baseline is re-captured in place as a new revision with its own `Supersedes`
-(`methodology.md` §12). It is the only finding that propagates backwards into a closed baseline,
-and Block B is the figure it moves.
 
 ### Retro
 
 - **Expectation** — ⟨held · inverted, and which line actually dominates B⟩
+- **Attribution coverage** — ⟨M2 at capture, and which lines needed R5⟩
 - **Cost against estimate** — ⟨actual against budgeted capture cost⟩
+- **Month-close revision** — ⟨did any line move between the 48 h read and the closed month⟩
 - **Not observed** — ⟨line and why⟩ → report Coverage
 - **Back into the kit** — ⟨⟩
