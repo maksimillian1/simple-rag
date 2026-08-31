@@ -133,4 +133,10 @@ spec:
     cpu: 200
   disruption:
     consolidationPolicy: WhenEmpty
-    consolidateAfter: 30s
+    # 30s (the value 00-baseline §2 froze for the teardown-tail cost model)
+    # was shorter than node boot + pod bind time, so Karpenter's own
+    # disruption controller was deleting every freshly provisioned node as
+    # "Empty" before a single chunker/indexer pod could bind — a total
+    # scheduling deadlock, not just an inefficiency. Revisit this value
+    # (and re-measure D26) once the pipeline is actually running cleanly.
+    consolidateAfter: 5m
