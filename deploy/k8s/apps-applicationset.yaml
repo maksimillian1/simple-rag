@@ -31,6 +31,14 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: default
+      ignoreDifferences:
+        # Deployments here (api, tei-embeddings) are scaled by a KEDA-managed
+        # HPA. Without this, ArgoCD's selfHeal treats every HPA-driven scale
+        # as drift from the manifest's replicas value
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas
       syncPolicy:
         automated:
           prune: true
