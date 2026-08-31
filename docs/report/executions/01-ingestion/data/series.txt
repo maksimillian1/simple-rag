@@ -15,12 +15,12 @@
 M1|keda_scaler_metrics_value{scaledObject=~"chunker|indexer"}
 M2|kube_node_labels{label_karpenter_sh_nodepool="apps-compute"}
 M3|kube_node_created * on(node) group_left() kube_node_labels{label_karpenter_sh_nodepool="apps-compute"}
-M4|container_start_time_seconds{namespace="default",container=~"chunker|indexer"}
-M5|kube_job_status_active{namespace="default",job_name=~"chunker.*|indexer.*"}
-M6|container_cpu_usage_seconds_total{namespace="default",container!="",container!="POD",container=~"chunker|indexer"}
-M7|container_memory_working_set_bytes{namespace="default",container!="",container!="POD",container=~"chunker|indexer"}
-M8|kube_pod_container_status_last_terminated_reason{namespace="default",reason="OOMKilled"}
-M9|kube_deployment_status_replicas{namespace="default",deployment="tei-embeddings"}
+M4|container_start_time_seconds{namespace="rag-jobs",container=~"chunker|indexer"}
+M5|kube_job_status_active{namespace="rag-jobs",job_name=~"chunker.*|indexer.*"}
+M6|container_cpu_usage_seconds_total{namespace="rag-jobs",container!="",container!="POD",container=~"chunker|indexer"}
+M7|container_memory_working_set_bytes{namespace="rag-jobs",container!="",container!="POD",container=~"chunker|indexer"}
+M8|kube_pod_container_status_last_terminated_reason{namespace="rag-jobs",reason="OOMKilled"}
+M9|kube_deployment_status_replicas{namespace="rag-platform",deployment="tei-embeddings"}
 
 # Optional — Tier 2 candidates, blocked on a ServiceMonitor. Kept commented: an
 # uncommented line with no target exits 2 on a gap that is not a gap.
@@ -29,4 +29,4 @@ M9|kube_deployment_status_replicas{namespace="default",deployment="tei-embedding
 # M17|⟨confirm at :6333/metrics⟩
 
 # Optional — read at the highest-N point only, against a loaded collection.
-# M18|container_memory_working_set_bytes{namespace="default",container="qdrant"}
+# M18|container_memory_working_set_bytes{namespace="rag-platform",container="qdrant"}

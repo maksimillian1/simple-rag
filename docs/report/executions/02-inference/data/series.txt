@@ -11,16 +11,16 @@
 # The three http_ names assume the Go API's exporter. If it is instrumented
 # differently these are the only lines that change.
 
-Q1|sum(rate(http_requests_total{namespace="default",job=~".*api.*"}[1m]))
-Q2|sum(rate(http_requests_total{namespace="default",job=~".*api.*",code=~"5.."}[1m])) or vector(0)
-Q3|histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="default",job=~".*api.*"}[1m])))
-Q4|histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="default",job=~".*api.*"}[1m])))
-Q5|kube_deployment_status_replicas{namespace="default",deployment=~"api|tei-embeddings"}
-Q6|keda_scaler_metrics_value{namespace="default",scaledObject=~"api-scaler|tei-embeddings-scaler"}
-Q7|container_cpu_usage_seconds_total{namespace="default",container!="",container!="POD",container=~"api|tei"}
-Q8|container_memory_working_set_bytes{namespace="default",container!="",container!="POD",container=~"api|tei"}
+Q1|sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*"}[1m]))
+Q2|sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*",code=~"5.."}[1m])) or vector(0)
+Q3|histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="rag-api",job=~".*api.*"}[1m])))
+Q4|histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="rag-api",job=~".*api.*"}[1m])))
+Q5|kube_deployment_status_replicas{namespace=~"rag-api|rag-platform",deployment=~"api|tei-embeddings"}
+Q6|keda_scaler_metrics_value{namespace=~"rag-api|rag-platform",scaledObject=~"api-scaler|tei-embeddings-scaler"}
+Q7|container_cpu_usage_seconds_total{namespace=~"rag-api|rag-platform",container!="",container!="POD",container=~"api|tei-embeddings"}
+Q8|container_memory_working_set_bytes{namespace=~"rag-api|rag-platform",container!="",container!="POD",container=~"api|tei-embeddings"}
 Q9|kube_node_labels{label_karpenter_sh_nodepool="apps-serving"}
-Q10|container_memory_working_set_bytes{namespace="default",container="qdrant"}
+Q10|container_memory_working_set_bytes{namespace="rag-platform",container="qdrant"}
 
 # Optional — Tier 2 candidates, blocked on a ServiceMonitor.
 # Q11|te_queue_size

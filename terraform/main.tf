@@ -5,6 +5,7 @@ locals {
     environment = var.is_local_test ? "local-test" : "dev"
     managed-by  = "terraform"
     feature     = "simple-rag"
+    tier        = "shared"
   }
 }
 

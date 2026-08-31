@@ -16,21 +16,21 @@
 - **Varied parameter** — KEDA `maxReplicaCount` (N), one value on both ScaledJobs, in `deploy/k8s/apps/⟨…⟩/scaledjob.yaml`. Fixing one stage while sweeping the other makes the fixed stage the ceiling by construction, and the hypothesis names a stage. The split between them comes from M6 → K7
 - **Candidate grid** — N ∈ {4, 8, 12, 16, 20, 24}
 - **Sweep order** — coarse to fine: {4, 12, 24}, then two refinement points placed by the shape those three produce (`methodology.md` §7). Five points total
-- **Held constant** — image digests, corpus, Qdrant collection config, instance types, the TEI trigger, and every row of `00-baseline` §2 Configuration freeze. The config commit moves between points: the swept value lives in Git
+- **Held constant** — image digests, corpus (`zabiullah/pdf-books-collection`, 1,041 PDFs, 14.52 GB — provisioned via `../../scripts/download-pdf-books-dataset.py` + `upload-dir-to-s3.py`), Qdrant collection config, instance types, the TEI trigger, and every row of `00-baseline` §2 Configuration freeze. The config commit moves between points: the swept value lives in Git
 - **Not held constant, and measured instead** — TEI replicas. The indexer drives the same autoscaler the query path drives, so TEI scales during a run and its cost above the two-replica floor belongs to this execution → K5
 - **Reset between points** — both queues at zero, `apps-compute` at zero nodes, TEI back at 2 replicas, collection recreated
 - **Conditions carried to report §2** — bulk-drop arrival, worker packing density of ≈ ⟨n⟩ per node → K2, and the TEI trigger frozen in `00-baseline` §2
 
 ### Window
 
-- **Opens** — first `s3:ObjectCreated`, from the marker the upload script writes · recorded by `run-point.py --start-marker`. Upload is outside the system under test
+- **Opens** — first `s3:ObjectCreated`, from the marker the upload script writes · recorded by `run-ingestion-point.py --start-marker`. Upload is outside the system under test
 - **Closes** — `apps-compute` at zero nodes **and** TEI back at 2 replicas, plus ⟨5⟩ min. Not at queue drain → K1
 - **Spacing** — one point per clock hour → K6
 - **Excluded from the window** — query load. TEI is shared, and its scale-out would be priced in two executions at once → K5
 
 ### Metrics
 
-The register is in `./metrics.md`. PromQL for M1–M9 is in `./promql.txt`, confirmed names only, dry run clean ⟨date⟩.
+The register is in `./metrics.md`. PromQL for M1–M9 is in `./data/series.txt` and `./data/guards.txt`, confirmed names only, dry run clean ⟨date⟩.
 
 ### Validity
 
@@ -54,11 +54,10 @@ Averaging an excluded point back in silently is not a third option.
 
 One invocation per point. The runner does preflight, window timing, interruption detection, the
 R21 read, Prometheus export, and the TEI and Qdrant reset. It does not read cost. Exit codes and
-what to do with each are in `run-point.py --help`.
+what to do with each are in `run-ingestion-point.py --help`.
 
 ```bash
-../../scripts/run-point.py --profile ./profile.yaml --promql ./promql.txt \
-                           --run ingestion-n04 --n 4
+../../scripts/run-ingestion-point.py --run ingestion-n04 --n 4
 ```
 
 The cost pass runs once for the whole campaign, at least 48 h after the last point, over the
@@ -87,6 +86,13 @@ before the figures land in `./data/frontier.csv`.
 a blank there after the pass ran is a lost cost row rather than a lost point.
 
 ### Notes
+
+**Corpus provisioning** — 1,041 PDFs (14.52 GB) uploaded to the raw-docs bucket in 387 s
+(37.6 MB/s) via `download-pdf-books-dataset.py` + `upload-dir-to-s3.py` (16 workers, 16 MB
+multipart threshold). Throughput matched the operator's home uplink, not S3 or the
+scripts' concurrency — the HF download side independently ran at a comparable ~34 MB/s. Not
+a system-under-test figure, and excluded from every point's window (§1 Window: upload is
+outside the system under test).
 
 **Decision after the coarse pass** — ⟨which two refinement points, and the shape that placed them⟩
 
@@ -129,7 +135,7 @@ not against `N set`. `TEI peak` is M9. `Compute $` is M10 and is billed rather t
 - **Gap cost** — ⟨⟩ extra per 1M docs paid at the knee rather than at the sweet spot → report §3.3
 - **Reference value** — ⟨the pre-sweep default N⟩, and the Fargate equivalent D29
 - **Condition boundary** — `00-baseline` §2 Envelope, plus packing density, bulk-drop arrival and the TEI trigger
-- **Raw data** — `./data/frontier.csv` · chart by `../../scripts/plot-frontier.py` → `../../assets/`
+- **Raw data** — `./data/frontier.csv`. No `plot-frontier.py` exists in `docs/report/scripts/` yet — chart by hand or write one before this execution closes
 
 **Warm-up and unused capacity** — D26 at the lowest and highest N: ⟨⟩ → ⟨⟩ → report §3.4
 

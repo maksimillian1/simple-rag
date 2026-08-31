@@ -213,8 +213,8 @@ def main():
                         help="line item types summed")
     parser.add_argument("--split", action="store_true",
                         help="also break split cost allocation rows down by --split-key")
-    parser.add_argument("--split-key", default="component",
-                        help="pod label the split is grouped by (default component)")
+    parser.add_argument("--split-key", default="app",
+                        help="pod label the split is grouped by (default app)")
     parser.add_argument("--include-split-rows", action="store_true",
                         help="do not exclude split child rows from the total")
     parser.add_argument("--format", choices=("table", "csv", "json"),
