@@ -2,6 +2,7 @@ apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
   name: tei-embeddings-scaler
+  namespace: rag-platform
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -9,10 +10,25 @@ spec:
     name: tei-embeddings
   minReplicaCount: 2
   maxReplicaCount: 30
+  cooldownPeriod: 300
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Percent
+              value: 10
+              periodSeconds: 60
   triggers:
   - type: prometheus
     metadata:
       serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
-      metricName: tei_avg_cpu
-      query: avg(rate(container_cpu_usage_seconds_total{namespace="rag-platform", pod=~"tei-embeddings-.*", container="tei-embeddings"}[2m])) or vector(0)
+      metricName: tei_cpu_usage
+      metricType: AverageValue
+      # sum(), not avg(): AverageValue target divides the raw metric value by
+      # threshold with no replica-count factor, so avg() per-pod CPU pinned
+      # desiredReplicas at ~1 regardless of total load. sum() gives total
+      # demand, which is what the AverageValue formula expects.
+      query: sum(rate(container_cpu_usage_seconds_total{namespace="rag-platform", pod=~"tei-embeddings-.*", container="tei-embeddings"}[5m])) or vector(0)
       threshold: "1.5"
