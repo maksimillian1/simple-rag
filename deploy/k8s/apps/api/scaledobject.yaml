@@ -14,5 +14,6 @@ spec:
     metadata:
       serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
       metricName: api_avg_cpu
-      query: avg(rate(container_cpu_usage_seconds_total{namespace="rag-api", pod=~"api-.*", container="api"}[2m])) or vector(0)
+      metricType: AverageValue
+      query: sum(rate(container_cpu_usage_seconds_total{namespace="rag-api", pod=~"api-.*", container="api"}[2m])) or vector(0)
       threshold: "0.2"
