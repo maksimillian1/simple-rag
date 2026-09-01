@@ -5,7 +5,6 @@ from src.vector import generate_point_id, NAMESPACE_RAG
 def test_point_id_generation():
     file_name = "annual_report_2026.pdf"
     chunk_idx = 14
-    
     composite_key = f"{file_name}:{chunk_idx}"
     expected_uuid = str(uuid.uuid5(NAMESPACE_RAG, composite_key))
     
