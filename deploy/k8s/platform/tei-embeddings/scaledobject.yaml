@@ -15,10 +15,10 @@ spec:
     horizontalPodAutoscalerConfig:
       behavior:
         scaleDown:
-          stabilizationWindowSeconds: 300
+          stabilizationWindowSeconds: 150
           policies:
             - type: Percent
-              value: 10
+              value: 20
               periodSeconds: 60
   triggers:
   - type: prometheus
