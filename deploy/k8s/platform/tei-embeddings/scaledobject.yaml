@@ -11,15 +11,16 @@ spec:
   minReplicaCount: 2
   maxReplicaCount: 30
   cooldownPeriod: 300
+  pollingInterval: 15
   advanced:
     horizontalPodAutoscalerConfig:
       behavior:
         scaleDown:
-          stabilizationWindowSeconds: 150
+          stabilizationWindowSeconds: 60
           policies:
             - type: Percent
-              value: 20
-              periodSeconds: 60
+              value: 40
+              periodSeconds: 30
   triggers:
   - type: prometheus
     metadata:
@@ -30,5 +31,10 @@ spec:
       # threshold with no replica-count factor, so avg() per-pod CPU pinned
       # desiredReplicas at ~1 regardless of total load. sum() gives total
       # demand, which is what the AverageValue formula expects.
-      query: sum(rate(container_cpu_usage_seconds_total{namespace="rag-platform", pod=~"tei-embeddings-.*", container="tei-embeddings"}[5m])) or vector(0)
+      #
+      # [2m], not [5m]: a 5m rate window takes a full 5 minutes to decay to
+      # zero after load actually stops, independent of any HPA scaleDown
+      # setting below — the metric itself hides the drop that long. [2m]
+      # still smooths single-poll noise from SQS-batch gaps, just faster.
+      query: sum(rate(container_cpu_usage_seconds_total{namespace="rag-platform", pod=~"tei-embeddings-.*", container="tei-embeddings"}[2m])) or vector(0)
       threshold: "1.5"
