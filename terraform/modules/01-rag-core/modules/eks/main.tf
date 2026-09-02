@@ -14,6 +14,8 @@ module "eks" {
 
   enable_cluster_creator_admin_permissions = true
 
+  kms_key_deletion_window_in_days = 7
+
   node_security_group_tags = {
     "karpenter.sh/discovery" = var.cluster_name
   }

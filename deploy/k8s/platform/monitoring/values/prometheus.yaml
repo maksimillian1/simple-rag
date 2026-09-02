@@ -72,6 +72,23 @@ prometheus:
           - source_labels: [ __meta_kubernetes_namespace ]
             target_label: namespace
 
+      - job_name: 'cilium-envoy'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['kube-system']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_k8s_app]
+            action: keep
+            regex: cilium-envoy
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: '9964'
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
       - job_name: 'qdrant'
         kubernetes_sd_configs:
           - role: pod
