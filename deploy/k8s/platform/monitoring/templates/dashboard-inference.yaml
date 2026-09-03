@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-02-inference
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  02-inference.json: |
+    {
+      "title": "02 · Inference",
+      "uid": "02-inference",
+      "tags": ["simple-rag", "02-inference"],
+      "timezone": "utc",
+      "schemaVersion": 39,
+      "refresh": "15s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1, "title": "Q1 · served req/s (BLOCKED — no /metrics on api, see M1)",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+          "description": "Go API exposes no /metrics endpoint as of 2026-09-02 — this panel will read No data until apps/api is instrumented and scraped.",
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum(rate(http_requests_total{namespace=\"rag-api\",job=~\".*api.*\"}[1m]))",
+            "legendFormat": "served req/s" }]
+        },
+        {
+          "id": 2, "title": "Q2 · 5xx error rate (BLOCKED, see M1)",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum(rate(http_requests_total{namespace=\"rag-api\",job=~\".*api.*\",code=~\"5..\"}[1m])) or vector(0)",
+            "legendFormat": "5xx/s" }]
+        },
+        {
+          "id": 3, "title": "Q3/Q4 · p95 / p50 request duration (BLOCKED, see M1)",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"rag-api\",job=~\".*api.*\"}[1m])))",
+              "legendFormat": "p95" },
+            { "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"rag-api\",job=~\".*api.*\"}[1m])))",
+              "legendFormat": "p50" }
+          ]
+        },
+        {
+          "id": 4, "title": "Q5 · api / tei-embeddings replicas",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "kube_deployment_status_replicas{namespace=~\"rag-api|rag-platform\",deployment=~\"api|tei-embeddings\"}",
+            "legendFormat": "{{deployment}}" }]
+        },
+        {
+          "id": 5, "title": "Q6 · scaler metric (api-scaler / tei-embeddings-scaler)",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "keda_scaler_metrics_value{namespace=~\"rag-api|rag-platform\",scaledObject=~\"api-scaler|tei-embeddings-scaler\"}",
+            "legendFormat": "{{scaledObject}}" }]
+        },
+        {
+          "id": 6, "title": "Q7 · api / tei-embeddings CPU (cores)",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum by (pod, container) (rate(container_cpu_usage_seconds_total{namespace=~\"rag-api|rag-platform\",container!=\"\",container!=\"POD\",container=~\"api|tei-embeddings\"}[5m]))",
+            "legendFormat": "{{container}}/{{pod}}" }]
+        },
+        {
+          "id": 7, "title": "Q8 · api / tei-embeddings memory working set",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "container_memory_working_set_bytes{namespace=~\"rag-api|rag-platform\",container!=\"\",container!=\"POD\",container=~\"api|tei-embeddings\"}",
+            "legendFormat": "{{container}}/{{pod}}" }]
+        },
+        {
+          "id": 8, "title": "Q9 · apps-serving node count",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "count(kube_node_labels{label_karpenter_sh_nodepool=\"apps-serving\"}) by (label_karpenter_sh_capacity_type)",
+            "legendFormat": "{{label_karpenter_sh_capacity_type}}" }]
+        },
+        {
+          "id": 9, "title": "Q10 · Qdrant memory working set",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "container_memory_working_set_bytes{namespace=\"rag-platform\",container=\"qdrant\"}",
+            "legendFormat": "{{pod}}" }]
+        }
+      ]
+    }

@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-01-ingestion
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  01-ingestion.json: |
+    {
+      "title": "01 · Ingestion",
+      "uid": "01-ingestion",
+      "tags": ["simple-rag", "01-ingestion"],
+      "timezone": "utc",
+      "schemaVersion": 39,
+      "refresh": "15s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1, "title": "M1 · KEDA scaler metric (chunker/indexer)",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "keda_scaler_metrics_value{scaledObject=~\"chunker|indexer\"}",
+            "legendFormat": "{{scaledObject}}" }]
+        },
+        {
+          "id": 2, "title": "M2 · apps-compute node count",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "count(kube_node_labels{label_karpenter_sh_nodepool=\"apps-compute\"})",
+            "legendFormat": "nodes" }]
+        },
+        {
+          "id": 3, "title": "M5 · active chunker/indexer jobs",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum by (job_name) (kube_job_status_active{namespace=\"rag-jobs\",job_name=~\"chunker.*|indexer.*\"})",
+            "legendFormat": "{{job_name}}" }]
+        },
+        {
+          "id": 4, "title": "M9 · tei-embeddings replicas",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "kube_deployment_status_replicas{namespace=\"rag-platform\",deployment=\"tei-embeddings\"}",
+            "legendFormat": "replicas" }]
+        },
+        {
+          "id": 5, "title": "M6 · chunker/indexer CPU (cores)",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum by (pod, container) (rate(container_cpu_usage_seconds_total{namespace=\"rag-jobs\",container!=\"\",container!=\"POD\",container=~\"chunker|indexer\"}[5m]))",
+            "legendFormat": "{{container}}/{{pod}}" }]
+        },
+        {
+          "id": 6, "title": "M7 · chunker/indexer memory working set",
+          "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "container_memory_working_set_bytes{namespace=\"rag-jobs\",container!=\"\",container!=\"POD\",container=~\"chunker|indexer\"}",
+            "legendFormat": "{{container}}/{{pod}}" }]
+        },
+        {
+          "id": 7, "title": "M8 · OOMKilled count (rag-jobs)",
+          "type": "stat", "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "expr": "sum(kube_pod_container_status_last_terminated_reason{namespace=\"rag-jobs\",reason=\"OOMKilled\"}) or vector(0)",
+            "legendFormat": "OOMKilled" }],
+          "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }, "overrides": [] }
+        },
+        {
+          "id": 8, "title": "M4 · chunker/indexer container start times",
+          "type": "table", "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+          "description": "M4, M6, M7 cannot be confirmed on an idle cluster — see 01-ingestion/data/series.txt header. Raw timestamp, not an age; instant query.",
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "instant": true, "format": "table",
+            "expr": "container_start_time_seconds{namespace=\"rag-jobs\",container=~\"chunker|indexer\"}" }]
+        },
+        {
+          "id": 9, "title": "M3 · apps-compute node creation time",
+          "type": "table", "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+          "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "instant": true, "format": "table",
+            "expr": "kube_node_created * on(node) group_left() kube_node_labels{label_karpenter_sh_nodepool=\"apps-compute\"}" }]
+        }
+      ]
+    }
