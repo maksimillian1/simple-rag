@@ -143,7 +143,11 @@ alertmanager:
 
 kube-state-metrics:
   metricLabelsAllowlist:
-    - "nodes=[karpenter.sh/nodepool,karpenter.sh/capacity-type]"
+    # instance-type + zone added for karpenter-cost-estimate.py: node-lifecycle
+    # cost reconstruction needs them to price a node after it's already gone
+    # (Prometheus label history is the only place they still exist by then —
+    # `kubectl get nodes` only shows what's currently up).
+    - "nodes=[karpenter.sh/nodepool,karpenter.sh/capacity-type,node.kubernetes.io/instance-type,topology.kubernetes.io/zone]"
   nodeSelector:
     tier: core-on-demand
   resources:
