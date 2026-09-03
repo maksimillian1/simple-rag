@@ -18,3 +18,15 @@ spec:
     - ports:
       - port: "8080"
         protocol: TCP
+  # Prometheus scrapes /metrics on the same port the embedding API serves —
+  # without this, M15/M16 (te_queue_size, te_request_inference_duration)
+  # never land: Cilium drops the scrape silently (context deadline exceeded,
+  # not connection refused), no error visible from the Prometheus side alone.
+  - fromEndpoints:
+    - matchLabels:
+        app.kubernetes.io/name: prometheus
+        k8s:io.kubernetes.pod.namespace: monitoring
+    toPorts:
+    - ports:
+      - port: "8080"
+        protocol: TCP
