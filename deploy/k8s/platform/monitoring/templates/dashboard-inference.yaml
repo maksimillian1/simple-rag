@@ -50,21 +50,21 @@ data:
           "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "kube_deployment_status_replicas{namespace=~\"rag-api|rag-platform\",deployment=~\"api|tei-embeddings\"}",
-            "legendFormat": "{{deployment}}" }]
+            "legendFormat": "{{`{{deployment}}`}}" }]
         },
         {
           "id": 5, "title": "Q6 · scaler metric (api-scaler / tei-embeddings-scaler)",
           "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "keda_scaler_metrics_value{namespace=~\"rag-api|rag-platform\",scaledObject=~\"api-scaler|tei-embeddings-scaler\"}",
-            "legendFormat": "{{scaledObject}}" }]
+            "legendFormat": "{{`{{scaledObject}}`}}" }]
         },
         {
           "id": 6, "title": "Q7 · api / tei-embeddings CPU (cores)",
           "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "sum by (pod, container) (rate(container_cpu_usage_seconds_total{namespace=~\"rag-api|rag-platform\",container!=\"\",container!=\"POD\",container=~\"api|tei-embeddings\"}[5m]))",
-            "legendFormat": "{{container}}/{{pod}}" }]
+            "legendFormat": "{{`{{container}}`}}/{{`{{pod}}`}}" }]
         },
         {
           "id": 7, "title": "Q8 · api / tei-embeddings memory working set",
@@ -72,14 +72,14 @@ data:
           "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "container_memory_working_set_bytes{namespace=~\"rag-api|rag-platform\",container!=\"\",container!=\"POD\",container=~\"api|tei-embeddings\"}",
-            "legendFormat": "{{container}}/{{pod}}" }]
+            "legendFormat": "{{`{{container}}`}}/{{`{{pod}}`}}" }]
         },
         {
           "id": 8, "title": "Q9 · apps-serving node count",
           "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "count(kube_node_labels{label_karpenter_sh_nodepool=\"apps-serving\"}) by (label_karpenter_sh_capacity_type)",
-            "legendFormat": "{{label_karpenter_sh_capacity_type}}" }]
+            "legendFormat": "{{`{{label_karpenter_sh_capacity_type}}`}}" }]
         },
         {
           "id": 9, "title": "Q10 · Qdrant memory working set",
@@ -87,7 +87,7 @@ data:
           "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "container_memory_working_set_bytes{namespace=\"rag-platform\",container=\"qdrant\"}",
-            "legendFormat": "{{pod}}" }]
+            "legendFormat": "{{`{{pod}}`}}" }]
         }
       ]
     }

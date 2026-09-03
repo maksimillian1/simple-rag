@@ -21,7 +21,7 @@ data:
           "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "keda_scaler_metrics_value{scaledObject=~\"chunker|indexer\"}",
-            "legendFormat": "{{scaledObject}}" }]
+            "legendFormat": "{{`{{scaledObject}}`}}" }]
         },
         {
           "id": 2, "title": "M2 · apps-compute node count",
@@ -35,7 +35,7 @@ data:
           "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "sum by (job_name) (kube_job_status_active{namespace=\"rag-jobs\",job_name=~\"chunker.*|indexer.*\"})",
-            "legendFormat": "{{job_name}}" }]
+            "legendFormat": "{{`{{job_name}}`}}" }]
         },
         {
           "id": 4, "title": "M9 · tei-embeddings replicas",
@@ -50,7 +50,7 @@ data:
           "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "sum by (pod, container) (rate(container_cpu_usage_seconds_total{namespace=\"rag-jobs\",container!=\"\",container!=\"POD\",container=~\"chunker|indexer\"}[5m]))",
-            "legendFormat": "{{container}}/{{pod}}" }]
+            "legendFormat": "{{`{{container}}`}}/{{`{{pod}}`}}" }]
         },
         {
           "id": 6, "title": "M7 · chunker/indexer memory working set",
@@ -58,7 +58,7 @@ data:
           "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
           "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" },
             "expr": "container_memory_working_set_bytes{namespace=\"rag-jobs\",container!=\"\",container!=\"POD\",container=~\"chunker|indexer\"}",
-            "legendFormat": "{{container}}/{{pod}}" }]
+            "legendFormat": "{{`{{container}}`}}/{{`{{pod}}`}}" }]
         },
         {
           "id": 7, "title": "M8 · OOMKilled count (rag-jobs)",
