@@ -66,16 +66,22 @@ spec:
           values: ["spot", "on-demand"]
         - key: karpenter.k8s.aws/instance-category
           operator: In
-          # "t" (burstable) excluded: tei-embeddings runs sustained
-          # near-limit CPU under load, and unlimited-credit bursting on
-          # a t-family instance is billed above baseline continuously.
-          values: ["c", "m", "r"]
+          # Narrowed to "c" only: this pool is shared by tei-embeddings
+          # (sustained near-limit CPU, no burst headroom needed) and api
+          # load-test traffic — both CPU-bound, neither benefits from "m"
+          # (extra memory) or "r" (much more memory) variety. "t" stays
+          # excluded: unlimited-credit bursting on a t-family instance is
+          # billed above baseline continuously under sustained load.
+          values: ["c"]
         - key: kubernetes.io/arch
           operator: In
+          # Both arches kept (unlike apps-compute): api is multi-arch and
+          # runs load tests on arm64 too, while tei-embeddings pins itself
+          # to amd64 via nodeSelector (its image has no arm64 manifest).
           values: ["amd64", "arm64"]
         - key: karpenter.k8s.aws/instance-size
-          operator: NotIn
-          values: ["nano", "micro"]
+          operator: In
+          values: ["xlarge", "2xlarge", "4xlarge"]
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass
