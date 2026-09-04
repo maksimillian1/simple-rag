@@ -103,6 +103,7 @@ before the figures land in `./data/frontier.csv`.
 | 04a | ingestion-n100-sticky | 2026-09-03T15:19:31Z → 15:57:48Z | `9c280655cea7` | superseded — sticky TEI routing, see Notes; re-run after fix | indexer at N ceiling (M5 100/100) but M6=0.146, not CPU-bound ᴱ | ✓ (8/9, M8 gap) | — |
 | 04 | ingestion-n100     | 2026-09-03T16:24:23Z → 17:05:31Z | `cfa0ab7` (dirty) | ok — post-fix, see Notes for the wall-clock/cost nuance | indexer at N ceiling, M5 100/100 · chunker headroom 20/100 · TEI peak ~23 replicas ᴿ | ✓ (8/9, M8 gap — same GC-race as n100-sticky) | — |
 | 05 | ingestion-n125     | 2026-09-04T14:00:58Z → 14:39:25Z | `15d43d5` (dirty) | ok — closed by hand after the runner process was killed externally, see Notes | indexer at N ceiling, M5 125/125 · chunker headroom 20/125 · TEI peak 26 replicas ᴿ | ✓ (8/9, M8 gap) | — |
+| 06 | ingestion-n75      | 2026-09-04T15:06:08Z → 15:48:59Z | `1b5ad91` (dirty) | ok — off-plan refinement point, see Notes | indexer at N ceiling, M5 75/75 · chunker headroom 20/75 · TEI peak 16 replicas ᴿ | ✓ (8/9, M8 gap) | — |
 | 06 | ingestion-n175     | | | | | | |
 
 `Exported` is filled when the run ends. `Cost read` is filled by the cost pass, days later, and
@@ -255,6 +256,53 @@ Cost estimate (karpenter/EC2/CloudWatch, same method as `n100`):
 with N this time (unlike the `n100-sticky → n100` comparison, where compute and serving moved
 in opposite directions) — a cleaner, more expected shape. Still only one measurement per N,
 same statistical caveat as before applies.
+
+**Live incident during prep** — the `argocd.argoproj.io/compare-options: ServerSideDiff=true`
+fix from the previous session (meant to stop qdrant's self-heal loop, see
+`tmp/post-mortem/postmortem-2026-09-03-...md` §4) turned out to panic this cluster's
+`gitops-engine` (v0.7.1) on at least some apps — confirmed in
+`argocd-application-controller` logs: `Recovered from panic: invalid memory address or nil
+pointer dereference` in `diff.removeWebhookMutation`. The panic is caught per-app, but that
+app's reconcile that cycle silently aborts — this is what was actually blocking
+`indexer`/`chunker` from picking up new commits, not `argocd-image-updater` (which was the
+suspect in the `n125` prep). Reverted the annotation in git, but ArgoCD ApplicationSet only
+*adds/updates* annotations from its template — it does not prune ones removed from the
+template, so the revert alone didn't clear it from the 9 already-generated Applications; had
+to `kubectl patch --type merge` each one directly (`{"metadata":{"annotations":{"...
+compare-options":null}}}`) to actually remove it. Confirmed clean afterward (0 panics/minute).
+The qdrant self-heal loop this was meant to fix is left unfixed — cosmetic, no pod disruption,
+not worth risking this again without testing against this cluster's actual ArgoCD version first.
+
+**#06 ingestion-n75** — off-plan, added after `n125`: with `n100`/`n125` both showing indexer
+comfortably below its CPU ceiling (M6 ~12-17%) and TEI below its own replica ceiling (23/30,
+26/30), the shape between 50 and 100 was still unknown — `n50-test` and `n100` bracket a wide
+gap. Ran at N=75 to fill it in before committing to `n175`.
+
+R21 = 84,018 — fifth point in a row with the identical count. M5: indexer 75/75 (full ceiling,
+same signature as every other point), chunker 20/75 — **fifth consecutive confirmation** that
+chunker's ceiling is corpus-driven (fixed at 20 regardless of `maxReplicaCount`), not a
+`maxReplicaCount` artifact. TEI peaked at 16, continuing the roughly-linear relationship with N
+(16 → 23 → 26 for N = 75 → 100 → 125).
+
+**Cost trend across the three post-fix points — this is the interesting part:**
+
+| N | `M10` compute | `M11` serving gross | `D24` $/run | `D25` $/1M docs |
+| :--- | :--- | :--- | :--- | :--- |
+| 75  | $1.19 | $0.69 | $1.56 | $15,623 |
+| 100 | $1.29 | $0.87 | $1.76 | $17,613 |
+| 125 | $1.44 | $0.98 | $1.97 | $19,657 |
+
+`$/1M docs` rises **monotonically** with N across all three points measured so far — the
+opposite of the usual U-shaped efficiency curve this execution's methodology expects (§1
+Expected: "the unit-cost minimum sits below the throughput knee"). If this shape holds, the
+sweet spot is at or below N=75, not somewhere between the concurrency ceiling and TEI's own
+ceiling as originally framed. Wall-clock/throughput (`docs/min`, `N reached` vs `M5`) hasn't
+been compared across these three yet — that comparison is what would confirm whether this is a
+real cost-vs-throughput tradeoff (higher N genuinely buys faster runs, just at a rising marginal
+cost) or whether higher N is paying for infrastructure overhead (more nodes, more TEI
+replicas, more teardown tail) without a matching throughput gain. Still single-run-per-N,
+same statistical caveat as the `n100-sticky → n100` comparison — but three points agreeing on a
+direction is more suggestive than one pair disagreeing.
 
 ### Close
 

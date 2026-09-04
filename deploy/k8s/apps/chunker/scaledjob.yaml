@@ -47,7 +47,7 @@ spec:
   pollingInterval: 15
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
-  maxReplicaCount: 75
+  maxReplicaCount: 50
   triggers:
   - type: aws-sqs-queue
     metadata:
