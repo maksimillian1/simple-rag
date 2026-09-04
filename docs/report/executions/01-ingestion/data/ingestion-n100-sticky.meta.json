@@ -1,0 +1,25 @@
+{
+  "run": "ingestion-n100",
+  "start": "2026-09-03T15:19:31Z",
+  "end": "2026-09-03T15:57:48Z",
+  "step": "15s",
+  "prometheus": "http://localhost:9090",
+  "query_file": "/Users/maksimsnitcuk/Applications/personal/simple-rag/docs/report/executions/01-ingestion/data/series.txt",
+  "refs": [
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "M7",
+    "M8",
+    "M9"
+  ],
+  "exported_at": "2026-09-03T16:00:18Z",
+  "queries_total": 9,
+  "queries_with_data": 8,
+  "gaps": [
+    "M8"
+  ]
+}

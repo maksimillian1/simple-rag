@@ -100,8 +100,9 @@ before the figures land in `./data/frontier.csv`.
 | 01 | ingestion-n04      | ⟨HH:MM → HH:MM⟩ ᴿ | `⟨sha⟩` | ⟨ok · aborted, ⟨reason⟩ · invalid, ⟨reason⟩⟩ | ⟨component at its ceiling · headroom⟩ ᴿ | ⟨✓ · —⟩ | ⟨✓ · —⟩ |
 | 02 | ingestion-n24      | | | | | | |
 | 03 | ingestion-n50-test | 2026-09-01T12:51:46Z → 13:43:14Z | `cacb7f5` (dirty) | ok — see Notes for the two node-loss warnings, reclassified benign | indexer at ceiling, M5 50/50 concurrent · chunker headroom, 20/50 ᴿ | ✓ (recovered by hand, `export-metrics.py --force`) | — |
-| 04 | ingestion-n100     | 2026-09-03T15:19:31Z → 15:57:48Z | `9c280655cea7` | superseded — sticky TEI routing, see Notes; re-run after fix | indexer at N ceiling (M5 100/100) but M6=0.146, not CPU-bound ᴱ | ✓ (8/9, M8 gap) | — |
-| 05 | ingestion-n125     | | | | | | |
+| 04a | ingestion-n100-sticky | 2026-09-03T15:19:31Z → 15:57:48Z | `9c280655cea7` | superseded — sticky TEI routing, see Notes; re-run after fix | indexer at N ceiling (M5 100/100) but M6=0.146, not CPU-bound ᴱ | ✓ (8/9, M8 gap) | — |
+| 04 | ingestion-n100     | 2026-09-03T16:24:23Z → 17:05:31Z | `cfa0ab7` (dirty) | ok — post-fix, see Notes for the wall-clock/cost nuance | indexer at N ceiling, M5 100/100 · chunker headroom 20/100 · TEI peak ~23 replicas ᴿ | ✓ (8/9, M8 gap — same GC-race as n100-sticky) | — |
+| 05 | ingestion-n125     | 2026-09-04T14:00:58Z → 14:39:25Z | `15d43d5` (dirty) | ok — closed by hand after the runner process was killed externally, see Notes | indexer at N ceiling, M5 125/125 · chunker headroom 20/125 · TEI peak 26 replicas ᴿ | ✓ (8/9, M8 gap) | — |
 | 06 | ingestion-n175     | | | | | | |
 
 `Exported` is filled when the run ends. `Cost read` is filled by the cost pass, days later, and
@@ -144,7 +145,7 @@ came back clean. Two things looked like they'd invalidate it and didn't:
 
 R21 confirmed 84,018 points from the 100-file sample post-recovery.
 
-**#04 ingestion-n100** — TEI load badly imbalanced across replicas mid-run (`te_queue_size` in
+**#04a ingestion-n100-sticky** — TEI load badly imbalanced across replicas mid-run (`te_queue_size` in
 the hundreds on some pods, zero on others simultaneously), despite the headless-Service fix
 from the prior session (§1 of that postmortem). Root cause is not the Service — confirmed in
 code, not inferred: `huggingface_hub.utils._http.get_session()` returns a process-wide
@@ -166,11 +167,18 @@ requests while 13 sat idle). chunker M5 = 20/100, M6 = 0.012 — unaffected, sam
 **Decision: this run does not stand as a grid point.** The concurrency ceiling is real (M5
 matches N), but throughput at that ceiling is suppressed by the routing artifact, not by the
 system being measured — `$/run` and `docs/min` here are pessimistic relative to what N=100
-looks like once TEI load is actually spread across replicas. `n100` is superseded: deploy the
-fix (`huggingface_hub.set_client_factory`, `apps/indexer/src/main.py`), then re-run `n100`
-fresh under a new window/commit for the Matrix. This run's data (window
+looks like once TEI load is actually spread across replicas. Renamed to `ingestion-n100-sticky`
+(ledger #04a) so the id `ingestion-n100` was free for a clean re-run. This run's data (window
 `2026-09-03T15:19:31Z → 15:57:48Z`, commit `9c280655cea7`) is kept here as the documented cause,
-not averaged in.
+not averaged in. Provisional cost estimate (karpenter/EC2/CloudWatch reconstruction, not CUR):
+`./data/ingestion-n100-sticky.cost-estimate.json`, `D24 ≈ $1.85/run` — inflated for the same
+reason (nodes stayed up longer waiting on TEI, not computing).
+
+Fix deployed (`32365dc`, `apps/indexer/src/main.py`) — `argocd-image-updater` stopped
+considering the `indexer` alias for updates partway through this session for an undiagnosed
+reason (survived a clean pod restart, so not a cache/backoff issue); resolved by hand via
+`deploy/k8s/apps/indexer/.argocd-source-indexer.yaml` pointing straight at the built digest,
+same workaround `postmortem.md` §11 used before. `ingestion-n100` re-run under the fixed image.
 
 **M8 gap, same run** — export also came back with `M8` (OOMKilled) empty
 (`export-metrics.py` exit 2, correctly not a silent zero). Root cause: by the time export ran,
@@ -181,7 +189,72 @@ and orphaned-pod GC removes it once its node is gone, regardless of the Job's ow
 flagged there) meant nodes started tearing down well before export ran. Exported anyway via
 `export-metrics.py --force` (writes the file despite the gap; `--force` only means "overwrite",
 not "ignore the gap") — 8/9 refs are good, M8 is a documented instrumentation gap for this run,
-not a claimed zero. Worth revisiting before a point where an OOM signal actually matters.
+not a claimed zero. Worth revisiting before a point where an OOM signal actually matters. Same
+gap recurred on `#04 ingestion-n100` below (same GC race, not a new bug) — also `--force`d.
+
+Two more instrumentation bugs found and fixed while chasing this: `run-ingestion-point.py`'s
+and `prepare-cluster-for-ingestion.py`'s Qdrant checks both treated `HTTP 404` (collection
+doesn't exist — the correct state right after a delete-based reset) the same as "unreachable",
+failing preflight on a perfectly clean cluster. Both now treat 404 as `points == 0`.
+
+**#04 ingestion-n100** — real point, post-fix (`32365dc`, deployed by hand via
+`.argocd-source-indexer.yaml` after `argocd-image-updater` stopped picking up the `indexer`
+alias — undiagnosed, survived a clean pod restart). R21 = 84,018, same as the sticky run
+(same corpus). `te_queue_size`/per-pod CPU confirmed live during the run: settled TEI replicas
+no longer sit at zero for their whole life the way they did pre-fix — a brand-new pod ramps
+from ~0.5 to ~2.4 cores within about a minute of joining, instead of staying pinned near zero
+indefinitely.
+
+**But the aggregate numbers are not a clean win** — flagging honestly rather than declaring
+victory:
+
+| | `n100-sticky` | `n100` (fixed) | Δ |
+| :--- | :--- | :--- | :--- |
+| Window | 2298 s (38m17s) | 2468 s (41m08s) | **+7.4%**, longer |
+| `M10` compute $ | $1.3808 | $1.2877 | **−6.7%**, cheaper |
+| `M11` serving gross $ | $0.5684 | $0.8698 | **+53.0%**, much more |
+| TEI peak replicas | ~19 | ~23 | higher |
+
+Compute cost did drop — consistent with indexer pods spending less time blocked waiting on TEI.
+But total wall-clock went up, not down, and TEI scaled to more replicas (peaked ~23 vs ~19) —
+plausibly because fixing the routing let indexer drive genuine concurrent demand across TEI
+backends instead of a few being saturated while most sat idle, so *aggregate* demand on TEI (and
+its own scale-out) rose rather than fell. The fix demonstrably solved the fairness/attribution
+problem — confirmed live, not just inferred from an aggregate — but it did not obviously reduce
+this run's total `$/run` or wall-clock time. Left as an open question for Retro rather than
+resolved here; provisional estimate with the full breakdown at
+`./data/ingestion-n100.cost-estimate.json` (`D24 ≈ $1.76/run`, vs. the sticky run's `$1.85` —
+close enough that the "fix helps cost" claim is not proven either way from one pair of runs).
+
+**#05 ingestion-n125** — started deliberately at the `14:00:00Z` hour boundary (K6: keep this
+point's window inside its own UTC clock hour). Cluster was reset and re-frozen ahead of time
+(new cluster instance post-teardown — see `tmp/post-mortem/postmortem-2026-09-03-...md` §11 —
+`argocd-image-updater` was not involved this time, `root-bootstrap`/`rag-apps` synced cleanly
+straight to the branch tip on first bootstrap). `maxReplicaCount` raised to 125 on both
+`chunker`/`indexer` ScaledJobs.
+
+Queue drained cleanly, `apps-compute` reached zero, TEI back at floor — the runner
+(`run-ingestion-point.py`) was already holding the close buffer (`nodes=0, tei=2` since
+`14:34:25Z`, needs 300s) when its background process was killed externally (not a script
+crash — the harness reported a `killed` status, most likely a session interrupt). Verified the
+cluster had not drifted since (R21 already 84,018, `apps-compute` still at 0) before treating
+`14:39:25Z` as the close time and running `export-metrics.py --force` /
+`prepare-cluster-for-ingestion.py` by hand — same data the script would have produced on its
+own, just assembled manually.
+
+R21 confirmed 84,018 — same corpus, same count, third run in a row. M5: indexer 125/125 (full
+ceiling, tracks N exactly, same signature as `n50-test` and `n100`), chunker 20/125 (same
+demand ceiling as every prior run — this is now four points confirming chunker's cap is
+corpus-driven, not `maxReplicaCount`-driven). TEI peaked at **26** replicas, up from `n100`'s 23
+— consistent with the linear-ish scaling predicted from the indexer architecture analysis (not
+yet CPU-bound, not yet at TEI's own ceiling of 30).
+
+Cost estimate (karpenter/EC2/CloudWatch, same method as `n100`):
+`./data/ingestion-n125.cost-estimate.json` — `M10` compute $1.44 (up from `n100`'s $1.29),
+`M11` serving gross $0.98 (up from $0.87), `D24 ≈ $1.97/run`. Both cost lines moved up together
+with N this time (unlike the `n100-sticky → n100` comparison, where compute and serving moved
+in opposite directions) — a cleaner, more expected shape. Still only one measurement per N,
+same statistical caveat as before applies.
 
 ### Close
 

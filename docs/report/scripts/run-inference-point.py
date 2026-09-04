@@ -72,9 +72,8 @@ BUFFER_SECONDS = 300
 # The generator produces load and nothing else. Served rate, errors and latency
 # are read from Prometheus, never from its stdout: one instrument per figure, and
 # it is the one named in the register.
-GENERATOR = ["k6", "run", "--duration", "{duration}", "--tag", "point={run}",
-             "./load.js"]
-GENERATOR_ENV = {"TARGET_RATE": "{rate}"}
+GENERATOR = ["k6", "run", "--tag", "point={run}", "./load.js"]
+GENERATOR_ENV = {"TARGET_RATE": "{rate}", "DURATION": "{duration}"}
 
 
 def print_constants() -> None:
@@ -362,7 +361,8 @@ def main() -> int:
         if rc != 0:
             print()
             print(f"{lk.BAD} export returned {rc} — WINDOW PRESERVED.")
-            lk.reexport_hint(series_file, args.run, run["t_start"], settle["t_end"])
+            lk.reexport_hint(series_file, args.run, run["t_start"], settle["t_end"],
+                             out_dir)
             return lk.EXIT_EXPORT_GAP
 
         print()

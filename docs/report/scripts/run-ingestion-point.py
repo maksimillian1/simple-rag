@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 import time
 from datetime import timedelta
@@ -35,12 +36,27 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import labkit as lk                                            # noqa: E402
 
+# Line-buffer stdout unconditionally: Python fully block-buffers stdout the
+# moment it isn't a TTY (backgrounded, piped through tee, redirected to a
+# log file for a subagent to poll) — every print() below sits unseen until
+# the process exits or the buffer fills, which looks identical to a hang.
+sys.stdout.reconfigure(line_buffering=True)
+
 # --------------------------------------------------------------------------- frozen
 # Frozen with the Plan. A change here is preparation, not a run: new commit,
 # new freeze, and a note in the Journal. Printed at preflight so an uncommitted
 # edit shows up in the point's log.
 
 EXECUTION = "01-ingestion"
+
+# The corpus is the stratified sample (index.md §1 Held constant + Notes), not
+# the full 1,041-file / 14.52 GB set — that made a point's window too long for
+# a five-point sweep with resets in between.
+REPO_ROOT = lk.REPORT_ROOT.parents[1]
+UPLOAD_SCRIPT = lk.SCRIPTS_DIR / "upload-dir-to-s3.py"
+PREPARE_SCRIPT = lk.SCRIPTS_DIR / "prepare-cluster-for-ingestion.py"
+DEFAULT_UPLOAD_DIR = REPO_ROOT / "tmp" / "ingest-sample"
+DEFAULT_UPLOAD_PREFIX = "ingestion-sample/"
 
 # Must not move across the grid. Digests land in ./image-freeze.json.
 FREEZE = [
@@ -67,80 +83,71 @@ def print_constants() -> None:
           f"{SHARED_TIER_FLOOR} buffer={BUFFER_SECONDS}s")
 
 
+# --------------------------------------------------------------------------- upload
+
+def start_upload(args, out_dir: Path, run_id: str):
+    """Launch the corpus upload as a detached subprocess and hand back both the
+    process and the instant it was launched, for use as the window's exact
+    start — precise up to subprocess-launch overhead, not full poll
+    granularity. Runs concurrently with watch(), not before it: the pipeline
+    starts reacting to the first uploaded object while later ones are still
+    in flight, so waiting for the whole upload to finish first would open the
+    window late and miss that lead-in.
+
+    --overwrite is required, not optional: every point re-triggers the
+    pipeline against the same keys, and upload-dir-to-s3.py skips existing
+    keys by default, which would fire no s3:ObjectCreated past the first
+    point.
+    """
+    upload_dir = Path(args.upload_dir)
+    if not upload_dir.is_dir():
+        lk.die(f"--upload-dir {upload_dir} does not exist")
+
+    log_path = out_dir / f"{run_id}.upload.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_file = log_path.open("w")
+
+    t_start = lk.utcnow()
+    proc = subprocess.Popen(
+        [sys.executable, str(UPLOAD_SCRIPT),
+         "--dir", str(upload_dir), "--prefix", args.upload_prefix, "--overwrite"],
+        stdout=log_file, stderr=subprocess.STDOUT)
+    print(f"{lk.ARROW} upload started (pid {proc.pid}) — {upload_dir} -> "
+          f"prefix {args.upload_prefix!r} · log: {log_path}")
+    return proc, t_start, log_file
+
+
+def check_upload(proc, log_file) -> None:
+    log_file.close()
+    rc = proc.poll()
+    if rc is None:
+        print(f"{lk.WARN} upload still running after the window closed — "
+              f"check its log; a point should not open before objects land, "
+              f"but does not have to finish uploading to close")
+    elif rc != 0:
+        print(f"{lk.BAD} upload exited {rc} — check its log before trusting "
+              f"R21 against the frozen doc count")
+    else:
+        print(f"[{lk.OK}] upload finished cleanly")
+
+
 # --------------------------------------------------------------------------- qdrant
 
-def qdrant_info(url: str, collection: str) -> dict:
-    return lk.http_json("GET", f"{url}/collections/{collection}").get("result", {})
-
-
 def qdrant_points(url: str, collection: str) -> int:
-    """R21. Exact: the estimate on GET /collections lags indexing."""
-    body = lk.http_json(
-        "POST", f"{url}/collections/{collection}/points/count", {"exact": True})
+    """R21. Exact: the estimate on GET /collections lags indexing.
+
+    A dropped collection (prepare-cluster-for-ingestion.py deletes rather
+    than empties it — see that script's module docstring) 404s here rather
+    than counting 0. Same end state either way: nothing to invalidate a
+    preflight over, and the indexer recreates it on its first write."""
+    try:
+        body = lk.http_json(
+            "POST", f"{url}/collections/{collection}/points/count", {"exact": True})
+    except RuntimeError as e:
+        if "HTTP 404" in str(e):
+            return 0
+        raise
     return int(body.get("result", {}).get("count", 0) or 0)
-
-
-def qdrant_create_body(info: dict) -> dict:
-    """Map GET /collections/<n> back onto a PUT create body. Best effort — the
-    two schemas are close but not identical, so the snapshot goes to disk before
-    the delete regardless."""
-    config = info.get("config", {})
-    params = config.get("params", {})
-    body: dict = {}
-    for key in ("vectors", "sparse_vectors", "shard_number", "replication_factor",
-                "write_consistency_factor", "on_disk_payload", "sharding_method"):
-        if params.get(key) is not None:
-            body[key] = params[key]
-    for src, dst in (("hnsw_config", "hnsw_config"),
-                     ("quantization_config", "quantization_config"),
-                     ("optimizer_config", "optimizers_config"),
-                     ("wal_config", "wal_config")):
-        if config.get(src) is not None:
-            body[dst] = config[src]
-    return body
-
-
-def qdrant_wipe(url: str, collection: str, mode: str, out_dir: Path,
-                run_id: str) -> None:
-    if mode == "none":
-        print(f"{lk.WARN} wipe skipped — the next point starts dirty")
-        return
-
-    info = qdrant_info(url, collection)
-    payload_schema = info.get("payload_schema", {}) or {}
-    body = qdrant_create_body(info)
-
-    out_dir.mkdir(parents=True, exist_ok=True)
-    snapshot = out_dir / f"{run_id}.collection-config.json"
-    snapshot.write_text(json.dumps(
-        {"create_body": body, "payload_schema": payload_schema,
-         "raw_info": info}, indent=2) + "\n")
-    print(f"{lk.ARROW} collection config snapshotted -> {snapshot}")
-
-    lk.http_json("DELETE", f"{url}/collections/{collection}")
-    print(f"[{lk.OK}] collection deleted")
-    if mode == "delete-only":
-        print(f"{lk.WARN} not recreating — the application must create it")
-        return
-
-    lk.http_json("PUT", f"{url}/collections/{collection}", body)
-    print(f"[{lk.OK}] collection recreated from snapshot")
-
-    for field, schema in payload_schema.items():
-        field_type = schema.get("data_type") if isinstance(schema, dict) else schema
-        if not field_type:
-            continue
-        try:
-            lk.http_json("PUT", f"{url}/collections/{collection}/index?wait=true",
-                         {"field_name": field, "field_schema": field_type})
-            print(f"[{lk.OK}] payload index restored: {field} ({field_type})")
-        except RuntimeError as e:
-            print(f"{lk.WARN} could not restore payload index {field}: {e}")
-            print(f"{lk.WARN} restore by hand from {snapshot} before the next point")
-
-    remaining = qdrant_points(url, collection)
-    if remaining != 0:
-        raise RuntimeError(f"collection not empty after wipe: {remaining} points")
 
 
 # --------------------------------------------------------------------------- preflight
@@ -187,11 +194,9 @@ def preflight(env: lk.Env, args, freeze_file: Path) -> dict:
     url, collection = env.need("qdrant.url"), env.need("qdrant.collection")
     try:
         points = qdrant_points(url, collection)
-        expect_empty = args.wipe_mode != "none"
-        print(f"[{lk.OK if (points == 0 or not expect_empty) else lk.BAD}] "
-              f"qdrant points = {points}")
+        print(f"[{lk.OK if points == 0 else lk.BAD}] qdrant points = {points}")
         facts["points_before"] = points
-        if points and expect_empty:
+        if points:
             failures.append(f"collection not empty ({points}) — the reset did not run")
     except RuntimeError as e:
         failures.append(f"Qdrant unreachable — {e}")
@@ -228,7 +233,7 @@ def preflight(env: lk.Env, args, freeze_file: Path) -> dict:
 
 # --------------------------------------------------------------------------- watch
 
-def watch(env: lk.Env, args) -> dict:
+def watch(env: lk.Env, args, pf: lk.PortForwards) -> dict:
     poll = env.poll_seconds
     selector = env.need("nodepool_ingestion")
     queues = {label: env.need(f"sqs.{label}") for label in QUEUES}
@@ -250,11 +255,13 @@ def watch(env: lk.Env, args) -> dict:
     started = t_start is not None
     zero_since = None
     node_set: dict[str, str] = {}
+    node_workload: dict[str, list[str]] = {}
     instance_types: set[str] = set()
     interrupts: list[str] = []
     node_seconds = 0.0
     peak_nodes = peak_depth = 0
     peak_tier = SHARED_TIER_FLOOR
+    workload_ns = env.namespace_for("indexer")
 
     while True:
         now = lk.utcnow()
@@ -265,10 +272,14 @@ def watch(env: lk.Env, args) -> dict:
             print("         export by hand with --start / --end once resolved.")
             sys.exit(lk.EXIT_TIMEOUT)
 
+        for notice in pf.ensure_alive():
+            print(f"{lk.WARN} {notice}")
+
         try:
             depths = {label: lk.sqs_depth(url) for label, url in queues.items()}
             nodes = lk.nodes_by_selector(selector)
             replicas = lk.deployment_replicas(env.namespace_for(SHARED_TIER), SHARED_TIER)
+            workload_now = lk.pods_by_node(workload_ns, "app in (chunker,indexer)")
         except RuntimeError as e:
             print(f"{lk.WARN} poll failed ({e}) — retrying")
             time.sleep(poll)
@@ -292,13 +303,25 @@ def watch(env: lk.Env, args) -> dict:
             node_seconds += len(nodes) * poll
             peak_nodes = max(peak_nodes, len(nodes))
             gone = set(node_set) - set(nodes)
-            if gone and total > 0 and nodes:
-                for name in sorted(gone):
-                    entry = (f"{lk.rfc3339(now)} · node left while queue depth="
-                             f"{total} · {name}")
+            for name in sorted(gone):
+                # WhenEmpty/WhenEmptyOrUnderutilized consolidation only ever
+                # disrupts a node already at pod-count 0 — the node's own
+                # last-seen workload, not whether the system had backlog
+                # elsewhere, is what tells a real loss from ordinary
+                # consolidation (confirmed against ingestion-n50-test: two
+                # InstanceTerminating nodes, M4 showed zero chunker/indexer
+                # containers ever scheduled to either).
+                pods = node_workload.get(name)
+                if pods:
+                    entry = (f"{lk.rfc3339(now)} · node left with live pods on "
+                              f"it ({', '.join(pods)}) · {name}")
                     interrupts.append(entry)
                     print(f"{lk.WARN} {entry}")
+                else:
+                    print(f"{lk.ARROW} node consolidated while idle (no live "
+                          f"chunker/indexer pods) · {name}")
         node_set = nodes
+        node_workload = workload_now
 
         settled = (started and total == 0 and not nodes
                    and replicas <= SHARED_TIER_FLOOR)
@@ -326,9 +349,14 @@ def watch(env: lk.Env, args) -> dict:
 
     for event in lk.interrupt_events(t_start):
         entry = f"karpenter event · {event}"
-        if entry not in interrupts:
-            interrupts.append(entry)
-            print(f"{lk.WARN} {entry}")
+        forced = event.split(" · ")[0] in lk.FORCED_REASONS
+        if forced:
+            if entry not in interrupts:
+                interrupts.append(entry)
+                print(f"{lk.WARN} {entry}")
+        else:
+            print(f"{lk.ARROW} {entry} (ordinary consolidation, not counted "
+                  f"against validity)")
 
     return {
         "t_start": t_start, "t_end": t_end,
@@ -404,13 +432,28 @@ def main() -> int:
     p.add_argument("--env", default=str(lk.default_env_path()))
     p.add_argument("--series", default=str(exec_dir / "data" / "series.txt"))
     p.add_argument("--guards", default=str(exec_dir / "data" / "guards.txt"))
-    p.add_argument("--start", help="explicit window start, RFC3339")
+    p.add_argument("--start", help="explicit window start, RFC3339 — "
+                   "ignored unless --no-upload, since a self-launched upload's "
+                   "own launch instant is more precise")
     p.add_argument("--start-marker",
-                   help="file holding the first s3:ObjectCreated timestamp")
+                   help="file holding the first s3:ObjectCreated timestamp — "
+                   "ignored unless --no-upload, same reason as --start")
+    p.add_argument("--upload-dir", default=str(DEFAULT_UPLOAD_DIR),
+                   help="corpus to upload before watching (default: the "
+                   "01-ingestion sample)")
+    p.add_argument("--upload-prefix", default=DEFAULT_UPLOAD_PREFIX)
+    p.add_argument("--no-upload", action="store_true",
+                   help="skip the automatic upload — upload the corpus "
+                   "yourself, out of band, and pass --start or --start-marker")
     p.add_argument("--step", default="15s")
-    p.add_argument("--wipe-mode", choices=["recreate", "delete-only", "none"],
-                   default="recreate")
     p.add_argument("--no-port-forward", action="store_true")
+    p.add_argument("--no-prepare", action="store_true",
+                   help="skip the automatic cluster reset after export — "
+                   "reset it yourself (prepare-cluster-for-ingestion.py) "
+                   "before the next point, or rely on organic drain")
+    p.add_argument("--prepare-timeout", type=int, default=None,
+                   help="seconds prepare-cluster-for-ingestion.py waits for "
+                   "the floor (default: its own)")
     p.add_argument("--preflight-only", action="store_true")
     p.add_argument("--set-freeze", action="store_true",
                    help="record the current images as the sweep freeze and exit")
@@ -422,7 +465,7 @@ def main() -> int:
     series_file, guards_file = Path(args.series), Path(args.guards)
 
     forwards = [lk.forward_spec(env, "prometheus"), lk.forward_spec(env, "qdrant")]
-    with lk.PortForwards(forwards, enabled=not args.no_port_forward):
+    with lk.PortForwards(forwards, enabled=not args.no_port_forward) as pf:
         if args.set_freeze:
             images = lk.frozen_images(env, FREEZE)
             freeze_file.parent.mkdir(parents=True, exist_ok=True)
@@ -453,7 +496,28 @@ def main() -> int:
             print(f"{lk.ARROW} preflight only — nothing started")
             return lk.EXIT_CLEAN
 
-        result = watch(env, args)
+        upload = None
+        if args.no_upload:
+            if not args.start and not args.start_marker:
+                print(f"{lk.WARN} --no-upload with neither --start nor "
+                      f"--start-marker — window start will be inferred at "
+                      f"poll granularity")
+        else:
+            if args.start or args.start_marker:
+                print(f"{lk.WARN} --start/--start-marker given without "
+                      f"--no-upload — ignored, using the upload's own launch "
+                      f"instant instead")
+            proc, t_start, log_file = start_upload(args, out_dir, args.run)
+            args.start = lk.rfc3339(t_start)
+            args.start_marker = None
+            upload = (proc, log_file)
+
+        result = watch(env, args, pf)
+        if upload:
+            check_upload(*upload)
+
+        for notice in pf.ensure_alive():
+            print(f"{lk.WARN} {notice}")
 
         try:
             points_after = qdrant_points(url, collection)
@@ -465,6 +529,9 @@ def main() -> int:
             points_after = -1
             print(f"{lk.WARN} could not read the point count: {e}")
 
+        for notice in pf.ensure_alive():
+            print(f"{lk.WARN} {notice}")
+
         rc = lk.run_export(series_file, args.run, result["t_start"],
                            result["t_end"], args.step, env.prom_url, out_dir)
         if rc != 0:
@@ -472,7 +539,7 @@ def main() -> int:
             print(f"{lk.BAD} export returned {rc} — NOTHING WIPED, WINDOW PRESERVED.")
             print(f"         Retention is short. Fix the gap, then re-export:")
             lk.reexport_hint(series_file, args.run, result["t_start"],
-                             result["t_end"])
+                             result["t_end"], out_dir)
             print(f"         Do not start the next point until this one is exported.")
             return lk.EXIT_EXPORT_GAP
 
@@ -480,18 +547,20 @@ def main() -> int:
         guard_failures = lk.check_guards(env.prom_url, guards)
 
         print()
-        print(f"{lk.ARROW} resetting Qdrant (mode: {args.wipe_mode})")
-        try:
-            qdrant_wipe(url, collection, args.wipe_mode, out_dir, args.run)
-        except RuntimeError as e:
-            print(f"{lk.BAD} wipe failed: {e}")
-            print(f"         The export is safe. Resolve by hand before the next point.")
-            return lk.EXIT_EXPORT_GAP
-
-        for label in QUEUES:
-            depth = lk.sqs_depth(env.need(f"sqs.{label}"))
-            print(f"[{lk.OK if depth == 0 else lk.WARN}] SQS {label} after reset = "
-                  f"{depth}")
+        if args.no_prepare:
+            print(f"{lk.WARN} --no-prepare — cluster not reset, the next point "
+                  f"starts dirty")
+        else:
+            print(f"{lk.ARROW} resetting cluster for the next point "
+                  f"(prepare-cluster-for-ingestion.py)")
+            prepare_cmd = [sys.executable, str(PREPARE_SCRIPT), "--env", args.env]
+            if args.prepare_timeout is not None:
+                prepare_cmd += ["--wait-timeout", str(args.prepare_timeout)]
+            rc = subprocess.run(prepare_cmd).returncode
+            if rc != 0:
+                print(f"{lk.BAD} cluster reset did not complete cleanly — the "
+                      f"export is safe, resolve by hand before the next point")
+                return lk.EXIT_EXPORT_GAP
 
         block = point_block(args, facts, result, points_after, guard_failures)
         record = {
