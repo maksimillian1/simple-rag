@@ -104,6 +104,7 @@ before the figures land in `./data/frontier.csv`.
 | 04 | ingestion-n100     | 2026-09-03T16:24:23Z → 17:05:31Z | `cfa0ab7` (dirty) | ok — post-fix, see Notes for the wall-clock/cost nuance | indexer at N ceiling, M5 100/100 · chunker headroom 20/100 · TEI peak ~23 replicas ᴿ | ✓ (8/9, M8 gap — same GC-race as n100-sticky) | — |
 | 05 | ingestion-n125     | 2026-09-04T14:00:58Z → 14:39:25Z | `15d43d5` (dirty) | ok — closed by hand after the runner process was killed externally, see Notes | indexer at N ceiling, M5 125/125 · chunker headroom 20/125 · TEI peak 26 replicas ᴿ | ✓ (8/9, M8 gap) | — |
 | 06 | ingestion-n75      | 2026-09-04T15:06:08Z → 15:48:59Z | `1b5ad91` (dirty) | ok — off-plan refinement point, see Notes | indexer at N ceiling, M5 75/75 · chunker headroom 20/75 · TEI peak 16 replicas ᴿ | ✓ (8/9, M8 gap) | — |
+| 07 | ingestion-n50      | 2026-09-04T16:01:22Z → 16:45:23Z | `005914d` (dirty) | ok — post-fix, fresh cluster instance (see Notes) | indexer at N ceiling, M5 50/50 · chunker headroom 20/50 | ✓ (8/9, M8 gap) | — |
 | 06 | ingestion-n175     | | | | | | |
 
 `Exported` is filled when the run ends. `Cost read` is filled by the cost pass, days later, and
@@ -303,6 +304,34 @@ cost) or whether higher N is paying for infrastructure overhead (more nodes, mor
 replicas, more teardown tail) without a matching throughput gain. Still single-run-per-N,
 same statistical caveat as the `n100-sticky → n100` comparison — but three points agreeing on a
 direction is more suggestive than one pair disagreeing.
+
+**#07 ingestion-n50** — fresh point (not reusing `n50-test`, see Notes above #06) to complete the
+trend below `n75`. R21 = 84,018, sixth point in a row with the identical count. M5: indexer
+50/50 (full ceiling), chunker 20/50 — sixth consecutive confirmation of the corpus-driven
+chunker cap. Also noted live: two `tei-embeddings` pods sat `Terminating` for 5–12 min mid-run
+— traced to `apps-serving`'s `consolidationPolicy: WhenEmptyOrUnderutilized` evicting pods to
+repack nodes as TEI scaled down (`Evicted pod: Underutilized` in pod events), pod object then
+stuck until orphaned-pod GC caught up with the node's own teardown — same underlying mechanism
+as the `M8` gap, different symptom. Not data-losing (SQS redelivers), just added noise/latency
+late in the window.
+
+**Cost trend, four points now — the monotonic pattern holds down to N=50:**
+
+| N | `M10` compute | `M11` serving gross | `D24` $/run | `D25` $/1M docs |
+| :--- | :--- | :--- | :--- | :--- |
+| 50  | $0.98 | $0.50 | $1.28 | $12,750 |
+| 75  | $1.19 | $0.69 | $1.56 | $15,623 |
+| 100 | $1.29 | $0.87 | $1.76 | $17,613 |
+| 125 | $1.44 | $0.98 | $1.97 | $19,657 |
+
+Four points, one direction, no reversal — the U-shape `§1 Expected` predicted has not shown up
+anywhere in the range tested (50–125). Either the minimum sits below 50 (untested — the
+original grid's next-lowest point is `N=24`), or there isn't a U-shape in this range at all and
+lower N is simply cheaper per document throughout, at the cost of wall-clock time. Still
+single-run-per-N (no repeated trials, no error bars) — but four points agreeing is a much
+stronger signal than the two-point comparisons earlier in this doc. Worth a real `docs/min` /
+`N reached` pull across all four before writing the Finding in §3 — this section only tracked
+$-figures, not throughput, so "cheaper" here has not yet been checked against "how much slower."
 
 ### Close
 
