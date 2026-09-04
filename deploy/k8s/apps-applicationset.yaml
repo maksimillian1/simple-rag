@@ -22,6 +22,15 @@ spec:
         argocd-image-updater.argoproj.io/img-{{path.basename}}.update-strategy: latest
         argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-repository-creds
         argocd-image-updater.argoproj.io/git-branch: SR-system-configuration-for-report
+        # syncOptions below turns on ServerSideApply, but compare (OutOfSync)
+        # still defaulted to client-side diffing against
+        # kubectl.kubernetes.io/last-applied-configuration — an annotation
+        # SSA never writes. Resources with immutable/defaulted fields it's
+        # touchy about (StatefulSet volumeClaimTemplates, in qdrant's case)
+        # never settle: every reconcile "finds" a diff, syncs, then
+        # immediately re-flags OutOfSync. Comparing server-side too closes
+        # that gap.
+        argocd.argoproj.io/compare-options: ServerSideDiff=true
     spec:
       project: default
       source:
