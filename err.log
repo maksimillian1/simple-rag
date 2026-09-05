@@ -1,0 +1,9 @@
+-> window   : 2026-09-04T17:00:55Z .. 2026-09-04T18:02:39Z
+-> nodepools: apps-compute, apps-serving
+-> prom     : http://localhost:9090
+
+
+-> totals by nodepool:
+    apps-compute         $0.8750
+    apps-serving         $0.3890
+    ALL                  $1.2640

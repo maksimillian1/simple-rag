@@ -550,5 +550,15 @@
       "n100": 23,
       "n125": 26
     }
+  },
+  "cur_actual": {
+    "compute": 2.0069,
+    "serving_gross": 1.1994,
+    "nat": 5.9919,
+    "sqs": 0.0,
+    "s3": 0.0012,
+    "marginal_total": 7.9999,
+    "dollar_per_1M_docs": 79999.0,
+    "note": "CUR actuals pulled 2026-09-05 (00-baseline sec2 source of record). marginal_total = compute + nat + sqs + s3, tagged by resource_tags[user_karpenter_sh_nodepool] for compute/serving and by the NAT gateway line_item_resource_id for nat (bills under product code AmazonEC2, includes EUC1-NatGateway-Bytes + EUC1-NatGateway-Hours + EUC1-DataTransfer-Regional-Bytes). serving_gross excludes the two-replica floor netting (D23 net-of-floor still open). Excludes baseline_other (EKS control plane, core nodes, ELB, CloudWatch, KMS, ~$0.9-1.15/hour regardless of N). Pulled ~24h after this point, short of the 48h guard -- re-check advised."
   }
 }

@@ -1,0 +1,25 @@
+{
+  "run": "ingestion-n25",
+  "window": {
+    "start": "2026-09-04T17:00:55Z",
+    "end": "2026-09-04T18:02:39Z"
+  },
+  "M10_compute_usd": 0.875,
+  "M11_serving_gross_usd": 0.389,
+  "D23_tei_above_floor_usd": 0.0,
+  "M14_nat_usd": 1.1989,
+  "M13_sqs_s3_usd": 0.0,
+  "D24_dollar_per_run_usd": 2.0739,
+  "D25_dollar_per_1M_docs_usd": 20739.0,
+  "note": "M14 corrected for a methodology bug found here: prior points (n50/n75/n100/n125) summed only BytesInFromSource (outbound-leg NAT traffic), missing BytesInFromDestination (inbound-leg, dominated by container image pulls from ghcr.io on fresh apps-compute node bootstrap). Both legs are billable per AWS NAT Gateway data-processing pricing. n25's own bootstrap spike (17:00:55-17:11Z, >99% of window bytes) confirmed via 5-min CloudWatch profile. Recomputing this same way for n50 (raw bytes pulled) gives M14=$2.61 vs the $0.0163 recorded there -- the whole 01-ingestion cost table needs a NAT re-pass before D24/D25 are trusted.",
+  "cur_actual": {
+    "compute": 1.0916,
+    "serving_gross": 0.3903,
+    "nat": 1.3823,
+    "sqs": 0.0,
+    "s3": 0.0012,
+    "marginal_total": 2.475,
+    "dollar_per_1M_docs": 24750.0,
+    "note": "CUR actuals pulled 2026-09-05 (00-baseline sec2 source of record). marginal_total = compute + nat + sqs + s3, tagged by resource_tags[user_karpenter_sh_nodepool] for compute/serving and by the NAT gateway line_item_resource_id for nat (bills under product code AmazonEC2, includes EUC1-NatGateway-Bytes + EUC1-NatGateway-Hours + EUC1-DataTransfer-Regional-Bytes). serving_gross excludes the two-replica floor netting (D23 net-of-floor still open). Excludes baseline_other (EKS control plane, core nodes, ELB, CloudWatch, KMS, ~$0.9-1.15/hour regardless of N). Pulled ~24h after this point, short of the 48h guard -- re-check advised."
+  }
+}

@@ -105,6 +105,7 @@ before the figures land in `./data/frontier.csv`.
 | 05 | ingestion-n125     | 2026-09-04T14:00:58Z → 14:39:25Z | `15d43d5` (dirty) | ok — closed by hand after the runner process was killed externally, see Notes | indexer at N ceiling, M5 125/125 · chunker headroom 20/125 · TEI peak 26 replicas ᴿ | ✓ (8/9, M8 gap) | — |
 | 06 | ingestion-n75      | 2026-09-04T15:06:08Z → 15:48:59Z | `1b5ad91` (dirty) | ok — off-plan refinement point, see Notes | indexer at N ceiling, M5 75/75 · chunker headroom 20/75 · TEI peak 16 replicas ᴿ | ✓ (8/9, M8 gap) | — |
 | 07 | ingestion-n50      | 2026-09-04T16:01:22Z → 16:45:23Z | `005914d` (dirty) | ok — post-fix, fresh cluster instance (see Notes) | indexer at N ceiling, M5 50/50 · chunker headroom 20/50 | ✓ (8/9, M8 gap) | — |
+| 08 | ingestion-n25      | 2026-09-04T17:00:55Z → 18:02:39Z | `1d87721` (dirty) | ok — see Notes for the NAT methodology bug found here | indexer at N ceiling, M5 25/25 · chunker headroom 20/25 · TEI peak 4 replicas | ✓ (8/9, M8 gap) | — |
 | 06 | ingestion-n175     | | | | | | |
 
 `Exported` is filled when the run ends. `Cost read` is filled by the cost pass, days later, and
@@ -333,12 +334,95 @@ stronger signal than the two-point comparisons earlier in this doc. Worth a real
 `N reached` pull across all four before writing the Finding in §3 — this section only tracked
 $-figures, not throughput, so "cheaper" here has not yet been checked against "how much slower."
 
+**#08 ingestion-n25** — extends the trend one point lower. R21 = 84,018 again, seventh point in
+a row with the identical count. M5: indexer 25/25 (full ceiling), chunker 20/25 — seventh
+consecutive confirmation of the corpus-driven chunker cap. TEI peaked at 4 replicas (M9), and the
+burst was absorbed by the same 2 `apps-serving` nodes that were already up at the floor for the
+whole window — no extra serving node was billed, so `D23` is correctly $0 here, not an omission.
+
+**NAT methodology bug found here, retroactive to every prior point** — `M14` for n50/n75/n100/n125
+was computed from `AWS/NATGateway`'s `BytesInFromSource` metric alone (the outbound leg: pods'
+requests leaving through NAT). AWS bills NAT data processing on *both* legs of a flow, and the
+inbound leg (`BytesInFromDestination` — responses coming back through NAT) was never queried.
+For an ingestion point, that inbound leg is dominated by `chunker`/`indexer` container image
+pulls from `ghcr.io` (external registry, not ECR — no VPC endpoint, so every pull is billed NAT
+traffic) each time Karpenter boots a fresh `apps-compute` node. Confirmed directly on n25's own
+window: a 5-minute-resolution CloudWatch profile shows >99% of the window's `BytesInFromDestination`
+landing in the first 10 minutes (17:00–17:10Z), exactly the node-bootstrap window recorded by
+`karpenter-cost-estimate.py`'s own node list (first `apps-compute` nodes seen 17:02:55–17:04:55Z).
+Background trickle after that: ~0.01–0.03 GB / 5 min.
+
+Recomputed both directions from raw CloudWatch bytes:
+
+| Run | old `M14` (outbound leg only) | corrected `M14` (both legs) | ratio |
+| :--- | :--- | :--- | :--- |
+| n50 | $0.0163 | $2.6080 | ×160 |
+| n25 | $0.0109 (would have been, same old method) | $1.1989 | ×110 |
+
+n25's ledger and `./data/ingestion-n25.cost-estimate.json` use the corrected figure: `D24` =
+$0.875 (`M10`) + $0 (`D23`) + $0 (`M13`) + $1.199 (`M14`) = **$2.074/run, $20,739/1M docs** —
+already higher than every prior point's *reported* $/1M docs despite N=25 being the lowest N run
+so far, which is itself informative: at low N the image-pull NAT tax is a larger share of a
+smaller total run cost, so it may flatten or invert part of the monotonic trend above once
+corrected consistently.
+
+**Not yet done** — re-pulling `M14` this way for n50/n75/n100/n125 (raw bytes are still in
+CloudWatch's retention window) and refreshing their `D24`/`D25` and the four-point table above.
+Recomputing n50 alone (done as a spot-check for this table) already moves its `D24` from $1.275
+to $0.9787+$0.28+$0+$2.608 = **$3.867/run** — just over 3× the reported figure. The whole
+01-ingestion cost table, including the "four points, one direction, no reversal" conclusion
+above, is provisional until this pass is done. Tracked in the Close checklist below.
+
+**CUR actuals pulled (2026-09-05, 00-baseline §2's source of record) — the estimates above are
+now superseded, not just for `M14`.** CUR delivered a batch covering all of `2026-09-04` (all
+four points fall in it). Queried `s3://simple-rag-cur-reports-883f615c` directly, grouped by
+`line_item_usage_start_date`'s hour (each point occupies a distinct UTC hour, by design — K6) and
+by `resource_tags['user_karpenter_sh_nodepool']` for compute/serving, and by the NAT gateway's own
+`line_item_resource_id` (`arn:...natgateway/nat-08e283a51761f1e9b`) for NAT — which turned out to
+bill under product code `AmazonEC2`, not `AmazonVPC` as assumed, and to carry a further line item
+(`EUC1-DataTransfer-Regional-Bytes`) never priced in either the original or the corrected
+CloudWatch-based `M14` above.
+
+| N | reported `D24` | CUR compute | CUR NAT (both legs + regional transfer) | CUR marginal (compute+NAT+SQS+S3) | ratio | real `D25` $/1M docs |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 125 | $1.97  | $2.0069 | $5.9919 | **$8.00** | ×4.1 | $79,999 |
+| 75  | $1.56  | $1.5446 | $4.0939 | **$5.64** | ×3.6 | $56,396 |
+| 50  | $1.275 | $1.2613 | $2.8776 | **$4.14** | ×3.2 | $41,400 |
+| 25  | $0.886 | $1.0916 | $1.3823 | **$2.48** | ×2.8 | $24,750 |
+
+`CUR marginal` = tagged `apps-compute` cost + the NAT gateway's full line-item set for that hour +
+SQS + S3 (both ~$0 — free-tier-covered at this volume) — deliberately excludes `apps-serving`
+(shown gross alongside compute in the underlying query, $1.20/$0.90/$0.68/$0.39 for
+125/75/50/25 — TEI-above-floor `D23` net-of-floor still isn't resolved from CUR, same open item
+as before) and excludes ~$0.9–1.15/hour of `baseline_other` (EKS control plane, two core nodes —
+`r7g.large`, `t3.large` — ELB, CloudWatch, KMS) present in every hour regardless of N, which is
+fixed cluster overhead, not marginal to any one point.
+
+Two things confirmed, one thing newly found:
+- **Direction holds** — the monotonic rise with N is real, not a `M14`-methodology artifact.
+- **Magnitude was badly understated** — even after yesterday's NAT-bug fix (§ above), real
+  `D24`/`D25` are 2.8×–4.1× the reported figures, growing *with* N (the gap is worst at the top
+  of the tested range, not uniform) — meaning the reported figures underweighted exactly the
+  scenario (high N, many nodes) where the real cost is furthest from the estimate.
+- **Compute was also off**, independent of NAT — `describe-spot-price-history`-at-node-start-time
+  (`karpenter-cost-estimate.py`'s method) reads 15–25% below what CUR actually billed for the same
+  instances. Spot price can move between the price snapshot and the actual charged rate; this
+  estimator was never meant to replace CUR (says so in its own docstring), and this is the
+  concrete gap that statement was hedging against.
+
+Pulled less than 24h after the last point, short of the Close checklist's "48h" guard — flagging
+in case a later CUR revision (credits, true-up) moves these numbers again; re-check advised before
+these replace the estimates permanently in §3.
+
 ### Close
 
 - [ ] Saturation identified, or headroom confirmed at the top of the grid.
 - [ ] Cost pass run at least 48 h after the last point, and re-run after the month closed if any figure moved.
 - [ ] M12 decomposition present, or the per-component split declared not made.
 - [ ] TEI peak replicas recorded at every point, and D23 computed or declared zero.
+- [x] `M14` re-pulled with both `AWS/NATGateway` byte-direction legs, then superseded entirely by real CUR actuals (2026-09-05) — see Notes under #08.
+- [ ] CUR-based `D23` (TEI above floor, net) — the CUR pull above reports `apps-serving` gross per hour but doesn't yet net out the two-replica floor rate; same open item as the CloudWatch-based estimate, not yet solved by switching to CUR.
+- [ ] Re-check the CUR pull after 48h have actually passed since the last point (pulled at ~24h — flagged as early in Notes under #08) in case of a later revision.
 - [ ] M18 read at the highest-N point and compared against D30, or the comparison declared not made.
 - [ ] Collection point count written back into `00-baseline` §2 Envelope.
 - [ ] Every figure in §3 marked: unmarked · ᴰ · ᴿ · ᴱ.
@@ -412,10 +496,10 @@ Rows whose source number does not survive the runs are deleted, not left blank.
 
 ### Retro
 
-- **Expectation** — ⟨held · inverted — what actually saturated, in the words that go into the report⟩
+- **Expectation** — inverted. Expected Tier 1 to be the Stage-1 chunker (PyMuPDF, single-threaded). Chunker held headroom at every N (peak ~20 concurrent regardless of N ∈ [50,125], its own ceiling never binding). The actual constraint has no resource-ceiling signature at all: indexer holds exactly one in-flight TEI call per pod (`apps/indexer/src/main.py` — fully sequential `for msg in messages: process_sqs_message(...)`), so downstream concurrency is 1:1 with replica count. Neither indexer nor TEI CPU ever reached its frozen limit across the grid, yet `$/1M docs` rose monotonically (+22.5%, +12.7%, +11.6% per step) — an architectural ceiling, not a capacity one
 - **What should have been caught before the first run** — ⟨and which validity criterion should have caught it⟩
 - **Concurrency delivered** — ⟨did M5 track N across the grid, or did the Spot pool cap the top⟩
 - **TEI response** — ⟨did TEI scale at all under ingestion, and did its share of `$/run` grow with N⟩
 - **Attribution** — ⟨did every point resolve to tagged CUR rows, and did split cost allocation return pods on every point⟩
 - **Month-close revision** — ⟨did any cost figure move between the 48 h read and the closed month⟩
-- **Back into the kit** — ⟨⟩
+- **Back into the kit** — the Saturation template (§3) asks for M6-at-frozen-limit as the evidence field; it has no slot for a constraint with no resource-ceiling signature. This campaign needed to write the real finding in Retro prose instead of in Saturation because the template assumed the wrong shape. Add a second Saturation evidence type — "no component pegged, but the D-series unit-cost curve is monotonic across the swept range" — so the next execution that hits this doesn't have to route around the template
