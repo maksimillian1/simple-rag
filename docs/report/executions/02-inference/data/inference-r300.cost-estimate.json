@@ -1,0 +1,15 @@
+{
+  "run": "inference-r300",
+  "window": {
+    "start": "2026-09-05T14:27:50Z",
+    "end": "2026-09-05T14:45:40Z"
+  },
+  "window_hours": 0.2972,
+  "M9_serving_gross_usd": 0.1769,
+  "serving_floor_rate_usd_per_hour": 0.2256,
+  "serving_floor_cost_for_window_usd": 0.0671,
+  "M9_net_of_floor_usd": 0.1098,
+  "queries_served": 180001,
+  "D16_dollar_per_1k_queries_usd": 0.00061,
+  "note": "karpenter-cost-estimate.py --nodepool apps-serving. 8 distinct apps-serving nodes across the window. D16 sits between r200 ($0.00086) and r050 ($0.00038) -- lower than r200 despite the higher rate, consistent with less severe churn this time (8 nodes vs r200's 8 too, similar) and a smoother TEI ramp (2->11, closer to a clean linear progression than r200's 2->7 was)."
+}

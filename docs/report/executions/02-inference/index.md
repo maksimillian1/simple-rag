@@ -170,13 +170,16 @@ resolve to whichever group of points shares each hourly bucket, not to one point
 | 01 | inference-r005 | 5 | ⟨HH:MM → HH:MM⟩ ᴿ | `⟨sha⟩` | ⟨s⟩ | ⟨⟩ / ⟨⟩ | ⟨ok · invalid, ⟨reason⟩⟩ | ⟨⟩ ᴿ | ⟨✓ · —⟩ | ⟨✓ · —⟩ |
 | 02 | inference-r050 | 50 | 2026-09-05T12:58:01Z → 13:14:54Z | `4e15a2c` (dirty) | ~2min | 2 / 2→3 | ok, see Notes for a served-rate caveat | TEI dominant (~57% of limit), api/qdrant idle · M1-M3 unblocked here, see Notes | ✓ (10/10, re-exported) | ᴰ M9=$0.0747 gross, D16≈$0.0004/1k queries — see `./data/inference-r050.cost-estimate.json` |
 | 03 | inference-r200 | 200 | 2026-09-05T13:21:58Z → 13:39:24Z | `4e15a2c` (dirty) | ~2min | 2 / 2→7 | guard breach on error rate — real, see Notes | served ~192/200 rps (96%), p95≈2425ms, error 0.24% avg / ~4% peak | ✓ (10/10) | ᴰ M9=$0.1686 gross, D16≈$0.0009/1k queries — see `./data/inference-r200.cost-estimate.json` |
-| 04 | inference-r500 | 500 | 2026-09-05T13:53:36Z → 14:14:49Z | `4e15a2c` (dirty) | ~2min | 2→3 / 2→16 | window-average looked like a collapse; **clean once TEI reached ~13 replicas**, see #06's correction and Notes | ramp: p95 to 25.2s, 0-6.5% error · **steady (once tei≈13): p95 flat ~2425ms, error ~0%** | ✓ (10/10) | ᴰ M9=$0.3133 gross, D16≈$0.0009/1k queries |
+| 04 | inference-r500 | 500 | 2026-09-05T13:53:36Z → 14:14:49Z | `4e15a2c` (dirty) | ~7min to 13 replicas | 2→3 / 2→16 | window-average looked like a collapse; **clean once TEI reached ~13 replicas** — convergence lag, not a ceiling, see Notes | ramp: p95 to 25.2s, 0-6.5% error · **steady (once tei≈13): p95 flat ~2425ms, error ~0%** | ✓ (10/10) | ᴰ M9=$0.3133 gross, D16≈$0.0009/1k queries |
 | 05 | inference-r300 | 300 | 2026-09-05T14:27:50Z → 14:45:40Z | `4e15a2c` (dirty) | ~2min | 2→3 / 2→11 | guard breach on error rate — real, minor | served 296/300 (98.8%), **p95 still flat (2425ms)**, error 0.20% avg / 2.75% peak | ✓ (10/10) | ᴰ M9=$0.1769 gross, D16≈$0.0006/1k queries |
 | 06 | inference-r1000 | 1000 | 2026-09-05T14:52:16Z → 15:16:25Z | `1ef1f0a` (dirty) | ~4min | 2→6 / 2→30 | guard breach at window-average, but **clean at steady state** — convergence problem, not a ceiling, see Notes | ramp (0-4min): p95 to 24.6s, error to 35% · **steady (5min once at 30 replicas): p95 flat ~2425ms, error ~0%, rate on target** | ✓ (10/10) | ᴰ M9=$0.4992 gross, D16≈$0.0007/1k queries |
 
 ### Notes
 
-**Decision after the coarse pass** — ⟨which two refinement points, and the shape that placed them⟩
+**Deviated from the planned grid entirely.** `§1`'s candidate grid was {5, 25, 50, 100, 200} —
+actual points run were {50, 200, 500, 1000, 300}, in that order, skipping 5/25/100 and reaching
+1000 (never in the original grid) once the first two points showed no latency signal at all to
+refine against. See each point's own Notes below for why each choice was made in the moment.
 
 **#02 inference-r050** — first real point, on a freshly-bootstrapped cluster with Qdrant reloaded
 from `01-ingestion/#10` (84,018 points, same corpus). `mock_delay_ms: 2000` confirmed live in the
@@ -259,37 +262,30 @@ node churn overhead, not TEI itself getting proportionally pricier, is the likel
 churn the 5xx investigation above couldn't fully pin down either) — worth watching whether this
 holds at the next point or was specific to this one's particular churn pattern.
 
-**#04 inference-r500 — correction (added after `r1000`'s time-series check): this was ramp,
-not a ceiling, same as `r1000`.** Original entry below is kept as written at the time; the
-window-average numbers it reports are real but misleading on their own.
-value deliberately: `p95` hadn't moved at all between 50→200 (2417ms → 2425ms, both pinned to the
-2000ms mock delay), so there was no bracketed knee to refine yet — a further coarse jump made
-more sense than a smaller step with no signal to place it against. It worked: live during the
-run, k6's own VU pool visibly saturated (`2500/2500` VUs, fluctuating) well before the point
-closed — the generator itself needed more concurrency than its own sizing formula predicted
-(`EXPECTED_REQUEST_S = MOCK_DELAY_MS/1000 + 0.5` assumes requests roughly track the fixed mock
-delay; they stopped doing that here).
+**#04 inference-r500** — chose 500 over an intermediate value deliberately: `p95` hadn't moved at
+all between 50→200 (2417ms → 2425ms, both pinned to the 2000ms mock delay), so there was no
+bracketed knee to refine yet — a further coarse jump made more sense than a smaller step with no
+signal to place it against.
 
-Confirmed in the export: `p95` ≈ **7.9s mean, 26.1s max** on the active window — a 3-10×
-jump from every prior point, the first real latency signal this campaign has produced. Error rate
-also rose further (0.78% avg / 6.6% peak, worse than `r200`'s 0.24%/4%). `tei-embeddings` scaled
-2→16 (roughly consistent with the 2→3→7→16 progression for 50→200→500... `r200`'s own 2→7 sits a
-little proud of a clean straight line, but the shape is monotonic and roughly linear-ish). `api`
-barely moved — 2→3, its weakest response yet relative to how much worse the point actually got,
-reinforcing the open question from `r200`'s Notes about whether `api-scaler`'s trigger is wired
-to anything that tracks real load here.
+The window average looked like a real ceiling — `p95` ≈ 7.9s mean, 26.1s max, error 0.78% avg /
+6.6% peak, a 3-10× jump from every prior point. Walking `Q1`/`Q3`/`Q5` point by point instead of
+averaging the window shows it's a ramp, not a ceiling: from `13:54:06` (rate ~95, tei=2) through
+`13:58:51` (tei=7), `p95` is genuinely elevated (19–25s). Once `tei-embeddings` reaches **13
+replicas** at `14:01:06`, `p95` drops straight back to the same flat ~2425ms baseline every other
+point shows, and error rate to ~0%, holding for the rest of the window. **500rps is sustainable
+at steady state** — the "3-10× jump" is the ~7-minute ramp `tei-embeddings` needed to go from 2
+to 13, not a capacity ceiling. `tei-embeddings` scaled 2→16 overall (consistent with the
+2→3→7→16 progression for 50→200→500); `api` barely moved — 2→3.
 
-**Correction, checked against the time series directly** (same method used to correct `r1000`,
-below): walking `Q1`/`Q3`/`Q5` point by point instead of averaging the window shows the same
-ramp-then-clean shape. From `13:54:06` (rate ~95, tei=2) through `13:58:51` (tei=7), `p95` is
-genuinely elevated (19–25s). Once `tei-embeddings` reaches **13 replicas** at `14:01:06`, `p95`
-drops straight back to the same flat ~2425ms baseline every other point shows, and error rate to
-~0%, holding for the rest of the window shown. **500rps is sustainable at steady state, same as
-`r1000` at 1000rps** — this entry's "3-10× jump" framing above describes the ~7-minute ramp
-`tei-embeddings` needed to go from 2 to 13 replicas, not a capacity ceiling the system hits and
-stays at. Notably it converged with *fewer* replicas than `r1000` needed relative to its own
-rate (13 of an eventual 16, vs. `r1000`'s 30) — consistent with `r1000`'s own finding that the
-constraint is scale-out *speed* under a sudden step, not a hard per-rate replica requirement.
+Root cause of the ramp's error spike, confirmed against real `rate()`-based CPU (not raw-counter
+arithmetic, which mishandles pod-restart resets): `tei-embeddings` replicas ran 50–95% of their
+4-core limit during the ramp, while `api`'s busiest pod peaked at 0.268 of its 0.5-core limit
+(~54%) even at the worst moment — `api` genuinely was never the constraint. The 5xx errors are
+application-level, not network: `apps/api/search/search.go` wraps every request in a 15s
+`QUERY_TIMEOUT` (`context.WithTimeout`, line 191), and a slow/queued TEI call past that deadline
+returns from `embedTEI` as an error, which line 230-231 converts to a plain `500` — exactly the
+failure mode the ramp's 26.1s max latency would trip. Prepared (commit `1ef1f0a`, not yet pushed)
+doubling `tei-embeddings`' CPU request/limit from 3/4 to 6/8 cores, to retest at a higher rate.
 
 **Guard-timing bug found and fixed.** `Q1`'s guard (served rate ≥ `SERVED_RATE_FLOOR`) reported
 `0.0444 [min 475]` at export — a hard fail — despite the point otherwise looking clean. Root
@@ -342,57 +338,44 @@ plain `500` — exactly the failure mode `r500`'s 26.1s max latency would trip, 
 cores, to retest at a much higher rate once this sweep's knee is found and `r1000` becomes
 interesting again.
 
-**#06 inference-r1000 — Tier-1 relief tested; window-average numbers are misleading, see the
-correction below.** Ran with `tei-embeddings` already at 6/8 cores (commit `1ef1f0a`, pushed and
-synced before this point opened). Active-window averages read worse than `r500`, not better, on
-every axis except the served-rate instant read at generator end:
+**#06 inference-r1000** — ran with `tei-embeddings` already at 6/8 cores (commit `1ef1f0a`,
+pushed and synced before this point opened), to test whether relieving Tier 1's CPU ceiling
+sustains 1000rps.
 
-| | `r500` (4/4-core TEI) | `r1000` (6/8-core TEI) |
-| :--- | :--- | :--- |
-| Offered / served | 500 / ~485 (97%) | 1000 / ~828 (83%) |
-| p95 mean (active) | 7934ms | 6378ms |
-| p95 max | 26.1s | **51.7s** |
-| Error rate avg / peak | 0.78% / 6.6% | **4.97% / 35.1%** |
-| `tei-embeddings` peak replicas | 16 | 30 |
-| `api` peak replicas | 3 | 6 |
-
-Doubling per-pod CPU let `tei-embeddings` scale to 30 replicas (vs 16) and pulled the *mean* p95
-down slightly, but the tail and the error rate both got markedly worse. `api` finally moved
-meaningfully (2→6) — the first point where it responded to load at all beyond the 2→3 blip seen
-at 200-500rps, consistent with `api-scaler`'s trigger (`sum(rate(cpu[2m])) / replicas`, threshold
-`0.2` — confirmed live via `kubectl get scaledobject api-scaler -o yaml`, not a guess) finally
-crossing its own bar as real concurrent load rose with the offered rate.
-
-**Correction, from the time series, not the window average: this is a convergence problem, not a
-capacity ceiling.** The active-window means above (p95 6378ms, error 4.97%) bury a much cleaner
-story. Walking `Q1`/`Q2`/`Q3`/`Q5` point by point:
+The window average read worse than `r500`, not better, on every axis but the served-rate instant
+read at generator end (p95 mean 6378ms vs. 7934ms — slightly better; p95 max **51.7s** vs. 26.1s
+— worse; error 4.97% avg / **35.1%** peak vs. 0.78%/6.6% — much worse). Same ramp-vs-steady split
+as `r500`, more pronounced here. Walking `Q1`/`Q2`/`Q3`/`Q5` point by point:
 
 | Phase | Time | Served rate | p95 | Error % | `tei-embeddings` |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Ramp | 14:52–14:56 | swings 490–1036 | up to **24.6s** | up to **35%** | 2 → 14 |
-| **Steady** | **14:56–15:01** | **997–1035, on target** | **~2425ms — the same flat baseline as `r050`–`r300`** | **~0%** | **30, holding** |
+| Ramp | 14:52–14:56 | swings 490–1036 | up to 24.6s | up to 35% | 2 → 14 |
+| **Steady** | **14:56–15:01** | **997–1035, on target** | **~2425ms — same flat baseline as `r050`–`r300`** | **~0%** | **30, holding** |
 | Wind-down | 15:04–15:05 | falling | rising again | rising again | 30 → 9 (scale-in) |
 
-Once `tei-embeddings` actually reached 30 replicas and held there for ~5 minutes, every figure
-went back to the same flat shape every lower-rate point already showed — served rate on target,
-p95 at the mock-delay floor, error rate ~0%. **1000rps is sustainable at steady state on this
-config.** The chaos this Notes entry originally reported was concentrated entirely in the ~4
-minutes it took KEDA to scale `tei-embeddings` from 2 to 30 — a convergence-speed problem, not a
-capacity ceiling. Checked per-pod `rate()` CPU during the ramp: busiest replicas hit 7.0–7.8 of
-their 8-core limit (87–97.5%) — real saturation, but transient, self-resolving once scale-out
-caught up. `qdrant-0`/`qdrant-1` peaked at 0.877 / 1.568 cores throughout — never a factor.
+Once `tei-embeddings` reached 30 replicas and held for ~5 minutes, every figure returned to the
+same flat shape every lower-rate point showed. **1000rps is sustainable at steady state** — the
+chaos in the window average was concentrated in the ~4 minutes KEDA needed to scale
+`tei-embeddings` from 2 to 30, a convergence-speed problem, not a capacity ceiling. Checked
+per-pod `rate()` CPU during the ramp: busiest replicas hit 7.0–7.8 of their 8-core limit
+(87–97.5%) — real, transient saturation, self-resolving once scale-out caught up.
+`qdrant-0`/`qdrant-1` peaked at 0.877 / 1.568 cores throughout — never a factor. `api` finally
+moved meaningfully (2→6, its first real response to load across the whole sweep) — consistent
+with `api-scaler`'s trigger (`sum(rate(cpu[2m]))/replicas`, threshold `0.2`, confirmed live)
+finally crossing its own bar as real concurrent load rose.
 
-This also reframes what raising the CPU limit further would or wouldn't fix: `tei-embeddings-scaler`'s
-own trigger targets `sum(rate(cpu[2m])) / replicas` at a threshold of **1.5 cores** — nowhere near
-the 8-core limit. The limit was never what constrained the *target* replica count; it only
-capped how far an individual pod could be pushed *while under-provisioned during the ramp*. A
-higher limit (e.g. 10) would give more burst headroom per pod mid-ramp but wouldn't change
+This also reframes what raising the CPU limit further would or wouldn't fix:
+`tei-embeddings-scaler`'s own trigger targets `sum(rate(cpu[2m]))/replicas` at a threshold of
+**1.5 cores** — nowhere near the 8-core limit. The limit was never what constrained the *target*
+replica count; it only capped how far an individual pod could be pushed *while under-provisioned
+during the ramp*. A higher limit would give more burst headroom mid-ramp but wouldn't change
 KEDA's steady-state target or make it scale out faster — the actual levers are the trigger
 threshold (lower → scales out sooner, ahead of demand) and scale-out speed (poll interval,
-cooldown, TEI's own pod-ready time), not the resource ceiling. Not tested this pass.
+cooldown, pod-ready time), not the resource ceiling. Not tested this pass.
+
 Cost: `M9` gross $0.4992, `D16` ≈ $0.0007/1k queries — in the same narrow band as every other
-point (`$0.0004–0.0009`), underscoring again that `D16` alone is the wrong lens on this point:
-the real story is in the latency/error columns, not the marginal dollar figure.
+point (`$0.0004–0.0009`), underscoring that `D16` alone is the wrong lens on this point: the real
+story is in the latency/error columns, not the marginal dollar figure.
 
 ### Close
 

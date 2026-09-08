@@ -1,0 +1,15 @@
+{
+  "run": "inference-r200",
+  "window": {
+    "start": "2026-09-05T13:21:58Z",
+    "end": "2026-09-05T13:39:24Z"
+  },
+  "window_hours": 0.2906,
+  "M9_serving_gross_usd": 0.1686,
+  "serving_floor_rate_usd_per_hour": 0.2256,
+  "serving_floor_cost_for_window_usd": 0.0655,
+  "M9_net_of_floor_usd": 0.1031,
+  "queries_served": 119623,
+  "D16_dollar_per_1k_queries_usd": 0.00086,
+  "note": "karpenter-cost-estimate.py --nodepool apps-serving, provisional (not CUR). 8 distinct apps-serving nodes seen across this ~17min window (2 shared with r050's tail, 6 new/replacement) against a floor of 2 and a TEI peak of 7 -- heavy churn, consistent with the 5xx error investigation in this point's Notes (node replacement mid-window as a plausible, unconfirmed cause). D16 roughly 2.3x r050's despite queries served being ~4x -- rate doesn't scale linearly with cost here because of the node churn overhead, not because TEI itself got proportionally more expensive."
+}

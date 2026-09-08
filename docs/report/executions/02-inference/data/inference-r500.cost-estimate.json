@@ -1,0 +1,15 @@
+{
+  "run": "inference-r500",
+  "window": {
+    "start": "2026-09-05T13:53:36Z",
+    "end": "2026-09-05T14:14:49Z"
+  },
+  "window_hours": 0.3536,
+  "M9_serving_gross_usd": 0.3133,
+  "serving_floor_rate_usd_per_hour": 0.2256,
+  "serving_floor_cost_for_window_usd": 0.0798,
+  "M9_net_of_floor_usd": 0.2335,
+  "queries_served": 267956,
+  "D16_dollar_per_1k_queries_usd": 0.00087,
+  "note": "karpenter-cost-estimate.py --nodepool apps-serving. 17 distinct apps-serving nodes churned through this ~21min window against a TEI peak of 16 and api peak of 3. D16 is essentially flat vs r200 ($0.00086) despite this point showing real saturation (p95 exploded, error rate up) -- cost per query didn't rise to reflect the latency/error degradation, meaning D16 alone would understate how much worse this point actually is. The Matrix in Sec3 needs the latency/error columns alongside D16, not D16 in isolation, or this looks like a non-event."
+}

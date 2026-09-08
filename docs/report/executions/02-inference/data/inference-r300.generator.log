@@ -1,0 +1,2218 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: ./load.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 1500 max VUs, 10m30s max duration (incl. graceful stop):
+              * constant_load: 300.00 iterations/s for 10m0s (maxVUs: 750-1500, gracefulStop: 30s)
+
+
+running (00m00.9s), 0280/0750 VUs, 0 complete and 0 interrupted iterations
+constant_load   [   0% ] 0280/0750 VUs  00m00.9s/10m0s  300.00 iters/s
+
+running (00m01.9s), 0580/0750 VUs, 0 complete and 0 interrupted iterations
+constant_load   [   0% ] 0580/0750 VUs  00m01.9s/10m0s  300.00 iters/s
+
+running (00m02.9s), 0630/0750 VUs, 250 complete and 0 interrupted iterations
+constant_load   [   0% ] 0630/0750 VUs  00m02.9s/10m0s  300.00 iters/s
+
+running (00m03.9s), 0619/0750 VUs, 561 complete and 0 interrupted iterations
+constant_load   [   1% ] 0619/0750 VUs  00m03.9s/10m0s  300.00 iters/s
+
+running (00m04.9s), 0614/0750 VUs, 866 complete and 0 interrupted iterations
+constant_load   [   1% ] 0614/0750 VUs  00m04.9s/10m0s  300.00 iters/s
+
+running (00m05.9s), 0611/0750 VUs, 1169 complete and 0 interrupted iterations
+constant_load   [   1% ] 0611/0750 VUs  00m05.9s/10m0s  300.00 iters/s
+
+running (00m06.9s), 0614/0750 VUs, 1466 complete and 0 interrupted iterations
+constant_load   [   1% ] 0614/0750 VUs  00m06.9s/10m0s  300.00 iters/s
+
+running (00m07.9s), 0610/0750 VUs, 1770 complete and 0 interrupted iterations
+constant_load   [   1% ] 0610/0750 VUs  00m07.9s/10m0s  300.00 iters/s
+
+running (00m08.9s), 0612/0750 VUs, 2068 complete and 0 interrupted iterations
+constant_load   [   1% ] 0612/0750 VUs  00m08.9s/10m0s  300.00 iters/s
+
+running (00m09.9s), 0613/0750 VUs, 2367 complete and 0 interrupted iterations
+constant_load   [   2% ] 0613/0750 VUs  00m09.9s/10m0s  300.00 iters/s
+
+running (00m10.9s), 0612/0750 VUs, 2668 complete and 0 interrupted iterations
+constant_load   [   2% ] 0612/0750 VUs  00m10.9s/10m0s  300.00 iters/s
+
+running (00m11.9s), 0613/0750 VUs, 2967 complete and 0 interrupted iterations
+constant_load   [   2% ] 0613/0750 VUs  00m11.9s/10m0s  300.00 iters/s
+
+running (00m12.9s), 0611/0750 VUs, 3269 complete and 0 interrupted iterations
+constant_load   [   2% ] 0611/0750 VUs  00m12.9s/10m0s  300.00 iters/s
+
+running (00m13.9s), 0612/0750 VUs, 3569 complete and 0 interrupted iterations
+constant_load   [   2% ] 0612/0750 VUs  00m13.9s/10m0s  300.00 iters/s
+
+running (00m14.9s), 0610/0750 VUs, 3870 complete and 0 interrupted iterations
+constant_load   [   2% ] 0610/0750 VUs  00m14.9s/10m0s  300.00 iters/s
+
+running (00m15.9s), 0615/0750 VUs, 4165 complete and 0 interrupted iterations
+constant_load   [   3% ] 0615/0750 VUs  00m15.9s/10m0s  300.00 iters/s
+
+running (00m16.9s), 0615/0750 VUs, 4465 complete and 0 interrupted iterations
+constant_load   [   3% ] 0615/0750 VUs  00m16.9s/10m0s  300.00 iters/s
+
+running (00m17.9s), 0621/0750 VUs, 4759 complete and 0 interrupted iterations
+constant_load   [   3% ] 0621/0750 VUs  00m17.9s/10m0s  300.00 iters/s
+
+running (00m18.9s), 0612/0750 VUs, 5068 complete and 0 interrupted iterations
+constant_load   [   3% ] 0612/0750 VUs  00m18.9s/10m0s  300.00 iters/s
+
+running (00m19.9s), 0613/0750 VUs, 5367 complete and 0 interrupted iterations
+constant_load   [   3% ] 0613/0750 VUs  00m19.9s/10m0s  300.00 iters/s
+
+running (00m20.9s), 0613/0750 VUs, 5667 complete and 0 interrupted iterations
+constant_load   [   3% ] 0613/0750 VUs  00m20.9s/10m0s  300.00 iters/s
+
+running (00m21.9s), 0615/0750 VUs, 5965 complete and 0 interrupted iterations
+constant_load   [   4% ] 0615/0750 VUs  00m21.9s/10m0s  300.00 iters/s
+
+running (00m22.9s), 0611/0750 VUs, 6269 complete and 0 interrupted iterations
+constant_load   [   4% ] 0611/0750 VUs  00m22.9s/10m0s  300.00 iters/s
+
+running (00m23.9s), 0611/0750 VUs, 6569 complete and 0 interrupted iterations
+constant_load   [   4% ] 0611/0750 VUs  00m23.9s/10m0s  300.00 iters/s
+
+running (00m24.9s), 0614/0750 VUs, 6866 complete and 0 interrupted iterations
+constant_load   [   4% ] 0614/0750 VUs  00m24.9s/10m0s  300.00 iters/s
+
+running (00m25.9s), 0611/0750 VUs, 7169 complete and 0 interrupted iterations
+constant_load   [   4% ] 0611/0750 VUs  00m25.9s/10m0s  300.00 iters/s
+
+running (00m26.9s), 0618/0750 VUs, 7462 complete and 0 interrupted iterations
+constant_load   [   4% ] 0618/0750 VUs  00m26.9s/10m0s  300.00 iters/s
+
+running (00m27.9s), 0614/0750 VUs, 7766 complete and 0 interrupted iterations
+constant_load   [   5% ] 0614/0750 VUs  00m27.9s/10m0s  300.00 iters/s
+
+running (00m28.9s), 0612/0750 VUs, 8068 complete and 0 interrupted iterations
+constant_load   [   5% ] 0612/0750 VUs  00m28.9s/10m0s  300.00 iters/s
+
+running (00m29.9s), 0613/0750 VUs, 8367 complete and 0 interrupted iterations
+constant_load   [   5% ] 0613/0750 VUs  00m29.9s/10m0s  300.00 iters/s
+
+running (00m30.9s), 0611/0750 VUs, 8669 complete and 0 interrupted iterations
+constant_load   [   5% ] 0611/0750 VUs  00m30.9s/10m0s  300.00 iters/s
+
+running (00m31.9s), 0617/0750 VUs, 8963 complete and 0 interrupted iterations
+constant_load   [   5% ] 0617/0750 VUs  00m31.9s/10m0s  300.00 iters/s
+
+running (00m32.9s), 0613/0750 VUs, 9267 complete and 0 interrupted iterations
+constant_load   [   5% ] 0613/0750 VUs  00m32.9s/10m0s  300.00 iters/s
+
+running (00m33.9s), 0612/0750 VUs, 9568 complete and 0 interrupted iterations
+constant_load   [   6% ] 0612/0750 VUs  00m33.9s/10m0s  300.00 iters/s
+
+running (00m34.9s), 0613/0750 VUs, 9867 complete and 0 interrupted iterations
+constant_load   [   6% ] 0613/0750 VUs  00m34.9s/10m0s  300.00 iters/s
+
+running (00m35.9s), 0612/0750 VUs, 10168 complete and 0 interrupted iterations
+constant_load   [   6% ] 0612/0750 VUs  00m35.9s/10m0s  300.00 iters/s
+
+running (00m36.9s), 0611/0750 VUs, 10469 complete and 0 interrupted iterations
+constant_load   [   6% ] 0611/0750 VUs  00m36.9s/10m0s  300.00 iters/s
+
+running (00m37.9s), 0616/0750 VUs, 10764 complete and 0 interrupted iterations
+constant_load   [   6% ] 0616/0750 VUs  00m37.9s/10m0s  300.00 iters/s
+
+running (00m38.9s), 0613/0750 VUs, 11067 complete and 0 interrupted iterations
+constant_load   [   6% ] 0613/0750 VUs  00m38.9s/10m0s  300.00 iters/s
+
+running (00m39.9s), 0612/0750 VUs, 11368 complete and 0 interrupted iterations
+constant_load   [   7% ] 0612/0750 VUs  00m39.9s/10m0s  300.00 iters/s
+
+running (00m40.9s), 0612/0750 VUs, 11668 complete and 0 interrupted iterations
+constant_load   [   7% ] 0612/0750 VUs  00m40.9s/10m0s  300.00 iters/s
+
+running (00m41.9s), 0614/0750 VUs, 11966 complete and 0 interrupted iterations
+constant_load   [   7% ] 0614/0750 VUs  00m41.9s/10m0s  300.00 iters/s
+
+running (00m42.9s), 0614/0750 VUs, 12266 complete and 0 interrupted iterations
+constant_load   [   7% ] 0614/0750 VUs  00m42.9s/10m0s  300.00 iters/s
+
+running (00m43.9s), 0614/0750 VUs, 12566 complete and 0 interrupted iterations
+constant_load   [   7% ] 0614/0750 VUs  00m43.9s/10m0s  300.00 iters/s
+
+running (00m44.9s), 0616/0750 VUs, 12864 complete and 0 interrupted iterations
+constant_load   [   7% ] 0616/0750 VUs  00m44.9s/10m0s  300.00 iters/s
+
+running (00m45.9s), 0616/0750 VUs, 13164 complete and 0 interrupted iterations
+constant_load   [   8% ] 0616/0750 VUs  00m45.9s/10m0s  300.00 iters/s
+
+running (00m46.9s), 0619/0750 VUs, 13461 complete and 0 interrupted iterations
+constant_load   [   8% ] 0619/0750 VUs  00m46.9s/10m0s  300.00 iters/s
+
+running (00m47.9s), 0614/0750 VUs, 13766 complete and 0 interrupted iterations
+constant_load   [   8% ] 0614/0750 VUs  00m47.9s/10m0s  300.00 iters/s
+
+running (00m48.9s), 0613/0750 VUs, 14067 complete and 0 interrupted iterations
+constant_load   [   8% ] 0614/0750 VUs  00m48.9s/10m0s  300.00 iters/s
+
+running (00m49.9s), 0617/0750 VUs, 14363 complete and 0 interrupted iterations
+constant_load   [   8% ] 0617/0750 VUs  00m49.9s/10m0s  300.00 iters/s
+
+running (00m50.9s), 0620/0750 VUs, 14661 complete and 0 interrupted iterations
+constant_load   [   8% ] 0620/0750 VUs  00m50.9s/10m0s  300.00 iters/s
+
+running (00m51.9s), 0614/0750 VUs, 14966 complete and 0 interrupted iterations
+constant_load   [   9% ] 0614/0750 VUs  00m51.9s/10m0s  300.00 iters/s
+
+running (00m52.9s), 0617/0750 VUs, 15263 complete and 0 interrupted iterations
+constant_load   [   9% ] 0617/0750 VUs  00m52.9s/10m0s  300.00 iters/s
+
+running (00m53.9s), 0612/0750 VUs, 15568 complete and 0 interrupted iterations
+constant_load   [   9% ] 0612/0750 VUs  00m53.9s/10m0s  300.00 iters/s
+
+running (00m54.9s), 0620/0750 VUs, 15860 complete and 0 interrupted iterations
+constant_load   [   9% ] 0620/0750 VUs  00m54.9s/10m0s  300.00 iters/s
+
+running (00m55.9s), 0616/0750 VUs, 16164 complete and 0 interrupted iterations
+constant_load   [   9% ] 0616/0750 VUs  00m55.9s/10m0s  300.00 iters/s
+
+running (00m56.9s), 0616/0750 VUs, 16464 complete and 0 interrupted iterations
+constant_load   [   9% ] 0616/0750 VUs  00m56.9s/10m0s  300.00 iters/s
+
+running (00m57.9s), 0613/0750 VUs, 16767 complete and 0 interrupted iterations
+constant_load   [  10% ] 0613/0750 VUs  00m57.9s/10m0s  300.00 iters/s
+
+running (00m58.9s), 0615/0750 VUs, 17065 complete and 0 interrupted iterations
+constant_load   [  10% ] 0615/0750 VUs  00m58.9s/10m0s  300.00 iters/s
+
+running (00m59.9s), 0617/0750 VUs, 17363 complete and 0 interrupted iterations
+constant_load   [  10% ] 0617/0750 VUs  00m59.9s/10m0s  300.00 iters/s
+
+running (01m00.9s), 0614/0750 VUs, 17666 complete and 0 interrupted iterations
+constant_load   [  10% ] 0614/0750 VUs  01m00.9s/10m0s  300.00 iters/s
+
+running (01m01.9s), 0613/0750 VUs, 17967 complete and 0 interrupted iterations
+constant_load   [  10% ] 0613/0750 VUs  01m01.9s/10m0s  300.00 iters/s
+
+running (01m02.9s), 0615/0750 VUs, 18265 complete and 0 interrupted iterations
+constant_load   [  10% ] 0615/0750 VUs  01m02.9s/10m0s  300.00 iters/s
+
+running (01m03.9s), 0613/0750 VUs, 18567 complete and 0 interrupted iterations
+constant_load   [  11% ] 0613/0750 VUs  01m03.9s/10m0s  300.00 iters/s
+
+running (01m04.9s), 0613/0750 VUs, 18867 complete and 0 interrupted iterations
+constant_load   [  11% ] 0613/0750 VUs  01m04.9s/10m0s  300.00 iters/s
+
+running (01m05.9s), 0614/0750 VUs, 19166 complete and 0 interrupted iterations
+constant_load   [  11% ] 0614/0750 VUs  01m05.9s/10m0s  300.00 iters/s
+
+running (01m06.9s), 0615/0750 VUs, 19465 complete and 0 interrupted iterations
+constant_load   [  11% ] 0615/0750 VUs  01m06.9s/10m0s  300.00 iters/s
+
+running (01m07.9s), 0602/0750 VUs, 19778 complete and 0 interrupted iterations
+constant_load   [  11% ] 0602/0750 VUs  01m07.9s/10m0s  300.00 iters/s
+
+running (01m08.9s), 0600/0750 VUs, 20080 complete and 0 interrupted iterations
+constant_load   [  11% ] 0600/0750 VUs  01m08.9s/10m0s  300.00 iters/s
+
+running (01m09.9s), 0604/0750 VUs, 20376 complete and 0 interrupted iterations
+constant_load   [  12% ] 0604/0750 VUs  01m09.9s/10m0s  300.00 iters/s
+
+running (01m10.9s), 0606/0750 VUs, 20674 complete and 0 interrupted iterations
+constant_load   [  12% ] 0606/0750 VUs  01m10.9s/10m0s  300.00 iters/s
+
+running (01m11.9s), 0611/0750 VUs, 20969 complete and 0 interrupted iterations
+constant_load   [  12% ] 0611/0750 VUs  01m11.9s/10m0s  300.00 iters/s
+
+running (01m12.9s), 0612/0750 VUs, 21268 complete and 0 interrupted iterations
+constant_load   [  12% ] 0612/0750 VUs  01m12.9s/10m0s  300.00 iters/s
+
+running (01m13.9s), 0604/0750 VUs, 21576 complete and 0 interrupted iterations
+constant_load   [  12% ] 0604/0750 VUs  01m13.9s/10m0s  300.00 iters/s
+
+running (01m14.9s), 0603/0750 VUs, 21878 complete and 0 interrupted iterations
+constant_load   [  12% ] 0603/0750 VUs  01m14.9s/10m0s  300.00 iters/s
+
+running (01m15.9s), 0601/0750 VUs, 22179 complete and 0 interrupted iterations
+constant_load   [  13% ] 0601/0750 VUs  01m15.9s/10m0s  300.00 iters/s
+
+running (01m16.9s), 0608/0750 VUs, 22472 complete and 0 interrupted iterations
+constant_load   [  13% ] 0608/0750 VUs  01m16.9s/10m0s  300.00 iters/s
+
+running (01m17.9s), 0616/0750 VUs, 22764 complete and 0 interrupted iterations
+constant_load   [  13% ] 0616/0750 VUs  01m17.9s/10m0s  300.00 iters/s
+
+running (01m18.9s), 0619/0750 VUs, 23061 complete and 0 interrupted iterations
+constant_load   [  13% ] 0619/0750 VUs  01m18.9s/10m0s  300.00 iters/s
+
+running (01m19.9s), 0619/0750 VUs, 23361 complete and 0 interrupted iterations
+constant_load   [  13% ] 0619/0750 VUs  01m19.9s/10m0s  300.00 iters/s
+
+running (01m20.9s), 0615/0750 VUs, 23665 complete and 0 interrupted iterations
+constant_load   [  13% ] 0615/0750 VUs  01m20.9s/10m0s  300.00 iters/s
+
+running (01m21.9s), 0617/0750 VUs, 23963 complete and 0 interrupted iterations
+constant_load   [  14% ] 0617/0750 VUs  01m21.9s/10m0s  300.00 iters/s
+
+running (01m22.9s), 0616/0750 VUs, 24264 complete and 0 interrupted iterations
+constant_load   [  14% ] 0616/0750 VUs  01m22.9s/10m0s  300.00 iters/s
+
+running (01m23.9s), 0619/0750 VUs, 24561 complete and 0 interrupted iterations
+constant_load   [  14% ] 0617/0750 VUs  01m23.9s/10m0s  300.00 iters/s
+
+running (01m24.9s), 0616/0750 VUs, 24864 complete and 0 interrupted iterations
+constant_load   [  14% ] 0616/0750 VUs  01m24.9s/10m0s  300.00 iters/s
+
+running (01m25.9s), 0616/0750 VUs, 25164 complete and 0 interrupted iterations
+constant_load   [  14% ] 0616/0750 VUs  01m25.9s/10m0s  300.00 iters/s
+
+running (01m26.9s), 0618/0750 VUs, 25462 complete and 0 interrupted iterations
+constant_load   [  14% ] 0618/0750 VUs  01m26.9s/10m0s  300.00 iters/s
+
+running (01m27.9s), 0616/0750 VUs, 25764 complete and 0 interrupted iterations
+constant_load   [  15% ] 0616/0750 VUs  01m27.9s/10m0s  300.00 iters/s
+
+running (01m28.9s), 0617/0750 VUs, 26063 complete and 0 interrupted iterations
+constant_load   [  15% ] 0617/0750 VUs  01m28.9s/10m0s  300.00 iters/s
+
+running (01m29.9s), 0619/0750 VUs, 26361 complete and 0 interrupted iterations
+constant_load   [  15% ] 0619/0750 VUs  01m29.9s/10m0s  300.00 iters/s
+
+running (01m30.9s), 0616/0750 VUs, 26664 complete and 0 interrupted iterations
+constant_load   [  15% ] 0616/0750 VUs  01m30.9s/10m0s  300.00 iters/s
+
+running (01m31.9s), 0618/0750 VUs, 26962 complete and 0 interrupted iterations
+constant_load   [  15% ] 0618/0750 VUs  01m31.9s/10m0s  300.00 iters/s
+
+running (01m32.9s), 0619/0750 VUs, 27261 complete and 0 interrupted iterations
+constant_load   [  15% ] 0619/0750 VUs  01m32.9s/10m0s  300.00 iters/s
+
+running (01m33.9s), 0621/0750 VUs, 27559 complete and 0 interrupted iterations
+constant_load   [  16% ] 0621/0750 VUs  01m33.9s/10m0s  300.00 iters/s
+
+running (01m34.9s), 0618/0750 VUs, 27863 complete and 0 interrupted iterations
+constant_load   [  16% ] 0618/0750 VUs  01m34.9s/10m0s  300.00 iters/s
+
+running (01m35.9s), 0619/0750 VUs, 28161 complete and 0 interrupted iterations
+constant_load   [  16% ] 0619/0750 VUs  01m35.9s/10m0s  300.00 iters/s
+
+running (01m36.9s), 0624/0750 VUs, 28456 complete and 0 interrupted iterations
+constant_load   [  16% ] 0624/0750 VUs  01m36.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:29:28+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (01m37.9s), 0612/0750 VUs, 28768 complete and 0 interrupted iterations
+constant_load   [  16% ] 0612/0750 VUs  01m37.9s/10m0s  300.00 iters/s
+
+running (01m38.9s), 0618/0750 VUs, 29062 complete and 0 interrupted iterations
+constant_load   [  16% ] 0618/0750 VUs  01m38.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:29:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (01m39.9s), 0609/0750 VUs, 29371 complete and 0 interrupted iterations
+constant_load   [  17% ] 0609/0750 VUs  01m39.9s/10m0s  300.00 iters/s
+
+running (01m40.9s), 0606/0750 VUs, 29674 complete and 0 interrupted iterations
+constant_load   [  17% ] 0606/0750 VUs  01m40.9s/10m0s  300.00 iters/s
+
+running (01m41.9s), 0606/0750 VUs, 29974 complete and 0 interrupted iterations
+constant_load   [  17% ] 0606/0750 VUs  01m41.9s/10m0s  300.00 iters/s
+
+running (01m42.9s), 0606/0750 VUs, 30274 complete and 0 interrupted iterations
+constant_load   [  17% ] 0606/0750 VUs  01m42.9s/10m0s  300.00 iters/s
+
+running (01m43.9s), 0609/0750 VUs, 30571 complete and 0 interrupted iterations
+constant_load   [  17% ] 0609/0750 VUs  01m43.9s/10m0s  300.00 iters/s
+
+running (01m44.9s), 0605/0750 VUs, 30875 complete and 0 interrupted iterations
+constant_load   [  17% ] 0605/0750 VUs  01m44.9s/10m0s  300.00 iters/s
+
+running (01m45.9s), 0603/0750 VUs, 31177 complete and 0 interrupted iterations
+constant_load   [  18% ] 0603/0750 VUs  01m45.9s/10m0s  300.00 iters/s
+
+running (01m46.9s), 0611/0750 VUs, 31469 complete and 0 interrupted iterations
+constant_load   [  18% ] 0611/0750 VUs  01m46.9s/10m0s  300.00 iters/s
+
+running (01m47.9s), 0615/0750 VUs, 31765 complete and 0 interrupted iterations
+constant_load   [  18% ] 0615/0750 VUs  01m47.9s/10m0s  300.00 iters/s
+
+running (01m48.9s), 0616/0750 VUs, 32064 complete and 0 interrupted iterations
+constant_load   [  18% ] 0616/0750 VUs  01m48.9s/10m0s  300.00 iters/s
+
+running (01m49.9s), 0626/0750 VUs, 32354 complete and 0 interrupted iterations
+constant_load   [  18% ] 0626/0750 VUs  01m49.9s/10m0s  300.00 iters/s
+
+running (01m50.9s), 0616/0750 VUs, 32664 complete and 0 interrupted iterations
+constant_load   [  18% ] 0616/0750 VUs  01m50.9s/10m0s  300.00 iters/s
+
+running (01m51.9s), 0631/0750 VUs, 32949 complete and 0 interrupted iterations
+constant_load   [  19% ] 0630/0750 VUs  01m51.9s/10m0s  300.00 iters/s
+
+running (01m52.9s), 0615/0750 VUs, 33265 complete and 0 interrupted iterations
+constant_load   [  19% ] 0615/0750 VUs  01m52.9s/10m0s  300.00 iters/s
+
+running (01m53.9s), 0620/0750 VUs, 33560 complete and 0 interrupted iterations
+constant_load   [  19% ] 0620/0750 VUs  01m53.9s/10m0s  300.00 iters/s
+
+running (01m54.9s), 0620/0750 VUs, 33860 complete and 0 interrupted iterations
+constant_load   [  19% ] 0620/0750 VUs  01m54.9s/10m0s  300.00 iters/s
+
+running (01m55.9s), 0615/0750 VUs, 34165 complete and 0 interrupted iterations
+constant_load   [  19% ] 0615/0750 VUs  01m55.9s/10m0s  300.00 iters/s
+
+running (01m56.9s), 0620/0750 VUs, 34460 complete and 0 interrupted iterations
+constant_load   [  19% ] 0620/0750 VUs  01m56.9s/10m0s  300.00 iters/s
+
+running (01m57.9s), 0617/0750 VUs, 34763 complete and 0 interrupted iterations
+constant_load   [  20% ] 0617/0750 VUs  01m57.9s/10m0s  300.00 iters/s
+
+running (01m58.9s), 0618/0750 VUs, 35062 complete and 0 interrupted iterations
+constant_load   [  20% ] 0618/0750 VUs  01m58.9s/10m0s  300.00 iters/s
+
+running (01m59.9s), 0631/0750 VUs, 35349 complete and 0 interrupted iterations
+constant_load   [  20% ] 0631/0750 VUs  01m59.9s/10m0s  300.00 iters/s
+
+running (02m00.9s), 0616/0750 VUs, 35664 complete and 0 interrupted iterations
+constant_load   [  20% ] 0616/0750 VUs  02m00.9s/10m0s  300.00 iters/s
+
+running (02m01.9s), 0621/0750 VUs, 35959 complete and 0 interrupted iterations
+constant_load   [  20% ] 0621/0750 VUs  02m01.9s/10m0s  300.00 iters/s
+
+running (02m02.9s), 0616/0750 VUs, 36264 complete and 0 interrupted iterations
+constant_load   [  20% ] 0616/0750 VUs  02m02.9s/10m0s  300.00 iters/s
+
+running (02m03.9s), 0620/0750 VUs, 36560 complete and 0 interrupted iterations
+constant_load   [  21% ] 0620/0750 VUs  02m03.9s/10m0s  300.00 iters/s
+
+running (02m04.9s), 0615/0750 VUs, 36865 complete and 0 interrupted iterations
+constant_load   [  21% ] 0615/0750 VUs  02m04.9s/10m0s  300.00 iters/s
+
+running (02m05.9s), 0618/0750 VUs, 37162 complete and 0 interrupted iterations
+constant_load   [  21% ] 0618/0750 VUs  02m05.9s/10m0s  300.00 iters/s
+
+running (02m06.9s), 0615/0750 VUs, 37465 complete and 0 interrupted iterations
+constant_load   [  21% ] 0615/0750 VUs  02m06.9s/10m0s  300.00 iters/s
+
+running (02m07.9s), 0616/0750 VUs, 37764 complete and 0 interrupted iterations
+constant_load   [  21% ] 0616/0750 VUs  02m07.9s/10m0s  300.00 iters/s
+
+running (02m08.9s), 0607/0750 VUs, 38073 complete and 0 interrupted iterations
+constant_load   [  21% ] 0607/0750 VUs  02m08.9s/10m0s  300.00 iters/s
+
+running (02m09.9s), 0610/0750 VUs, 38370 complete and 0 interrupted iterations
+constant_load   [  22% ] 0610/0750 VUs  02m09.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:30:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:30:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:30:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (02m10.9s), 0602/0750 VUs, 38678 complete and 0 interrupted iterations
+constant_load   [  22% ] 0602/0750 VUs  02m10.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:30:02+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (02m11.9s), 0596/0750 VUs, 38984 complete and 0 interrupted iterations
+constant_load   [  22% ] 0596/0750 VUs  02m11.9s/10m0s  300.00 iters/s
+
+running (02m12.9s), 0607/0750 VUs, 39273 complete and 0 interrupted iterations
+constant_load   [  22% ] 0607/0750 VUs  02m12.9s/10m0s  300.00 iters/s
+
+running (02m13.9s), 0602/0750 VUs, 39578 complete and 0 interrupted iterations
+constant_load   [  22% ] 0602/0750 VUs  02m13.9s/10m0s  300.00 iters/s
+
+running (02m14.9s), 0611/0750 VUs, 39869 complete and 0 interrupted iterations
+constant_load   [  22% ] 0611/0750 VUs  02m14.9s/10m0s  300.00 iters/s
+
+running (02m15.9s), 0608/0750 VUs, 40173 complete and 0 interrupted iterations
+constant_load   [  23% ] 0608/0750 VUs  02m15.9s/10m0s  300.00 iters/s
+
+running (02m16.9s), 0619/0750 VUs, 40462 complete and 0 interrupted iterations
+constant_load   [  23% ] 0619/0750 VUs  02m16.9s/10m0s  300.00 iters/s
+
+running (02m17.9s), 0613/0750 VUs, 40767 complete and 0 interrupted iterations
+constant_load   [  23% ] 0613/0750 VUs  02m17.9s/10m0s  300.00 iters/s
+
+running (02m18.9s), 0611/0750 VUs, 41069 complete and 0 interrupted iterations
+constant_load   [  23% ] 0611/0750 VUs  02m18.9s/10m0s  300.00 iters/s
+
+running (02m19.9s), 0611/0750 VUs, 41369 complete and 0 interrupted iterations
+constant_load   [  23% ] 0611/0750 VUs  02m19.9s/10m0s  300.00 iters/s
+
+running (02m20.9s), 0611/0750 VUs, 41671 complete and 0 interrupted iterations
+constant_load   [  23% ] 0611/0750 VUs  02m20.9s/10m0s  300.00 iters/s
+
+running (02m21.9s), 0610/0750 VUs, 41970 complete and 0 interrupted iterations
+constant_load   [  24% ] 0610/0750 VUs  02m21.9s/10m0s  300.00 iters/s
+
+running (02m22.9s), 0611/0750 VUs, 42269 complete and 0 interrupted iterations
+constant_load   [  24% ] 0611/0750 VUs  02m22.9s/10m0s  300.00 iters/s
+
+running (02m23.9s), 0610/0750 VUs, 42570 complete and 0 interrupted iterations
+constant_load   [  24% ] 0610/0750 VUs  02m23.9s/10m0s  300.00 iters/s
+
+running (02m24.9s), 0611/0750 VUs, 42869 complete and 0 interrupted iterations
+constant_load   [  24% ] 0611/0750 VUs  02m24.9s/10m0s  300.00 iters/s
+
+running (02m25.9s), 0610/0750 VUs, 43170 complete and 0 interrupted iterations
+constant_load   [  24% ] 0610/0750 VUs  02m25.9s/10m0s  300.00 iters/s
+
+running (02m26.9s), 0611/0750 VUs, 43469 complete and 0 interrupted iterations
+constant_load   [  24% ] 0611/0750 VUs  02m26.9s/10m0s  300.00 iters/s
+
+running (02m27.9s), 0612/0750 VUs, 43768 complete and 0 interrupted iterations
+constant_load   [  25% ] 0612/0750 VUs  02m27.9s/10m0s  300.00 iters/s
+
+running (02m28.9s), 0614/0750 VUs, 44066 complete and 0 interrupted iterations
+constant_load   [  25% ] 0615/0750 VUs  02m28.9s/10m0s  300.00 iters/s
+
+running (02m29.9s), 0612/0750 VUs, 44368 complete and 0 interrupted iterations
+constant_load   [  25% ] 0612/0750 VUs  02m29.9s/10m0s  300.00 iters/s
+
+running (02m30.9s), 0613/0750 VUs, 44667 complete and 0 interrupted iterations
+constant_load   [  25% ] 0613/0750 VUs  02m30.9s/10m0s  300.00 iters/s
+
+running (02m31.9s), 0610/0750 VUs, 44970 complete and 0 interrupted iterations
+constant_load   [  25% ] 0610/0750 VUs  02m31.9s/10m0s  300.00 iters/s
+
+running (02m32.9s), 0613/0750 VUs, 45267 complete and 0 interrupted iterations
+constant_load   [  25% ] 0613/0750 VUs  02m32.9s/10m0s  300.00 iters/s
+
+running (02m33.9s), 0611/0750 VUs, 45569 complete and 0 interrupted iterations
+constant_load   [  26% ] 0611/0750 VUs  02m33.9s/10m0s  300.00 iters/s
+
+running (02m34.9s), 0611/0750 VUs, 45869 complete and 0 interrupted iterations
+constant_load   [  26% ] 0611/0750 VUs  02m34.9s/10m0s  300.00 iters/s
+
+running (02m35.9s), 0610/0750 VUs, 46170 complete and 0 interrupted iterations
+constant_load   [  26% ] 0610/0750 VUs  02m35.9s/10m0s  300.00 iters/s
+
+running (02m36.9s), 0611/0750 VUs, 46469 complete and 0 interrupted iterations
+constant_load   [  26% ] 0611/0750 VUs  02m36.9s/10m0s  300.00 iters/s
+
+running (02m37.9s), 0611/0750 VUs, 46769 complete and 0 interrupted iterations
+constant_load   [  26% ] 0611/0750 VUs  02m37.9s/10m0s  300.00 iters/s
+
+running (02m38.9s), 0611/0750 VUs, 47069 complete and 0 interrupted iterations
+constant_load   [  26% ] 0611/0750 VUs  02m38.9s/10m0s  300.00 iters/s
+
+running (02m39.9s), 0611/0750 VUs, 47369 complete and 0 interrupted iterations
+constant_load   [  27% ] 0611/0750 VUs  02m39.9s/10m0s  300.00 iters/s
+
+running (02m40.9s), 0612/0750 VUs, 47669 complete and 0 interrupted iterations
+constant_load   [  27% ] 0612/0750 VUs  02m40.9s/10m0s  300.00 iters/s
+
+running (02m41.9s), 0613/0750 VUs, 47967 complete and 0 interrupted iterations
+constant_load   [  27% ] 0613/0750 VUs  02m41.9s/10m0s  300.00 iters/s
+
+running (02m42.9s), 0615/0750 VUs, 48265 complete and 0 interrupted iterations
+constant_load   [  27% ] 0615/0750 VUs  02m42.9s/10m0s  300.00 iters/s
+
+running (02m43.9s), 0613/0750 VUs, 48566 complete and 0 interrupted iterations
+constant_load   [  27% ] 0613/0750 VUs  02m43.9s/10m0s  300.00 iters/s
+
+running (02m44.9s), 0613/0750 VUs, 48867 complete and 0 interrupted iterations
+constant_load   [  27% ] 0613/0750 VUs  02m44.9s/10m0s  300.00 iters/s
+
+running (02m45.9s), 0617/0750 VUs, 49163 complete and 0 interrupted iterations
+constant_load   [  28% ] 0617/0750 VUs  02m45.9s/10m0s  300.00 iters/s
+
+running (02m46.9s), 0614/0750 VUs, 49466 complete and 0 interrupted iterations
+constant_load   [  28% ] 0614/0750 VUs  02m46.9s/10m0s  300.00 iters/s
+
+running (02m47.9s), 0613/0750 VUs, 49767 complete and 0 interrupted iterations
+constant_load   [  28% ] 0613/0750 VUs  02m47.9s/10m0s  300.00 iters/s
+
+running (02m48.9s), 0613/0750 VUs, 50067 complete and 0 interrupted iterations
+constant_load   [  28% ] 0613/0750 VUs  02m48.9s/10m0s  300.00 iters/s
+
+running (02m49.9s), 0613/0750 VUs, 50367 complete and 0 interrupted iterations
+constant_load   [  28% ] 0613/0750 VUs  02m49.9s/10m0s  300.00 iters/s
+
+running (02m50.9s), 0613/0750 VUs, 50667 complete and 0 interrupted iterations
+constant_load   [  28% ] 0613/0750 VUs  02m50.9s/10m0s  300.00 iters/s
+
+running (02m51.9s), 0614/0750 VUs, 50966 complete and 0 interrupted iterations
+constant_load   [  29% ] 0614/0750 VUs  02m51.9s/10m0s  300.00 iters/s
+
+running (02m52.9s), 0613/0750 VUs, 51267 complete and 0 interrupted iterations
+constant_load   [  29% ] 0613/0750 VUs  02m52.9s/10m0s  300.00 iters/s
+
+running (02m53.9s), 0614/0750 VUs, 51566 complete and 0 interrupted iterations
+constant_load   [  29% ] 0614/0750 VUs  02m53.9s/10m0s  300.00 iters/s
+
+running (02m54.9s), 0613/0750 VUs, 51867 complete and 0 interrupted iterations
+constant_load   [  29% ] 0613/0750 VUs  02m54.9s/10m0s  300.00 iters/s
+
+running (02m55.9s), 0614/0750 VUs, 52166 complete and 0 interrupted iterations
+constant_load   [  29% ] 0614/0750 VUs  02m55.9s/10m0s  300.00 iters/s
+
+running (02m56.9s), 0613/0750 VUs, 52467 complete and 0 interrupted iterations
+constant_load   [  29% ] 0613/0750 VUs  02m56.9s/10m0s  300.00 iters/s
+
+running (02m57.9s), 0612/0750 VUs, 52768 complete and 0 interrupted iterations
+constant_load   [  30% ] 0612/0750 VUs  02m57.9s/10m0s  300.00 iters/s
+
+running (02m58.9s), 0616/0750 VUs, 53064 complete and 0 interrupted iterations
+constant_load   [  30% ] 0616/0750 VUs  02m58.9s/10m0s  300.00 iters/s
+
+running (02m59.9s), 0613/0750 VUs, 53367 complete and 0 interrupted iterations
+constant_load   [  30% ] 0613/0750 VUs  02m59.9s/10m0s  300.00 iters/s
+
+running (03m00.9s), 0613/0750 VUs, 53667 complete and 0 interrupted iterations
+constant_load   [  30% ] 0613/0750 VUs  03m00.9s/10m0s  300.00 iters/s
+
+running (03m01.9s), 0612/0750 VUs, 53968 complete and 0 interrupted iterations
+constant_load   [  30% ] 0612/0750 VUs  03m01.9s/10m0s  300.00 iters/s
+
+running (03m02.9s), 0614/0750 VUs, 54266 complete and 0 interrupted iterations
+constant_load   [  30% ] 0614/0750 VUs  03m02.9s/10m0s  300.00 iters/s
+
+running (03m03.9s), 0612/0750 VUs, 54568 complete and 0 interrupted iterations
+constant_load   [  31% ] 0612/0750 VUs  03m03.9s/10m0s  300.00 iters/s
+
+running (03m04.9s), 0613/0750 VUs, 54867 complete and 0 interrupted iterations
+constant_load   [  31% ] 0613/0750 VUs  03m04.9s/10m0s  300.00 iters/s
+
+running (03m05.9s), 0613/0750 VUs, 55167 complete and 0 interrupted iterations
+constant_load   [  31% ] 0613/0750 VUs  03m05.9s/10m0s  300.00 iters/s
+
+running (03m06.9s), 0612/0750 VUs, 55468 complete and 0 interrupted iterations
+constant_load   [  31% ] 0612/0750 VUs  03m06.9s/10m0s  300.00 iters/s
+
+running (03m07.9s), 0613/0750 VUs, 55767 complete and 0 interrupted iterations
+constant_load   [  31% ] 0613/0750 VUs  03m07.9s/10m0s  300.00 iters/s
+
+running (03m08.9s), 0612/0750 VUs, 56068 complete and 0 interrupted iterations
+constant_load   [  31% ] 0612/0750 VUs  03m08.9s/10m0s  300.00 iters/s
+
+running (03m09.9s), 0612/0750 VUs, 56368 complete and 0 interrupted iterations
+constant_load   [  32% ] 0612/0750 VUs  03m09.9s/10m0s  300.00 iters/s
+
+running (03m10.9s), 0611/0750 VUs, 56669 complete and 0 interrupted iterations
+constant_load   [  32% ] 0611/0750 VUs  03m10.9s/10m0s  300.00 iters/s
+
+running (03m11.9s), 0610/0750 VUs, 56970 complete and 0 interrupted iterations
+constant_load   [  32% ] 0610/0750 VUs  03m11.9s/10m0s  300.00 iters/s
+
+running (03m12.9s), 0614/0750 VUs, 57267 complete and 0 interrupted iterations
+constant_load   [  32% ] 0614/0750 VUs  03m12.9s/10m0s  300.00 iters/s
+
+running (03m13.9s), 0618/0750 VUs, 57562 complete and 0 interrupted iterations
+constant_load   [  32% ] 0618/0750 VUs  03m13.9s/10m0s  300.00 iters/s
+
+running (03m14.9s), 0616/0750 VUs, 57864 complete and 0 interrupted iterations
+constant_load   [  32% ] 0616/0750 VUs  03m14.9s/10m0s  300.00 iters/s
+
+running (03m15.9s), 0617/0750 VUs, 58163 complete and 0 interrupted iterations
+constant_load   [  33% ] 0617/0750 VUs  03m15.9s/10m0s  300.00 iters/s
+
+running (03m16.9s), 0618/0750 VUs, 58462 complete and 0 interrupted iterations
+constant_load   [  33% ] 0618/0750 VUs  03m16.9s/10m0s  300.00 iters/s
+
+running (03m17.9s), 0626/0750 VUs, 58754 complete and 0 interrupted iterations
+constant_load   [  33% ] 0626/0750 VUs  03m17.9s/10m0s  300.00 iters/s
+
+running (03m18.9s), 0625/0750 VUs, 59055 complete and 0 interrupted iterations
+constant_load   [  33% ] 0625/0750 VUs  03m18.9s/10m0s  300.00 iters/s
+
+running (03m19.9s), 0622/0750 VUs, 59358 complete and 0 interrupted iterations
+constant_load   [  33% ] 0622/0750 VUs  03m19.9s/10m0s  300.00 iters/s
+
+running (03m20.9s), 0618/0750 VUs, 59662 complete and 0 interrupted iterations
+constant_load   [  33% ] 0618/0750 VUs  03m20.9s/10m0s  300.00 iters/s
+
+running (03m21.9s), 0617/0750 VUs, 59963 complete and 0 interrupted iterations
+constant_load   [  34% ] 0617/0750 VUs  03m21.9s/10m0s  300.00 iters/s
+
+running (03m22.9s), 0616/0750 VUs, 60264 complete and 0 interrupted iterations
+constant_load   [  34% ] 0616/0750 VUs  03m22.9s/10m0s  300.00 iters/s
+
+running (03m23.9s), 0617/0750 VUs, 60563 complete and 0 interrupted iterations
+constant_load   [  34% ] 0617/0750 VUs  03m23.9s/10m0s  300.00 iters/s
+
+running (03m24.9s), 0621/0750 VUs, 60859 complete and 0 interrupted iterations
+constant_load   [  34% ] 0621/0750 VUs  03m24.9s/10m0s  300.00 iters/s
+
+running (03m25.9s), 0619/0750 VUs, 61161 complete and 0 interrupted iterations
+constant_load   [  34% ] 0619/0750 VUs  03m25.9s/10m0s  300.00 iters/s
+
+running (03m26.9s), 0616/0750 VUs, 61464 complete and 0 interrupted iterations
+constant_load   [  34% ] 0616/0750 VUs  03m26.9s/10m0s  300.00 iters/s
+
+running (03m27.9s), 0622/0750 VUs, 61758 complete and 0 interrupted iterations
+constant_load   [  35% ] 0622/0750 VUs  03m27.9s/10m0s  300.00 iters/s
+
+running (03m28.9s), 0616/0750 VUs, 62064 complete and 0 interrupted iterations
+constant_load   [  35% ] 0616/0750 VUs  03m28.9s/10m0s  300.00 iters/s
+
+running (03m29.9s), 0622/0750 VUs, 62358 complete and 0 interrupted iterations
+constant_load   [  35% ] 0622/0750 VUs  03m29.9s/10m0s  300.00 iters/s
+
+running (03m30.9s), 0619/0750 VUs, 62661 complete and 0 interrupted iterations
+constant_load   [  35% ] 0619/0750 VUs  03m30.9s/10m0s  300.00 iters/s
+
+running (03m31.9s), 0624/0750 VUs, 62956 complete and 0 interrupted iterations
+constant_load   [  35% ] 0624/0750 VUs  03m31.9s/10m0s  300.00 iters/s
+
+running (03m32.9s), 0619/0750 VUs, 63261 complete and 0 interrupted iterations
+constant_load   [  35% ] 0619/0750 VUs  03m32.9s/10m0s  300.00 iters/s
+
+running (03m33.9s), 0626/0750 VUs, 63554 complete and 0 interrupted iterations
+constant_load   [  36% ] 0626/0750 VUs  03m33.9s/10m0s  300.00 iters/s
+
+running (03m34.9s), 0620/0750 VUs, 63860 complete and 0 interrupted iterations
+constant_load   [  36% ] 0620/0750 VUs  03m34.9s/10m0s  300.00 iters/s
+
+running (03m35.9s), 0624/0750 VUs, 64156 complete and 0 interrupted iterations
+constant_load   [  36% ] 0624/0750 VUs  03m35.9s/10m0s  300.00 iters/s
+
+running (03m36.9s), 0618/0750 VUs, 64462 complete and 0 interrupted iterations
+constant_load   [  36% ] 0618/0750 VUs  03m36.9s/10m0s  300.00 iters/s
+
+running (03m37.9s), 0618/0750 VUs, 64762 complete and 0 interrupted iterations
+constant_load   [  36% ] 0618/0750 VUs  03m37.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:31:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:31:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (03m38.9s), 0623/0750 VUs, 65057 complete and 0 interrupted iterations
+constant_load   [  36% ] 0623/0750 VUs  03m38.9s/10m0s  300.00 iters/s
+
+running (03m39.9s), 0615/0750 VUs, 65365 complete and 0 interrupted iterations
+constant_load   [  37% ] 0615/0750 VUs  03m39.9s/10m0s  300.00 iters/s
+
+running (03m40.9s), 0616/0750 VUs, 65664 complete and 0 interrupted iterations
+constant_load   [  37% ] 0616/0750 VUs  03m40.9s/10m0s  300.00 iters/s
+
+running (03m41.9s), 0615/0750 VUs, 65965 complete and 0 interrupted iterations
+constant_load   [  37% ] 0615/0750 VUs  03m41.9s/10m0s  300.00 iters/s
+
+running (03m42.9s), 0616/0750 VUs, 66264 complete and 0 interrupted iterations
+constant_load   [  37% ] 0616/0750 VUs  03m42.9s/10m0s  300.00 iters/s
+
+running (03m43.9s), 0615/0750 VUs, 66565 complete and 0 interrupted iterations
+constant_load   [  37% ] 0615/0750 VUs  03m43.9s/10m0s  300.00 iters/s
+
+running (03m44.9s), 0616/0750 VUs, 66864 complete and 0 interrupted iterations
+constant_load   [  37% ] 0616/0750 VUs  03m44.9s/10m0s  300.00 iters/s
+
+running (03m45.9s), 0615/0750 VUs, 67165 complete and 0 interrupted iterations
+constant_load   [  38% ] 0615/0750 VUs  03m45.9s/10m0s  300.00 iters/s
+
+running (03m46.9s), 0618/0750 VUs, 67462 complete and 0 interrupted iterations
+constant_load   [  38% ] 0618/0750 VUs  03m46.9s/10m0s  300.00 iters/s
+
+running (03m47.9s), 0616/0750 VUs, 67764 complete and 0 interrupted iterations
+constant_load   [  38% ] 0616/0750 VUs  03m47.9s/10m0s  300.00 iters/s
+
+running (03m48.9s), 0616/0750 VUs, 68064 complete and 0 interrupted iterations
+constant_load   [  38% ] 0616/0750 VUs  03m48.9s/10m0s  300.00 iters/s
+
+running (03m49.9s), 0614/0750 VUs, 68366 complete and 0 interrupted iterations
+constant_load   [  38% ] 0614/0750 VUs  03m49.9s/10m0s  300.00 iters/s
+
+running (03m50.9s), 0616/0750 VUs, 68664 complete and 0 interrupted iterations
+constant_load   [  38% ] 0616/0750 VUs  03m50.9s/10m0s  300.00 iters/s
+
+running (03m51.9s), 0616/0750 VUs, 68964 complete and 0 interrupted iterations
+constant_load   [  39% ] 0616/0750 VUs  03m51.9s/10m0s  300.00 iters/s
+
+running (03m52.9s), 0618/0750 VUs, 69262 complete and 0 interrupted iterations
+constant_load   [  39% ] 0618/0750 VUs  03m52.9s/10m0s  300.00 iters/s
+
+running (03m53.9s), 0615/0750 VUs, 69565 complete and 0 interrupted iterations
+constant_load   [  39% ] 0615/0750 VUs  03m53.9s/10m0s  300.00 iters/s
+
+running (03m54.9s), 0616/0750 VUs, 69864 complete and 0 interrupted iterations
+constant_load   [  39% ] 0616/0750 VUs  03m54.9s/10m0s  300.00 iters/s
+
+running (03m55.9s), 0616/0750 VUs, 70164 complete and 0 interrupted iterations
+constant_load   [  39% ] 0616/0750 VUs  03m55.9s/10m0s  300.00 iters/s
+
+running (03m56.9s), 0616/0750 VUs, 70464 complete and 0 interrupted iterations
+constant_load   [  39% ] 0616/0750 VUs  03m56.9s/10m0s  300.00 iters/s
+
+running (03m57.9s), 0615/0750 VUs, 70765 complete and 0 interrupted iterations
+constant_load   [  40% ] 0615/0750 VUs  03m57.9s/10m0s  300.00 iters/s
+
+running (03m58.9s), 0633/0750 VUs, 71047 complete and 0 interrupted iterations
+constant_load   [  40% ] 0633/0750 VUs  03m58.9s/10m0s  300.00 iters/s
+
+running (03m59.9s), 0615/0750 VUs, 71365 complete and 0 interrupted iterations
+constant_load   [  40% ] 0615/0750 VUs  03m59.9s/10m0s  300.00 iters/s
+
+running (04m00.9s), 0616/0750 VUs, 71664 complete and 0 interrupted iterations
+constant_load   [  40% ] 0616/0750 VUs  04m00.9s/10m0s  300.00 iters/s
+
+running (04m01.9s), 0622/0750 VUs, 71958 complete and 0 interrupted iterations
+constant_load   [  40% ] 0622/0750 VUs  04m01.9s/10m0s  300.00 iters/s
+
+running (04m02.9s), 0615/0750 VUs, 72265 complete and 0 interrupted iterations
+constant_load   [  40% ] 0615/0750 VUs  04m02.9s/10m0s  300.00 iters/s
+
+running (04m03.9s), 0625/0750 VUs, 72555 complete and 0 interrupted iterations
+constant_load   [  41% ] 0625/0750 VUs  04m03.9s/10m0s  300.00 iters/s
+
+running (04m04.9s), 0617/0750 VUs, 72863 complete and 0 interrupted iterations
+constant_load   [  41% ] 0617/0750 VUs  04m04.9s/10m0s  300.00 iters/s
+
+running (04m05.9s), 0616/0750 VUs, 73164 complete and 0 interrupted iterations
+constant_load   [  41% ] 0616/0750 VUs  04m05.9s/10m0s  300.00 iters/s
+
+running (04m06.9s), 0617/0750 VUs, 73463 complete and 0 interrupted iterations
+constant_load   [  41% ] 0617/0750 VUs  04m06.9s/10m0s  300.00 iters/s
+
+running (04m07.9s), 0614/0750 VUs, 73766 complete and 0 interrupted iterations
+constant_load   [  41% ] 0614/0750 VUs  04m07.9s/10m0s  300.00 iters/s
+
+running (04m08.9s), 0616/0750 VUs, 74064 complete and 0 interrupted iterations
+constant_load   [  41% ] 0616/0750 VUs  04m08.9s/10m0s  300.00 iters/s
+
+running (04m09.9s), 0616/0750 VUs, 74364 complete and 0 interrupted iterations
+constant_load   [  42% ] 0616/0750 VUs  04m09.9s/10m0s  300.00 iters/s
+
+running (04m10.9s), 0616/0750 VUs, 74664 complete and 0 interrupted iterations
+constant_load   [  42% ] 0616/0750 VUs  04m10.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:32:02+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:32:02+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:32:02+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:32:02+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:32:02+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (04m11.9s), 0610/0750 VUs, 74970 complete and 0 interrupted iterations
+constant_load   [  42% ] 0610/0750 VUs  04m11.9s/10m0s  300.00 iters/s
+
+running (04m12.9s), 0610/0750 VUs, 75270 complete and 0 interrupted iterations
+constant_load   [  42% ] 0610/0750 VUs  04m12.9s/10m0s  300.00 iters/s
+
+running (04m13.9s), 0610/0750 VUs, 75570 complete and 0 interrupted iterations
+constant_load   [  42% ] 0610/0750 VUs  04m13.9s/10m0s  300.00 iters/s
+
+running (04m14.9s), 0611/0750 VUs, 75869 complete and 0 interrupted iterations
+constant_load   [  42% ] 0611/0750 VUs  04m14.9s/10m0s  300.00 iters/s
+
+running (04m15.9s), 0610/0750 VUs, 76170 complete and 0 interrupted iterations
+constant_load   [  43% ] 0610/0750 VUs  04m15.9s/10m0s  300.00 iters/s
+
+running (04m16.9s), 0610/0750 VUs, 76470 complete and 0 interrupted iterations
+constant_load   [  43% ] 0610/0750 VUs  04m16.9s/10m0s  300.00 iters/s
+
+running (04m17.9s), 0611/0750 VUs, 76769 complete and 0 interrupted iterations
+constant_load   [  43% ] 0611/0750 VUs  04m17.9s/10m0s  300.00 iters/s
+
+running (04m18.9s), 0610/0750 VUs, 77070 complete and 0 interrupted iterations
+constant_load   [  43% ] 0610/0750 VUs  04m18.9s/10m0s  300.00 iters/s
+
+running (04m19.9s), 0610/0750 VUs, 77370 complete and 0 interrupted iterations
+constant_load   [  43% ] 0610/0750 VUs  04m19.9s/10m0s  300.00 iters/s
+
+running (04m20.9s), 0612/0750 VUs, 77668 complete and 0 interrupted iterations
+constant_load   [  43% ] 0612/0750 VUs  04m20.9s/10m0s  300.00 iters/s
+
+running (04m21.9s), 0611/0750 VUs, 77969 complete and 0 interrupted iterations
+constant_load   [  44% ] 0611/0750 VUs  04m21.9s/10m0s  300.00 iters/s
+
+running (04m22.9s), 0614/0750 VUs, 78266 complete and 0 interrupted iterations
+constant_load   [  44% ] 0614/0750 VUs  04m22.9s/10m0s  300.00 iters/s
+
+running (04m23.9s), 0614/0750 VUs, 78566 complete and 0 interrupted iterations
+constant_load   [  44% ] 0614/0750 VUs  04m23.9s/10m0s  300.00 iters/s
+
+running (04m24.9s), 0626/0750 VUs, 78854 complete and 0 interrupted iterations
+constant_load   [  44% ] 0626/0750 VUs  04m24.9s/10m0s  300.00 iters/s
+
+running (04m25.9s), 0611/0750 VUs, 79169 complete and 0 interrupted iterations
+constant_load   [  44% ] 0611/0750 VUs  04m25.9s/10m0s  300.00 iters/s
+
+running (04m26.9s), 0617/0750 VUs, 79463 complete and 0 interrupted iterations
+constant_load   [  44% ] 0617/0750 VUs  04m26.9s/10m0s  300.00 iters/s
+
+running (04m27.9s), 0613/0750 VUs, 79768 complete and 0 interrupted iterations
+constant_load   [  45% ] 0611/0750 VUs  04m27.9s/10m0s  300.00 iters/s
+
+running (04m28.9s), 0611/0750 VUs, 80069 complete and 0 interrupted iterations
+constant_load   [  45% ] 0611/0750 VUs  04m28.9s/10m0s  300.00 iters/s
+
+running (04m29.9s), 0613/0750 VUs, 80367 complete and 0 interrupted iterations
+constant_load   [  45% ] 0613/0750 VUs  04m29.9s/10m0s  300.00 iters/s
+
+running (04m30.9s), 0611/0750 VUs, 80669 complete and 0 interrupted iterations
+constant_load   [  45% ] 0611/0750 VUs  04m30.9s/10m0s  300.00 iters/s
+
+running (04m31.9s), 0612/0750 VUs, 80969 complete and 0 interrupted iterations
+constant_load   [  45% ] 0612/0750 VUs  04m31.9s/10m0s  300.00 iters/s
+
+running (04m32.9s), 0614/0750 VUs, 81266 complete and 0 interrupted iterations
+constant_load   [  45% ] 0614/0750 VUs  04m32.9s/10m0s  300.00 iters/s
+
+running (04m33.9s), 0614/0750 VUs, 81566 complete and 0 interrupted iterations
+constant_load   [  46% ] 0614/0750 VUs  04m33.9s/10m0s  300.00 iters/s
+
+running (04m34.9s), 0612/0750 VUs, 81868 complete and 0 interrupted iterations
+constant_load   [  46% ] 0612/0750 VUs  04m34.9s/10m0s  300.00 iters/s
+
+running (04m35.9s), 0612/0750 VUs, 82169 complete and 0 interrupted iterations
+constant_load   [  46% ] 0612/0750 VUs  04m35.9s/10m0s  300.00 iters/s
+
+running (04m36.9s), 0611/0750 VUs, 82469 complete and 0 interrupted iterations
+constant_load   [  46% ] 0611/0750 VUs  04m36.9s/10m0s  300.00 iters/s
+
+running (04m37.9s), 0612/0750 VUs, 82768 complete and 0 interrupted iterations
+constant_load   [  46% ] 0612/0750 VUs  04m37.9s/10m0s  300.00 iters/s
+
+running (04m38.9s), 0611/0750 VUs, 83069 complete and 0 interrupted iterations
+constant_load   [  46% ] 0611/0750 VUs  04m38.9s/10m0s  300.00 iters/s
+
+running (04m39.9s), 0612/0750 VUs, 83368 complete and 0 interrupted iterations
+constant_load   [  47% ] 0612/0750 VUs  04m39.9s/10m0s  300.00 iters/s
+
+running (04m40.9s), 0613/0750 VUs, 83667 complete and 0 interrupted iterations
+constant_load   [  47% ] 0613/0750 VUs  04m40.9s/10m0s  300.00 iters/s
+
+running (04m41.9s), 0614/0750 VUs, 83966 complete and 0 interrupted iterations
+constant_load   [  47% ] 0614/0750 VUs  04m41.9s/10m0s  300.00 iters/s
+
+running (04m42.9s), 0615/0750 VUs, 84265 complete and 0 interrupted iterations
+constant_load   [  47% ] 0615/0750 VUs  04m42.9s/10m0s  300.00 iters/s
+
+running (04m43.9s), 0613/0750 VUs, 84567 complete and 0 interrupted iterations
+constant_load   [  47% ] 0613/0750 VUs  04m43.9s/10m0s  300.00 iters/s
+
+running (04m44.9s), 0614/0750 VUs, 84866 complete and 0 interrupted iterations
+constant_load   [  47% ] 0614/0750 VUs  04m44.9s/10m0s  300.00 iters/s
+
+running (04m45.9s), 0617/0750 VUs, 85163 complete and 0 interrupted iterations
+constant_load   [  48% ] 0617/0750 VUs  04m45.9s/10m0s  300.00 iters/s
+
+running (04m46.9s), 0615/0750 VUs, 85466 complete and 0 interrupted iterations
+constant_load   [  48% ] 0615/0750 VUs  04m46.9s/10m0s  300.00 iters/s
+
+running (04m47.9s), 0618/0750 VUs, 85762 complete and 0 interrupted iterations
+constant_load   [  48% ] 0618/0750 VUs  04m47.9s/10m0s  300.00 iters/s
+
+running (04m48.9s), 0614/0750 VUs, 86066 complete and 0 interrupted iterations
+constant_load   [  48% ] 0614/0750 VUs  04m48.9s/10m0s  300.00 iters/s
+
+running (04m49.9s), 0620/0750 VUs, 86360 complete and 0 interrupted iterations
+constant_load   [  48% ] 0620/0750 VUs  04m49.9s/10m0s  300.00 iters/s
+
+running (04m50.9s), 0614/0750 VUs, 86666 complete and 0 interrupted iterations
+constant_load   [  48% ] 0614/0750 VUs  04m50.9s/10m0s  300.00 iters/s
+
+running (04m51.9s), 0616/0750 VUs, 86964 complete and 0 interrupted iterations
+constant_load   [  49% ] 0616/0750 VUs  04m51.9s/10m0s  300.00 iters/s
+
+running (04m52.9s), 0616/0750 VUs, 87264 complete and 0 interrupted iterations
+constant_load   [  49% ] 0616/0750 VUs  04m52.9s/10m0s  300.00 iters/s
+
+running (04m53.9s), 0615/0750 VUs, 87565 complete and 0 interrupted iterations
+constant_load   [  49% ] 0615/0750 VUs  04m53.9s/10m0s  300.00 iters/s
+
+running (04m54.9s), 0614/0750 VUs, 87866 complete and 0 interrupted iterations
+constant_load   [  49% ] 0614/0750 VUs  04m54.9s/10m0s  300.00 iters/s
+
+running (04m55.9s), 0616/0750 VUs, 88164 complete and 0 interrupted iterations
+constant_load   [  49% ] 0616/0750 VUs  04m55.9s/10m0s  300.00 iters/s
+
+running (04m56.9s), 0615/0750 VUs, 88465 complete and 0 interrupted iterations
+constant_load   [  49% ] 0615/0750 VUs  04m56.9s/10m0s  300.00 iters/s
+
+running (04m57.9s), 0614/0750 VUs, 88766 complete and 0 interrupted iterations
+constant_load   [  50% ] 0614/0750 VUs  04m57.9s/10m0s  300.00 iters/s
+
+running (04m58.9s), 0620/0750 VUs, 89060 complete and 0 interrupted iterations
+constant_load   [  50% ] 0620/0750 VUs  04m58.9s/10m0s  300.00 iters/s
+
+running (04m59.9s), 0614/0750 VUs, 89366 complete and 0 interrupted iterations
+constant_load   [  50% ] 0614/0750 VUs  04m59.9s/10m0s  300.00 iters/s
+
+running (05m00.9s), 0622/0750 VUs, 89658 complete and 0 interrupted iterations
+constant_load   [  50% ] 0622/0750 VUs  05m00.9s/10m0s  300.00 iters/s
+
+running (05m01.9s), 0615/0750 VUs, 89965 complete and 0 interrupted iterations
+constant_load   [  50% ] 0615/0750 VUs  05m01.9s/10m0s  300.00 iters/s
+
+running (05m02.9s), 0616/0750 VUs, 90264 complete and 0 interrupted iterations
+constant_load   [  50% ] 0616/0750 VUs  05m02.9s/10m0s  300.00 iters/s
+
+running (05m03.9s), 0617/0750 VUs, 90563 complete and 0 interrupted iterations
+constant_load   [  51% ] 0617/0750 VUs  05m03.9s/10m0s  300.00 iters/s
+
+running (05m04.9s), 0618/0750 VUs, 90862 complete and 0 interrupted iterations
+constant_load   [  51% ] 0618/0750 VUs  05m04.9s/10m0s  300.00 iters/s
+
+running (05m05.9s), 0616/0750 VUs, 91164 complete and 0 interrupted iterations
+constant_load   [  51% ] 0616/0750 VUs  05m05.9s/10m0s  300.00 iters/s
+
+running (05m06.9s), 0616/0750 VUs, 91464 complete and 0 interrupted iterations
+constant_load   [  51% ] 0616/0750 VUs  05m06.9s/10m0s  300.00 iters/s
+
+running (05m07.9s), 0614/0750 VUs, 91766 complete and 0 interrupted iterations
+constant_load   [  51% ] 0614/0750 VUs  05m07.9s/10m0s  300.00 iters/s
+
+running (05m08.9s), 0615/0750 VUs, 92065 complete and 0 interrupted iterations
+constant_load   [  51% ] 0615/0750 VUs  05m08.9s/10m0s  300.00 iters/s
+
+running (05m09.9s), 0616/0750 VUs, 92364 complete and 0 interrupted iterations
+constant_load   [  52% ] 0616/0750 VUs  05m09.9s/10m0s  300.00 iters/s
+
+running (05m10.9s), 0614/0750 VUs, 92666 complete and 0 interrupted iterations
+constant_load   [  52% ] 0614/0750 VUs  05m10.9s/10m0s  300.00 iters/s
+
+running (05m11.9s), 0614/0750 VUs, 92966 complete and 0 interrupted iterations
+constant_load   [  52% ] 0614/0750 VUs  05m11.9s/10m0s  300.00 iters/s
+
+running (05m12.9s), 0616/0750 VUs, 93264 complete and 0 interrupted iterations
+constant_load   [  52% ] 0616/0750 VUs  05m12.9s/10m0s  300.00 iters/s
+
+running (05m13.9s), 0614/0750 VUs, 93566 complete and 0 interrupted iterations
+constant_load   [  52% ] 0614/0750 VUs  05m13.9s/10m0s  300.00 iters/s
+
+running (05m14.9s), 0616/0750 VUs, 93864 complete and 0 interrupted iterations
+constant_load   [  52% ] 0616/0750 VUs  05m14.9s/10m0s  300.00 iters/s
+
+running (05m15.9s), 0615/0750 VUs, 94165 complete and 0 interrupted iterations
+constant_load   [  53% ] 0615/0750 VUs  05m15.9s/10m0s  300.00 iters/s
+
+running (05m16.9s), 0614/0750 VUs, 94466 complete and 0 interrupted iterations
+constant_load   [  53% ] 0614/0750 VUs  05m16.9s/10m0s  300.00 iters/s
+
+running (05m17.9s), 0615/0750 VUs, 94765 complete and 0 interrupted iterations
+constant_load   [  53% ] 0615/0750 VUs  05m17.9s/10m0s  300.00 iters/s
+
+running (05m18.9s), 0614/0750 VUs, 95066 complete and 0 interrupted iterations
+constant_load   [  53% ] 0614/0750 VUs  05m18.9s/10m0s  300.00 iters/s
+
+running (05m19.9s), 0614/0750 VUs, 95366 complete and 0 interrupted iterations
+constant_load   [  53% ] 0614/0750 VUs  05m19.9s/10m0s  300.00 iters/s
+
+running (05m20.9s), 0614/0750 VUs, 95666 complete and 0 interrupted iterations
+constant_load   [  53% ] 0614/0750 VUs  05m20.9s/10m0s  300.00 iters/s
+
+running (05m21.9s), 0615/0750 VUs, 95965 complete and 0 interrupted iterations
+constant_load   [  54% ] 0615/0750 VUs  05m21.9s/10m0s  300.00 iters/s
+
+running (05m22.9s), 0617/0750 VUs, 96263 complete and 0 interrupted iterations
+constant_load   [  54% ] 0617/0750 VUs  05m22.9s/10m0s  300.00 iters/s
+
+running (05m23.9s), 0615/0750 VUs, 96565 complete and 0 interrupted iterations
+constant_load   [  54% ] 0615/0750 VUs  05m23.9s/10m0s  300.00 iters/s
+
+running (05m24.9s), 0618/0750 VUs, 96862 complete and 0 interrupted iterations
+constant_load   [  54% ] 0618/0750 VUs  05m24.9s/10m0s  300.00 iters/s
+
+running (05m25.9s), 0614/0750 VUs, 97166 complete and 0 interrupted iterations
+constant_load   [  54% ] 0614/0750 VUs  05m25.9s/10m0s  300.00 iters/s
+
+running (05m26.9s), 0615/0750 VUs, 97465 complete and 0 interrupted iterations
+constant_load   [  54% ] 0614/0750 VUs  05m26.9s/10m0s  300.00 iters/s
+
+running (05m27.9s), 0615/0750 VUs, 97765 complete and 0 interrupted iterations
+constant_load   [  55% ] 0615/0750 VUs  05m27.9s/10m0s  300.00 iters/s
+
+running (05m28.9s), 0617/0750 VUs, 98063 complete and 0 interrupted iterations
+constant_load   [  55% ] 0617/0750 VUs  05m28.9s/10m0s  300.00 iters/s
+
+running (05m29.9s), 0614/0750 VUs, 98366 complete and 0 interrupted iterations
+constant_load   [  55% ] 0614/0750 VUs  05m29.9s/10m0s  300.00 iters/s
+
+running (05m30.9s), 0619/0750 VUs, 98661 complete and 0 interrupted iterations
+constant_load   [  55% ] 0619/0750 VUs  05m30.9s/10m0s  300.00 iters/s
+
+running (05m31.9s), 0616/0750 VUs, 98964 complete and 0 interrupted iterations
+constant_load   [  55% ] 0616/0750 VUs  05m31.9s/10m0s  300.00 iters/s
+
+running (05m32.9s), 0616/0750 VUs, 99264 complete and 0 interrupted iterations
+constant_load   [  55% ] 0616/0750 VUs  05m32.9s/10m0s  300.00 iters/s
+
+running (05m33.9s), 0623/0750 VUs, 99557 complete and 0 interrupted iterations
+constant_load   [  56% ] 0623/0750 VUs  05m33.9s/10m0s  300.00 iters/s
+
+running (05m34.9s), 0614/0750 VUs, 99866 complete and 0 interrupted iterations
+constant_load   [  56% ] 0614/0750 VUs  05m34.9s/10m0s  300.00 iters/s
+
+running (05m35.9s), 0622/0750 VUs, 100158 complete and 0 interrupted iterations
+constant_load   [  56% ] 0622/0750 VUs  05m35.9s/10m0s  300.00 iters/s
+
+running (05m36.9s), 0615/0750 VUs, 100465 complete and 0 interrupted iterations
+constant_load   [  56% ] 0615/0750 VUs  05m36.9s/10m0s  300.00 iters/s
+
+running (05m37.9s), 0617/0750 VUs, 100763 complete and 0 interrupted iterations
+constant_load   [  56% ] 0617/0750 VUs  05m37.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:33:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:33:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (05m38.9s), 0615/0750 VUs, 101065 complete and 0 interrupted iterations
+constant_load   [  56% ] 0615/0750 VUs  05m38.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:33:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:33:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (05m39.9s), 0612/0750 VUs, 101368 complete and 0 interrupted iterations
+constant_load   [  57% ] 0612/0750 VUs  05m39.9s/10m0s  300.00 iters/s
+
+running (05m40.9s), 0610/0750 VUs, 101670 complete and 0 interrupted iterations
+constant_load   [  57% ] 0610/0750 VUs  05m40.9s/10m0s  300.00 iters/s
+
+running (05m41.9s), 0612/0750 VUs, 101968 complete and 0 interrupted iterations
+constant_load   [  57% ] 0612/0750 VUs  05m41.9s/10m0s  300.00 iters/s
+
+running (05m42.9s), 0611/0750 VUs, 102269 complete and 0 interrupted iterations
+constant_load   [  57% ] 0611/0750 VUs  05m42.9s/10m0s  300.00 iters/s
+
+running (05m43.9s), 0611/0750 VUs, 102569 complete and 0 interrupted iterations
+constant_load   [  57% ] 0611/0750 VUs  05m43.9s/10m0s  300.00 iters/s
+
+running (05m44.9s), 0612/0750 VUs, 102868 complete and 0 interrupted iterations
+constant_load   [  57% ] 0612/0750 VUs  05m44.9s/10m0s  300.00 iters/s
+
+running (05m45.9s), 0610/0750 VUs, 103170 complete and 0 interrupted iterations
+constant_load   [  58% ] 0610/0750 VUs  05m45.9s/10m0s  300.00 iters/s
+
+running (05m46.9s), 0610/0750 VUs, 103470 complete and 0 interrupted iterations
+constant_load   [  58% ] 0610/0750 VUs  05m46.9s/10m0s  300.00 iters/s
+
+running (05m47.9s), 0611/0750 VUs, 103769 complete and 0 interrupted iterations
+constant_load   [  58% ] 0611/0750 VUs  05m47.9s/10m0s  300.00 iters/s
+
+running (05m48.9s), 0611/0750 VUs, 104069 complete and 0 interrupted iterations
+constant_load   [  58% ] 0611/0750 VUs  05m48.9s/10m0s  300.00 iters/s
+
+running (05m49.9s), 0611/0750 VUs, 104369 complete and 0 interrupted iterations
+constant_load   [  58% ] 0611/0750 VUs  05m49.9s/10m0s  300.00 iters/s
+
+running (05m50.9s), 0611/0750 VUs, 104669 complete and 0 interrupted iterations
+constant_load   [  58% ] 0611/0750 VUs  05m50.9s/10m0s  300.00 iters/s
+
+running (05m51.9s), 0612/0750 VUs, 104968 complete and 0 interrupted iterations
+constant_load   [  59% ] 0612/0750 VUs  05m51.9s/10m0s  300.00 iters/s
+
+running (05m52.9s), 0611/0750 VUs, 105269 complete and 0 interrupted iterations
+constant_load   [  59% ] 0611/0750 VUs  05m52.9s/10m0s  300.00 iters/s
+
+running (05m53.9s), 0613/0750 VUs, 105567 complete and 0 interrupted iterations
+constant_load   [  59% ] 0613/0750 VUs  05m53.9s/10m0s  300.00 iters/s
+
+running (05m54.9s), 0611/0750 VUs, 105869 complete and 0 interrupted iterations
+constant_load   [  59% ] 0611/0750 VUs  05m54.9s/10m0s  300.00 iters/s
+
+running (05m55.9s), 0612/0750 VUs, 106168 complete and 0 interrupted iterations
+constant_load   [  59% ] 0612/0750 VUs  05m55.9s/10m0s  300.00 iters/s
+
+running (05m56.9s), 0612/0750 VUs, 106468 complete and 0 interrupted iterations
+constant_load   [  59% ] 0612/0750 VUs  05m56.9s/10m0s  300.00 iters/s
+
+running (05m57.9s), 0610/0750 VUs, 106770 complete and 0 interrupted iterations
+constant_load   [  60% ] 0610/0750 VUs  05m57.9s/10m0s  300.00 iters/s
+
+running (05m58.9s), 0612/0750 VUs, 107068 complete and 0 interrupted iterations
+constant_load   [  60% ] 0612/0750 VUs  05m58.9s/10m0s  300.00 iters/s
+
+running (05m59.9s), 0612/0750 VUs, 107368 complete and 0 interrupted iterations
+constant_load   [  60% ] 0612/0750 VUs  05m59.9s/10m0s  300.00 iters/s
+
+running (06m00.9s), 0611/0750 VUs, 107669 complete and 0 interrupted iterations
+constant_load   [  60% ] 0611/0750 VUs  06m00.9s/10m0s  300.00 iters/s
+
+running (06m01.9s), 0613/0750 VUs, 107967 complete and 0 interrupted iterations
+constant_load   [  60% ] 0613/0750 VUs  06m01.9s/10m0s  300.00 iters/s
+
+running (06m02.9s), 0610/0750 VUs, 108270 complete and 0 interrupted iterations
+constant_load   [  60% ] 0610/0750 VUs  06m02.9s/10m0s  300.00 iters/s
+
+running (06m03.9s), 0610/0750 VUs, 108570 complete and 0 interrupted iterations
+constant_load   [  61% ] 0610/0750 VUs  06m03.9s/10m0s  300.00 iters/s
+
+running (06m04.9s), 0610/0750 VUs, 108871 complete and 0 interrupted iterations
+constant_load   [  61% ] 0610/0750 VUs  06m04.9s/10m0s  300.00 iters/s
+
+running (06m05.9s), 0610/0750 VUs, 109170 complete and 0 interrupted iterations
+constant_load   [  61% ] 0610/0750 VUs  06m05.9s/10m0s  300.00 iters/s
+
+running (06m06.9s), 0612/0750 VUs, 109468 complete and 0 interrupted iterations
+constant_load   [  61% ] 0612/0750 VUs  06m06.9s/10m0s  300.00 iters/s
+
+running (06m07.9s), 0610/0750 VUs, 109770 complete and 0 interrupted iterations
+constant_load   [  61% ] 0610/0750 VUs  06m07.9s/10m0s  300.00 iters/s
+
+running (06m08.9s), 0612/0750 VUs, 110068 complete and 0 interrupted iterations
+constant_load   [  61% ] 0612/0750 VUs  06m08.9s/10m0s  300.00 iters/s
+
+running (06m09.9s), 0610/0750 VUs, 110370 complete and 0 interrupted iterations
+constant_load   [  62% ] 0610/0750 VUs  06m09.9s/10m0s  300.00 iters/s
+
+running (06m10.9s), 0611/0750 VUs, 110669 complete and 0 interrupted iterations
+constant_load   [  62% ] 0611/0750 VUs  06m10.9s/10m0s  300.00 iters/s
+
+running (06m11.9s), 0611/0750 VUs, 110969 complete and 0 interrupted iterations
+constant_load   [  62% ] 0611/0750 VUs  06m11.9s/10m0s  300.00 iters/s
+
+running (06m12.9s), 0612/0750 VUs, 111268 complete and 0 interrupted iterations
+constant_load   [  62% ] 0612/0750 VUs  06m12.9s/10m0s  300.00 iters/s
+
+running (06m13.9s), 0611/0750 VUs, 111569 complete and 0 interrupted iterations
+constant_load   [  62% ] 0611/0750 VUs  06m13.9s/10m0s  300.00 iters/s
+
+running (06m14.9s), 0611/0750 VUs, 111869 complete and 0 interrupted iterations
+constant_load   [  62% ] 0611/0750 VUs  06m14.9s/10m0s  300.00 iters/s
+
+running (06m15.9s), 0611/0750 VUs, 112169 complete and 0 interrupted iterations
+constant_load   [  63% ] 0611/0750 VUs  06m15.9s/10m0s  300.00 iters/s
+
+running (06m16.9s), 0611/0750 VUs, 112470 complete and 0 interrupted iterations
+constant_load   [  63% ] 0611/0750 VUs  06m16.9s/10m0s  300.00 iters/s
+
+running (06m17.9s), 0618/0750 VUs, 112762 complete and 0 interrupted iterations
+constant_load   [  63% ] 0618/0750 VUs  06m17.9s/10m0s  300.00 iters/s
+
+running (06m18.9s), 0612/0750 VUs, 113068 complete and 0 interrupted iterations
+constant_load   [  63% ] 0612/0750 VUs  06m18.9s/10m0s  300.00 iters/s
+
+running (06m19.9s), 0611/0750 VUs, 113369 complete and 0 interrupted iterations
+constant_load   [  63% ] 0611/0750 VUs  06m19.9s/10m0s  300.00 iters/s
+
+running (06m20.9s), 0610/0750 VUs, 113670 complete and 0 interrupted iterations
+constant_load   [  63% ] 0610/0750 VUs  06m20.9s/10m0s  300.00 iters/s
+
+running (06m21.9s), 0611/0750 VUs, 113969 complete and 0 interrupted iterations
+constant_load   [  64% ] 0611/0750 VUs  06m21.9s/10m0s  300.00 iters/s
+
+running (06m22.9s), 0611/0750 VUs, 114269 complete and 0 interrupted iterations
+constant_load   [  64% ] 0611/0750 VUs  06m22.9s/10m0s  300.00 iters/s
+
+running (06m23.9s), 0611/0750 VUs, 114569 complete and 0 interrupted iterations
+constant_load   [  64% ] 0611/0750 VUs  06m23.9s/10m0s  300.00 iters/s
+
+running (06m24.9s), 0611/0750 VUs, 114870 complete and 0 interrupted iterations
+constant_load   [  64% ] 0611/0750 VUs  06m24.9s/10m0s  300.00 iters/s
+
+running (06m25.9s), 0616/0750 VUs, 115164 complete and 0 interrupted iterations
+constant_load   [  64% ] 0616/0750 VUs  06m25.9s/10m0s  300.00 iters/s
+
+running (06m26.9s), 0611/0750 VUs, 115469 complete and 0 interrupted iterations
+constant_load   [  64% ] 0611/0750 VUs  06m26.9s/10m0s  300.00 iters/s
+
+running (06m27.9s), 0611/0750 VUs, 115769 complete and 0 interrupted iterations
+constant_load   [  65% ] 0611/0750 VUs  06m27.9s/10m0s  300.00 iters/s
+
+running (06m28.9s), 0612/0750 VUs, 116068 complete and 0 interrupted iterations
+constant_load   [  65% ] 0612/0750 VUs  06m28.9s/10m0s  300.00 iters/s
+
+running (06m29.9s), 0610/0750 VUs, 116370 complete and 0 interrupted iterations
+constant_load   [  65% ] 0610/0750 VUs  06m29.9s/10m0s  300.00 iters/s
+
+running (06m30.9s), 0611/0750 VUs, 116669 complete and 0 interrupted iterations
+constant_load   [  65% ] 0611/0750 VUs  06m30.9s/10m0s  300.00 iters/s
+
+running (06m31.9s), 0611/0750 VUs, 116969 complete and 0 interrupted iterations
+constant_load   [  65% ] 0611/0750 VUs  06m31.9s/10m0s  300.00 iters/s
+
+running (06m32.9s), 0611/0750 VUs, 117269 complete and 0 interrupted iterations
+constant_load   [  65% ] 0611/0750 VUs  06m32.9s/10m0s  300.00 iters/s
+
+running (06m33.9s), 0612/0750 VUs, 117568 complete and 0 interrupted iterations
+constant_load   [  66% ] 0612/0750 VUs  06m33.9s/10m0s  300.00 iters/s
+
+running (06m34.9s), 0610/0750 VUs, 117870 complete and 0 interrupted iterations
+constant_load   [  66% ] 0610/0750 VUs  06m34.9s/10m0s  300.00 iters/s
+
+running (06m35.9s), 0612/0750 VUs, 118168 complete and 0 interrupted iterations
+constant_load   [  66% ] 0612/0750 VUs  06m35.9s/10m0s  300.00 iters/s
+
+running (06m36.9s), 0611/0750 VUs, 118469 complete and 0 interrupted iterations
+constant_load   [  66% ] 0611/0750 VUs  06m36.9s/10m0s  300.00 iters/s
+
+running (06m37.9s), 0645/0750 VUs, 118735 complete and 0 interrupted iterations
+constant_load   [  66% ] 0645/0750 VUs  06m37.9s/10m0s  300.00 iters/s
+
+running (06m38.9s), 0612/0750 VUs, 119068 complete and 0 interrupted iterations
+constant_load   [  66% ] 0612/0750 VUs  06m38.9s/10m0s  300.00 iters/s
+
+running (06m39.9s), 0611/0750 VUs, 119369 complete and 0 interrupted iterations
+constant_load   [  67% ] 0611/0750 VUs  06m39.9s/10m0s  300.00 iters/s
+
+running (06m40.9s), 0614/0750 VUs, 119666 complete and 0 interrupted iterations
+constant_load   [  67% ] 0614/0750 VUs  06m40.9s/10m0s  300.00 iters/s
+
+running (06m41.9s), 0613/0750 VUs, 119967 complete and 0 interrupted iterations
+constant_load   [  67% ] 0613/0750 VUs  06m41.9s/10m0s  300.00 iters/s
+
+running (06m42.9s), 0627/0750 VUs, 120253 complete and 0 interrupted iterations
+constant_load   [  67% ] 0627/0750 VUs  06m42.9s/10m0s  300.00 iters/s
+
+running (06m43.9s), 0612/0750 VUs, 120568 complete and 0 interrupted iterations
+constant_load   [  67% ] 0612/0750 VUs  06m43.9s/10m0s  300.00 iters/s
+
+running (06m44.9s), 0620/0750 VUs, 120860 complete and 0 interrupted iterations
+constant_load   [  67% ] 0620/0750 VUs  06m44.9s/10m0s  300.00 iters/s
+
+running (06m45.9s), 0613/0750 VUs, 121167 complete and 0 interrupted iterations
+constant_load   [  68% ] 0613/0750 VUs  06m45.9s/10m0s  300.00 iters/s
+
+running (06m46.9s), 0614/0750 VUs, 121466 complete and 0 interrupted iterations
+constant_load   [  68% ] 0614/0750 VUs  06m46.9s/10m0s  300.00 iters/s
+
+running (06m47.9s), 0620/0750 VUs, 121760 complete and 0 interrupted iterations
+constant_load   [  68% ] 0620/0750 VUs  06m47.9s/10m0s  300.00 iters/s
+
+running (06m48.9s), 0613/0750 VUs, 122067 complete and 0 interrupted iterations
+constant_load   [  68% ] 0613/0750 VUs  06m48.9s/10m0s  300.00 iters/s
+
+running (06m49.9s), 0617/0750 VUs, 122363 complete and 0 interrupted iterations
+constant_load   [  68% ] 0617/0750 VUs  06m49.9s/10m0s  300.00 iters/s
+
+running (06m50.9s), 0613/0750 VUs, 122667 complete and 0 interrupted iterations
+constant_load   [  68% ] 0613/0750 VUs  06m50.9s/10m0s  300.00 iters/s
+
+running (06m51.9s), 0618/0750 VUs, 122965 complete and 0 interrupted iterations
+constant_load   [  69% ] 0618/0750 VUs  06m51.9s/10m0s  300.00 iters/s
+
+running (06m52.9s), 0613/0750 VUs, 123267 complete and 0 interrupted iterations
+constant_load   [  69% ] 0613/0750 VUs  06m52.9s/10m0s  300.00 iters/s
+
+running (06m53.9s), 0445/0750 VUs, 123735 complete and 0 interrupted iterations
+constant_load   [  69% ] 0445/0750 VUs  06m53.9s/10m0s  300.00 iters/s
+
+running (06m54.9s), 0545/0750 VUs, 123935 complete and 0 interrupted iterations
+constant_load   [  69% ] 0545/0750 VUs  06m54.9s/10m0s  300.00 iters/s
+
+running (06m55.9s), 0643/0750 VUs, 124137 complete and 0 interrupted iterations
+constant_load   [  69% ] 0643/0750 VUs  06m55.9s/10m0s  300.00 iters/s
+
+running (06m56.9s), 0646/0750 VUs, 124434 complete and 0 interrupted iterations
+constant_load   [  69% ] 0646/0750 VUs  06m56.9s/10m0s  300.00 iters/s
+
+running (06m57.9s), 0644/0750 VUs, 124736 complete and 0 interrupted iterations
+constant_load   [  70% ] 0644/0750 VUs  06m57.9s/10m0s  300.00 iters/s
+
+running (06m58.9s), 0616/0750 VUs, 125064 complete and 0 interrupted iterations
+constant_load   [  70% ] 0616/0750 VUs  06m58.9s/10m0s  300.00 iters/s
+
+running (06m59.9s), 0616/0750 VUs, 125364 complete and 0 interrupted iterations
+constant_load   [  70% ] 0616/0750 VUs  06m59.9s/10m0s  300.00 iters/s
+
+running (07m00.9s), 0613/0750 VUs, 125667 complete and 0 interrupted iterations
+constant_load   [  70% ] 0613/0750 VUs  07m00.9s/10m0s  300.00 iters/s
+
+running (07m01.9s), 0612/0750 VUs, 125968 complete and 0 interrupted iterations
+constant_load   [  70% ] 0612/0750 VUs  07m01.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+time="2026-09-05T16:34:53+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": EOF"
+
+running (07m02.9s), 0430/0750 VUs, 126450 complete and 0 interrupted iterations
+constant_load   [  70% ] 0430/0750 VUs  07m02.9s/10m0s  300.00 iters/s
+
+running (07m03.9s), 0551/0750 VUs, 126629 complete and 0 interrupted iterations
+constant_load   [  71% ] 0551/0750 VUs  07m03.9s/10m0s  300.00 iters/s
+
+running (07m04.9s), 0637/0750 VUs, 126843 complete and 0 interrupted iterations
+constant_load   [  71% ] 0637/0750 VUs  07m04.9s/10m0s  300.00 iters/s
+
+running (07m05.9s), 0645/0750 VUs, 127135 complete and 0 interrupted iterations
+constant_load   [  71% ] 0645/0750 VUs  07m05.9s/10m0s  300.00 iters/s
+
+running (07m06.9s), 0643/0750 VUs, 127437 complete and 0 interrupted iterations
+constant_load   [  71% ] 0643/0750 VUs  07m06.9s/10m0s  300.00 iters/s
+
+running (07m07.9s), 0643/0750 VUs, 127737 complete and 0 interrupted iterations
+constant_load   [  71% ] 0643/0750 VUs  07m07.9s/10m0s  300.00 iters/s
+
+running (07m08.9s), 0643/0750 VUs, 128037 complete and 0 interrupted iterations
+constant_load   [  71% ] 0643/0750 VUs  07m08.9s/10m0s  300.00 iters/s
+
+running (07m09.9s), 0644/0750 VUs, 128336 complete and 0 interrupted iterations
+constant_load   [  72% ] 0644/0750 VUs  07m09.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:35:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:01+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+
+running (07m10.9s), 0634/0750 VUs, 128646 complete and 0 interrupted iterations
+constant_load   [  72% ] 0634/0750 VUs  07m10.9s/10m0s  300.00 iters/s
+
+running (07m11.9s), 0636/0750 VUs, 128944 complete and 0 interrupted iterations
+constant_load   [  72% ] 0636/0750 VUs  07m11.9s/10m0s  300.00 iters/s
+
+running (07m12.9s), 0644/0750 VUs, 129236 complete and 0 interrupted iterations
+constant_load   [  72% ] 0644/0750 VUs  07m12.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:35:04+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:04+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:04+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:04+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+
+running (07m13.9s), 0634/0750 VUs, 129546 complete and 0 interrupted iterations
+constant_load   [  72% ] 0634/0750 VUs  07m13.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:35:04+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:04+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+time="2026-09-05T16:35:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": dial: i/o timeout"
+
+running (07m14.9s), 0613/0750 VUs, 129867 complete and 0 interrupted iterations
+constant_load   [  72% ] 0613/0750 VUs  07m14.9s/10m0s  300.00 iters/s
+
+running (07m15.9s), 0613/0750 VUs, 130169 complete and 0 interrupted iterations
+constant_load   [  73% ] 0613/0750 VUs  07m15.9s/10m0s  300.00 iters/s
+
+running (07m16.9s), 0616/0750 VUs, 130464 complete and 0 interrupted iterations
+constant_load   [  73% ] 0615/0750 VUs  07m16.9s/10m0s  300.00 iters/s
+
+running (07m17.9s), 0618/0750 VUs, 130762 complete and 0 interrupted iterations
+constant_load   [  73% ] 0618/0750 VUs  07m17.9s/10m0s  300.00 iters/s
+
+running (07m18.9s), 0617/0750 VUs, 131063 complete and 0 interrupted iterations
+constant_load   [  73% ] 0617/0750 VUs  07m18.9s/10m0s  300.00 iters/s
+
+running (07m19.9s), 0616/0750 VUs, 131364 complete and 0 interrupted iterations
+constant_load   [  73% ] 0616/0750 VUs  07m19.9s/10m0s  300.00 iters/s
+
+running (07m20.9s), 0617/0750 VUs, 131663 complete and 0 interrupted iterations
+constant_load   [  73% ] 0617/0750 VUs  07m20.9s/10m0s  300.00 iters/s
+
+running (07m21.9s), 0617/0750 VUs, 131963 complete and 0 interrupted iterations
+constant_load   [  74% ] 0617/0750 VUs  07m21.9s/10m0s  300.00 iters/s
+
+running (07m22.9s), 0615/0750 VUs, 132265 complete and 0 interrupted iterations
+constant_load   [  74% ] 0615/0750 VUs  07m22.9s/10m0s  300.00 iters/s
+
+running (07m23.9s), 0616/0750 VUs, 132564 complete and 0 interrupted iterations
+constant_load   [  74% ] 0616/0750 VUs  07m23.9s/10m0s  300.00 iters/s
+
+running (07m24.9s), 0618/0750 VUs, 132862 complete and 0 interrupted iterations
+constant_load   [  74% ] 0618/0750 VUs  07m24.9s/10m0s  300.00 iters/s
+
+running (07m25.9s), 0616/0750 VUs, 133164 complete and 0 interrupted iterations
+constant_load   [  74% ] 0616/0750 VUs  07m25.9s/10m0s  300.00 iters/s
+
+running (07m26.9s), 0621/0750 VUs, 133459 complete and 0 interrupted iterations
+constant_load   [  74% ] 0621/0750 VUs  07m26.9s/10m0s  300.00 iters/s
+
+running (07m27.9s), 0615/0750 VUs, 133765 complete and 0 interrupted iterations
+constant_load   [  75% ] 0615/0750 VUs  07m27.9s/10m0s  300.00 iters/s
+
+running (07m28.9s), 0615/0750 VUs, 134065 complete and 0 interrupted iterations
+constant_load   [  75% ] 0615/0750 VUs  07m28.9s/10m0s  300.00 iters/s
+
+running (07m29.9s), 0616/0750 VUs, 134364 complete and 0 interrupted iterations
+constant_load   [  75% ] 0616/0750 VUs  07m29.9s/10m0s  300.00 iters/s
+
+running (07m30.9s), 0620/0750 VUs, 134662 complete and 0 interrupted iterations
+constant_load   [  75% ] 0620/0750 VUs  07m30.9s/10m0s  300.00 iters/s
+
+running (07m31.9s), 0615/0750 VUs, 134965 complete and 0 interrupted iterations
+constant_load   [  75% ] 0615/0750 VUs  07m31.9s/10m0s  300.00 iters/s
+
+running (07m32.9s), 0614/0750 VUs, 135266 complete and 0 interrupted iterations
+constant_load   [  75% ] 0614/0750 VUs  07m32.9s/10m0s  300.00 iters/s
+
+running (07m33.9s), 0615/0750 VUs, 135565 complete and 0 interrupted iterations
+constant_load   [  76% ] 0615/0750 VUs  07m33.9s/10m0s  300.00 iters/s
+
+running (07m34.9s), 0616/0750 VUs, 135864 complete and 0 interrupted iterations
+constant_load   [  76% ] 0616/0750 VUs  07m34.9s/10m0s  300.00 iters/s
+
+running (07m35.9s), 0616/0750 VUs, 136164 complete and 0 interrupted iterations
+constant_load   [  76% ] 0616/0750 VUs  07m35.9s/10m0s  300.00 iters/s
+
+running (07m36.9s), 0617/0750 VUs, 136463 complete and 0 interrupted iterations
+constant_load   [  76% ] 0617/0750 VUs  07m36.9s/10m0s  300.00 iters/s
+
+running (07m37.9s), 0615/0750 VUs, 136765 complete and 0 interrupted iterations
+constant_load   [  76% ] 0615/0750 VUs  07m37.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:35:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:35:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (07m38.9s), 0614/0750 VUs, 137066 complete and 0 interrupted iterations
+constant_load   [  76% ] 0614/0750 VUs  07m38.9s/10m0s  300.00 iters/s
+
+running (07m39.9s), 0613/0750 VUs, 137367 complete and 0 interrupted iterations
+constant_load   [  77% ] 0613/0750 VUs  07m39.9s/10m0s  300.00 iters/s
+
+running (07m40.9s), 0614/0750 VUs, 137666 complete and 0 interrupted iterations
+constant_load   [  77% ] 0614/0750 VUs  07m40.9s/10m0s  300.00 iters/s
+
+running (07m41.9s), 0614/0750 VUs, 137966 complete and 0 interrupted iterations
+constant_load   [  77% ] 0614/0750 VUs  07m41.9s/10m0s  300.00 iters/s
+
+running (07m42.9s), 0613/0750 VUs, 138267 complete and 0 interrupted iterations
+constant_load   [  77% ] 0613/0750 VUs  07m42.9s/10m0s  300.00 iters/s
+
+running (07m43.9s), 0614/0750 VUs, 138566 complete and 0 interrupted iterations
+constant_load   [  77% ] 0614/0750 VUs  07m43.9s/10m0s  300.00 iters/s
+
+running (07m44.9s), 0616/0750 VUs, 138864 complete and 0 interrupted iterations
+constant_load   [  77% ] 0616/0750 VUs  07m44.9s/10m0s  300.00 iters/s
+
+running (07m45.9s), 0613/0750 VUs, 139167 complete and 0 interrupted iterations
+constant_load   [  78% ] 0613/0750 VUs  07m45.9s/10m0s  300.00 iters/s
+
+running (07m46.9s), 0615/0750 VUs, 139465 complete and 0 interrupted iterations
+constant_load   [  78% ] 0615/0750 VUs  07m46.9s/10m0s  300.00 iters/s
+
+running (07m47.9s), 0613/0750 VUs, 139767 complete and 0 interrupted iterations
+constant_load   [  78% ] 0613/0750 VUs  07m47.9s/10m0s  300.00 iters/s
+
+running (07m48.9s), 0614/0750 VUs, 140066 complete and 0 interrupted iterations
+constant_load   [  78% ] 0614/0750 VUs  07m48.9s/10m0s  300.00 iters/s
+
+running (07m49.9s), 0613/0750 VUs, 140367 complete and 0 interrupted iterations
+constant_load   [  78% ] 0613/0750 VUs  07m49.9s/10m0s  300.00 iters/s
+
+running (07m50.9s), 0624/0750 VUs, 140656 complete and 0 interrupted iterations
+constant_load   [  78% ] 0624/0750 VUs  07m50.9s/10m0s  300.00 iters/s
+
+running (07m51.9s), 0617/0750 VUs, 140964 complete and 0 interrupted iterations
+constant_load   [  79% ] 0617/0750 VUs  07m51.9s/10m0s  300.00 iters/s
+
+running (07m52.9s), 0626/0750 VUs, 141254 complete and 0 interrupted iterations
+constant_load   [  79% ] 0626/0750 VUs  07m52.9s/10m0s  300.00 iters/s
+
+running (07m53.9s), 0614/0750 VUs, 141566 complete and 0 interrupted iterations
+constant_load   [  79% ] 0614/0750 VUs  07m53.9s/10m0s  300.00 iters/s
+
+running (07m54.9s), 0620/0750 VUs, 141860 complete and 0 interrupted iterations
+constant_load   [  79% ] 0620/0750 VUs  07m54.9s/10m0s  300.00 iters/s
+
+running (07m55.9s), 0614/0750 VUs, 142166 complete and 0 interrupted iterations
+constant_load   [  79% ] 0614/0750 VUs  07m55.9s/10m0s  300.00 iters/s
+
+running (07m56.9s), 0620/0750 VUs, 142460 complete and 0 interrupted iterations
+constant_load   [  79% ] 0620/0750 VUs  07m56.9s/10m0s  300.00 iters/s
+
+running (07m57.9s), 0614/0750 VUs, 142767 complete and 0 interrupted iterations
+constant_load   [  80% ] 0613/0750 VUs  07m57.9s/10m0s  300.00 iters/s
+
+running (07m58.9s), 0617/0750 VUs, 143063 complete and 0 interrupted iterations
+constant_load   [  80% ] 0617/0750 VUs  07m58.9s/10m0s  300.00 iters/s
+
+running (07m59.9s), 0616/0750 VUs, 143364 complete and 0 interrupted iterations
+constant_load   [  80% ] 0616/0750 VUs  07m59.9s/10m0s  300.00 iters/s
+
+running (08m00.9s), 0613/0750 VUs, 143667 complete and 0 interrupted iterations
+constant_load   [  80% ] 0613/0750 VUs  08m00.9s/10m0s  300.00 iters/s
+
+running (08m01.9s), 0614/0750 VUs, 143966 complete and 0 interrupted iterations
+constant_load   [  80% ] 0614/0750 VUs  08m01.9s/10m0s  300.00 iters/s
+
+running (08m02.9s), 0614/0750 VUs, 144266 complete and 0 interrupted iterations
+constant_load   [  80% ] 0614/0750 VUs  08m02.9s/10m0s  300.00 iters/s
+
+running (08m03.9s), 0615/0750 VUs, 144565 complete and 0 interrupted iterations
+constant_load   [  81% ] 0615/0750 VUs  08m03.9s/10m0s  300.00 iters/s
+
+running (08m04.9s), 0614/0750 VUs, 144866 complete and 0 interrupted iterations
+constant_load   [  81% ] 0614/0750 VUs  08m04.9s/10m0s  300.00 iters/s
+
+running (08m05.9s), 0613/0750 VUs, 145167 complete and 0 interrupted iterations
+constant_load   [  81% ] 0613/0750 VUs  08m05.9s/10m0s  300.00 iters/s
+
+running (08m06.9s), 0613/0750 VUs, 145467 complete and 0 interrupted iterations
+constant_load   [  81% ] 0613/0750 VUs  08m06.9s/10m0s  300.00 iters/s
+
+running (08m07.9s), 0614/0750 VUs, 145766 complete and 0 interrupted iterations
+constant_load   [  81% ] 0614/0750 VUs  08m07.9s/10m0s  300.00 iters/s
+
+running (08m08.9s), 0614/0750 VUs, 146066 complete and 0 interrupted iterations
+constant_load   [  81% ] 0614/0750 VUs  08m08.9s/10m0s  300.00 iters/s
+
+running (08m09.9s), 0615/0750 VUs, 146365 complete and 0 interrupted iterations
+constant_load   [  82% ] 0614/0750 VUs  08m09.9s/10m0s  300.00 iters/s
+
+running (08m10.9s), 0614/0750 VUs, 146666 complete and 0 interrupted iterations
+constant_load   [  82% ] 0614/0750 VUs  08m10.9s/10m0s  300.00 iters/s
+
+running (08m11.9s), 0614/0750 VUs, 146966 complete and 0 interrupted iterations
+constant_load   [  82% ] 0614/0750 VUs  08m11.9s/10m0s  300.00 iters/s
+
+running (08m12.9s), 0618/0750 VUs, 147263 complete and 0 interrupted iterations
+constant_load   [  82% ] 0618/0750 VUs  08m12.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:36:04+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (08m13.9s), 0615/0750 VUs, 147565 complete and 0 interrupted iterations
+constant_load   [  82% ] 0615/0750 VUs  08m13.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:36:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:36:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (08m14.9s), 0610/0750 VUs, 147870 complete and 0 interrupted iterations
+constant_load   [  82% ] 0610/0750 VUs  08m14.9s/10m0s  300.00 iters/s
+
+running (08m15.9s), 0611/0750 VUs, 148169 complete and 0 interrupted iterations
+constant_load   [  83% ] 0611/0750 VUs  08m15.9s/10m0s  300.00 iters/s
+
+running (08m16.9s), 0613/0750 VUs, 148467 complete and 0 interrupted iterations
+constant_load   [  83% ] 0613/0750 VUs  08m16.9s/10m0s  300.00 iters/s
+
+running (08m17.9s), 0612/0750 VUs, 148768 complete and 0 interrupted iterations
+constant_load   [  83% ] 0612/0750 VUs  08m17.9s/10m0s  300.00 iters/s
+
+running (08m18.9s), 0612/0750 VUs, 149068 complete and 0 interrupted iterations
+constant_load   [  83% ] 0612/0750 VUs  08m18.9s/10m0s  300.00 iters/s
+
+running (08m19.9s), 0612/0750 VUs, 149368 complete and 0 interrupted iterations
+constant_load   [  83% ] 0612/0750 VUs  08m19.9s/10m0s  300.00 iters/s
+
+running (08m20.9s), 0612/0750 VUs, 149668 complete and 0 interrupted iterations
+constant_load   [  83% ] 0612/0750 VUs  08m20.9s/10m0s  300.00 iters/s
+
+running (08m21.9s), 0613/0750 VUs, 149967 complete and 0 interrupted iterations
+constant_load   [  84% ] 0613/0750 VUs  08m21.9s/10m0s  300.00 iters/s
+
+running (08m22.9s), 0611/0750 VUs, 150269 complete and 0 interrupted iterations
+constant_load   [  84% ] 0611/0750 VUs  08m22.9s/10m0s  300.00 iters/s
+
+running (08m23.9s), 0613/0750 VUs, 150567 complete and 0 interrupted iterations
+constant_load   [  84% ] 0613/0750 VUs  08m23.9s/10m0s  300.00 iters/s
+
+running (08m24.9s), 0613/0750 VUs, 150867 complete and 0 interrupted iterations
+constant_load   [  84% ] 0613/0750 VUs  08m24.9s/10m0s  300.00 iters/s
+
+running (08m25.9s), 0612/0750 VUs, 151168 complete and 0 interrupted iterations
+constant_load   [  84% ] 0612/0750 VUs  08m25.9s/10m0s  300.00 iters/s
+
+running (08m26.9s), 0612/0750 VUs, 151468 complete and 0 interrupted iterations
+constant_load   [  84% ] 0612/0750 VUs  08m26.9s/10m0s  300.00 iters/s
+
+running (08m27.9s), 0611/0750 VUs, 151769 complete and 0 interrupted iterations
+constant_load   [  85% ] 0611/0750 VUs  08m27.9s/10m0s  300.00 iters/s
+
+running (08m28.9s), 0612/0750 VUs, 152068 complete and 0 interrupted iterations
+constant_load   [  85% ] 0612/0750 VUs  08m28.9s/10m0s  300.00 iters/s
+
+running (08m29.9s), 0613/0750 VUs, 152367 complete and 0 interrupted iterations
+constant_load   [  85% ] 0613/0750 VUs  08m29.9s/10m0s  300.00 iters/s
+
+running (08m30.9s), 0612/0750 VUs, 152668 complete and 0 interrupted iterations
+constant_load   [  85% ] 0612/0750 VUs  08m30.9s/10m0s  300.00 iters/s
+
+running (08m31.9s), 0612/0750 VUs, 152968 complete and 0 interrupted iterations
+constant_load   [  85% ] 0612/0750 VUs  08m31.9s/10m0s  300.00 iters/s
+
+running (08m32.9s), 0612/0750 VUs, 153268 complete and 0 interrupted iterations
+constant_load   [  85% ] 0612/0750 VUs  08m32.9s/10m0s  300.00 iters/s
+
+running (08m33.9s), 0613/0750 VUs, 153567 complete and 0 interrupted iterations
+constant_load   [  86% ] 0612/0750 VUs  08m33.9s/10m0s  300.00 iters/s
+
+running (08m34.9s), 0612/0750 VUs, 153868 complete and 0 interrupted iterations
+constant_load   [  86% ] 0612/0750 VUs  08m34.9s/10m0s  300.00 iters/s
+
+running (08m35.9s), 0612/0750 VUs, 154168 complete and 0 interrupted iterations
+constant_load   [  86% ] 0612/0750 VUs  08m35.9s/10m0s  300.00 iters/s
+
+running (08m36.9s), 0612/0750 VUs, 154468 complete and 0 interrupted iterations
+constant_load   [  86% ] 0612/0750 VUs  08m36.9s/10m0s  300.00 iters/s
+
+running (08m37.9s), 0613/0750 VUs, 154767 complete and 0 interrupted iterations
+constant_load   [  86% ] 0613/0750 VUs  08m37.9s/10m0s  300.00 iters/s
+
+running (08m38.9s), 0611/0750 VUs, 155069 complete and 0 interrupted iterations
+constant_load   [  86% ] 0611/0750 VUs  08m38.9s/10m0s  300.00 iters/s
+
+running (08m39.9s), 0613/0750 VUs, 155367 complete and 0 interrupted iterations
+constant_load   [  87% ] 0613/0750 VUs  08m39.9s/10m0s  300.00 iters/s
+
+running (08m40.9s), 0624/0750 VUs, 155656 complete and 0 interrupted iterations
+constant_load   [  87% ] 0624/0750 VUs  08m40.9s/10m0s  300.00 iters/s
+
+running (08m41.9s), 0632/0750 VUs, 155948 complete and 0 interrupted iterations
+constant_load   [  87% ] 0632/0750 VUs  08m41.9s/10m0s  300.00 iters/s
+
+running (08m42.9s), 0634/0750 VUs, 156246 complete and 0 interrupted iterations
+constant_load   [  87% ] 0634/0750 VUs  08m42.9s/10m0s  300.00 iters/s
+
+running (08m43.9s), 0631/0750 VUs, 156549 complete and 0 interrupted iterations
+constant_load   [  87% ] 0631/0750 VUs  08m43.9s/10m0s  300.00 iters/s
+
+running (08m44.9s), 0632/0750 VUs, 156848 complete and 0 interrupted iterations
+constant_load   [  87% ] 0632/0750 VUs  08m44.9s/10m0s  300.00 iters/s
+
+running (08m45.9s), 0634/0750 VUs, 157146 complete and 0 interrupted iterations
+constant_load   [  88% ] 0634/0750 VUs  08m45.9s/10m0s  300.00 iters/s
+
+running (08m46.9s), 0632/0750 VUs, 157448 complete and 0 interrupted iterations
+constant_load   [  88% ] 0632/0750 VUs  08m46.9s/10m0s  300.00 iters/s
+
+running (08m47.9s), 0631/0750 VUs, 157749 complete and 0 interrupted iterations
+constant_load   [  88% ] 0631/0750 VUs  08m47.9s/10m0s  300.00 iters/s
+
+running (08m48.9s), 0631/0750 VUs, 158049 complete and 0 interrupted iterations
+constant_load   [  88% ] 0631/0750 VUs  08m48.9s/10m0s  300.00 iters/s
+
+running (08m49.9s), 0631/0750 VUs, 158349 complete and 0 interrupted iterations
+constant_load   [  88% ] 0631/0750 VUs  08m49.9s/10m0s  300.00 iters/s
+
+running (08m50.9s), 0638/0750 VUs, 158642 complete and 0 interrupted iterations
+constant_load   [  88% ] 0637/0750 VUs  08m50.9s/10m0s  300.00 iters/s
+
+running (08m51.9s), 0632/0750 VUs, 158948 complete and 0 interrupted iterations
+constant_load   [  89% ] 0632/0750 VUs  08m51.9s/10m0s  300.00 iters/s
+
+running (08m52.9s), 0645/0750 VUs, 159235 complete and 0 interrupted iterations
+constant_load   [  89% ] 0645/0750 VUs  08m52.9s/10m0s  300.00 iters/s
+
+running (08m53.9s), 0631/0750 VUs, 159549 complete and 0 interrupted iterations
+constant_load   [  89% ] 0631/0750 VUs  08m53.9s/10m0s  300.00 iters/s
+
+running (08m54.9s), 0636/0750 VUs, 159844 complete and 0 interrupted iterations
+constant_load   [  89% ] 0636/0750 VUs  08m54.9s/10m0s  300.00 iters/s
+
+running (08m55.9s), 0632/0750 VUs, 160148 complete and 0 interrupted iterations
+constant_load   [  89% ] 0632/0750 VUs  08m55.9s/10m0s  300.00 iters/s
+
+running (08m56.9s), 0631/0750 VUs, 160449 complete and 0 interrupted iterations
+constant_load   [  89% ] 0631/0750 VUs  08m56.9s/10m0s  300.00 iters/s
+
+running (08m57.9s), 0631/0750 VUs, 160749 complete and 0 interrupted iterations
+constant_load   [  90% ] 0631/0750 VUs  08m57.9s/10m0s  300.00 iters/s
+
+running (08m58.9s), 0634/0750 VUs, 161046 complete and 0 interrupted iterations
+constant_load   [  90% ] 0634/0750 VUs  08m58.9s/10m0s  300.00 iters/s
+
+running (08m59.9s), 0631/0750 VUs, 161349 complete and 0 interrupted iterations
+constant_load   [  90% ] 0631/0750 VUs  08m59.9s/10m0s  300.00 iters/s
+
+running (09m00.9s), 0633/0750 VUs, 161647 complete and 0 interrupted iterations
+constant_load   [  90% ] 0633/0750 VUs  09m00.9s/10m0s  300.00 iters/s
+
+running (09m01.9s), 0631/0750 VUs, 161949 complete and 0 interrupted iterations
+constant_load   [  90% ] 0631/0750 VUs  09m01.9s/10m0s  300.00 iters/s
+
+running (09m02.9s), 0631/0750 VUs, 162249 complete and 0 interrupted iterations
+constant_load   [  90% ] 0631/0750 VUs  09m02.9s/10m0s  300.00 iters/s
+
+running (09m03.9s), 0631/0750 VUs, 162549 complete and 0 interrupted iterations
+constant_load   [  91% ] 0631/0750 VUs  09m03.9s/10m0s  300.00 iters/s
+
+running (09m04.9s), 0631/0750 VUs, 162849 complete and 0 interrupted iterations
+constant_load   [  91% ] 0631/0750 VUs  09m04.9s/10m0s  300.00 iters/s
+
+running (09m05.9s), 0632/0750 VUs, 163148 complete and 0 interrupted iterations
+constant_load   [  91% ] 0632/0750 VUs  09m05.9s/10m0s  300.00 iters/s
+
+running (09m06.9s), 0632/0750 VUs, 163448 complete and 0 interrupted iterations
+constant_load   [  91% ] 0632/0750 VUs  09m06.9s/10m0s  300.00 iters/s
+
+running (09m07.9s), 0631/0750 VUs, 163749 complete and 0 interrupted iterations
+constant_load   [  91% ] 0631/0750 VUs  09m07.9s/10m0s  300.00 iters/s
+
+running (09m08.9s), 0630/0750 VUs, 164050 complete and 0 interrupted iterations
+constant_load   [  91% ] 0630/0750 VUs  09m08.9s/10m0s  300.00 iters/s
+
+running (09m09.9s), 0631/0750 VUs, 164349 complete and 0 interrupted iterations
+constant_load   [  92% ] 0631/0750 VUs  09m09.9s/10m0s  300.00 iters/s
+
+running (09m10.9s), 0632/0750 VUs, 164648 complete and 0 interrupted iterations
+constant_load   [  92% ] 0632/0750 VUs  09m10.9s/10m0s  300.00 iters/s
+
+running (09m11.9s), 0631/0750 VUs, 164949 complete and 0 interrupted iterations
+constant_load   [  92% ] 0631/0750 VUs  09m11.9s/10m0s  300.00 iters/s
+
+running (09m12.9s), 0632/0750 VUs, 165248 complete and 0 interrupted iterations
+constant_load   [  92% ] 0632/0750 VUs  09m12.9s/10m0s  300.00 iters/s
+
+running (09m13.9s), 0635/0750 VUs, 165545 complete and 0 interrupted iterations
+constant_load   [  92% ] 0635/0750 VUs  09m13.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:37:05+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (09m14.9s), 0631/0750 VUs, 165849 complete and 0 interrupted iterations
+constant_load   [  92% ] 0631/0750 VUs  09m14.9s/10m0s  300.00 iters/s
+
+running (09m15.9s), 0630/0750 VUs, 166150 complete and 0 interrupted iterations
+constant_load   [  93% ] 0630/0750 VUs  09m15.9s/10m0s  300.00 iters/s
+
+running (09m16.9s), 0632/0750 VUs, 166448 complete and 0 interrupted iterations
+constant_load   [  93% ] 0632/0750 VUs  09m16.9s/10m0s  300.00 iters/s
+
+running (09m17.9s), 0630/0750 VUs, 166750 complete and 0 interrupted iterations
+constant_load   [  93% ] 0630/0750 VUs  09m17.9s/10m0s  300.00 iters/s
+
+running (09m18.9s), 0631/0750 VUs, 167050 complete and 0 interrupted iterations
+constant_load   [  93% ] 0631/0750 VUs  09m18.9s/10m0s  300.00 iters/s
+
+running (09m19.9s), 0632/0750 VUs, 167348 complete and 0 interrupted iterations
+constant_load   [  93% ] 0631/0750 VUs  09m19.9s/10m0s  300.00 iters/s
+
+running (09m20.9s), 0631/0750 VUs, 167650 complete and 0 interrupted iterations
+constant_load   [  93% ] 0631/0750 VUs  09m20.9s/10m0s  300.00 iters/s
+
+running (09m21.9s), 0631/0750 VUs, 167949 complete and 0 interrupted iterations
+constant_load   [  94% ] 0631/0750 VUs  09m21.9s/10m0s  300.00 iters/s
+
+running (09m22.9s), 0631/0750 VUs, 168249 complete and 0 interrupted iterations
+constant_load   [  94% ] 0631/0750 VUs  09m22.9s/10m0s  300.00 iters/s
+
+running (09m23.9s), 0630/0750 VUs, 168550 complete and 0 interrupted iterations
+constant_load   [  94% ] 0630/0750 VUs  09m23.9s/10m0s  300.00 iters/s
+
+running (09m24.9s), 0631/0750 VUs, 168849 complete and 0 interrupted iterations
+constant_load   [  94% ] 0631/0750 VUs  09m24.9s/10m0s  300.00 iters/s
+
+running (09m25.9s), 0632/0750 VUs, 169148 complete and 0 interrupted iterations
+constant_load   [  94% ] 0632/0750 VUs  09m25.9s/10m0s  300.00 iters/s
+
+running (09m26.9s), 0637/0750 VUs, 169443 complete and 0 interrupted iterations
+constant_load   [  94% ] 0637/0750 VUs  09m26.9s/10m0s  300.00 iters/s
+
+running (09m27.9s), 0631/0750 VUs, 169749 complete and 0 interrupted iterations
+constant_load   [  95% ] 0631/0750 VUs  09m27.9s/10m0s  300.00 iters/s
+
+running (09m28.9s), 0634/0750 VUs, 170046 complete and 0 interrupted iterations
+constant_load   [  95% ] 0634/0750 VUs  09m28.9s/10m0s  300.00 iters/s
+
+running (09m29.9s), 0630/0750 VUs, 170350 complete and 0 interrupted iterations
+constant_load   [  95% ] 0630/0750 VUs  09m29.9s/10m0s  300.00 iters/s
+
+running (09m30.9s), 0633/0750 VUs, 170647 complete and 0 interrupted iterations
+constant_load   [  95% ] 0633/0750 VUs  09m30.9s/10m0s  300.00 iters/s
+
+running (09m31.9s), 0631/0750 VUs, 170949 complete and 0 interrupted iterations
+constant_load   [  95% ] 0631/0750 VUs  09m31.9s/10m0s  300.00 iters/s
+
+running (09m32.9s), 0630/0750 VUs, 171250 complete and 0 interrupted iterations
+constant_load   [  95% ] 0630/0750 VUs  09m32.9s/10m0s  300.00 iters/s
+
+running (09m33.9s), 0630/0750 VUs, 171550 complete and 0 interrupted iterations
+constant_load   [  96% ] 0630/0750 VUs  09m33.9s/10m0s  300.00 iters/s
+
+running (09m34.9s), 0633/0750 VUs, 171847 complete and 0 interrupted iterations
+constant_load   [  96% ] 0633/0750 VUs  09m34.9s/10m0s  300.00 iters/s
+
+running (09m35.9s), 0632/0750 VUs, 172148 complete and 0 interrupted iterations
+constant_load   [  96% ] 0632/0750 VUs  09m35.9s/10m0s  300.00 iters/s
+
+running (09m36.9s), 0630/0750 VUs, 172450 complete and 0 interrupted iterations
+constant_load   [  96% ] 0630/0750 VUs  09m36.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:37:28+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (09m37.9s), 0630/0750 VUs, 172750 complete and 0 interrupted iterations
+constant_load   [  96% ] 0630/0750 VUs  09m37.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:37:28+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:29+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (09m38.9s), 0618/0750 VUs, 173062 complete and 0 interrupted iterations
+constant_load   [  96% ] 0618/0750 VUs  09m38.9s/10m0s  300.00 iters/s
+time="2026-09-05T16:37:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+time="2026-09-05T16:37:30+02:00" level=warning msg="Request Failed" error="Post \"http://k8s-ragplatf-ciliumga-56da93c17a-2adc9d09e1c34b13.elb.eu-central-1.amazonaws.com/api/v1/query\": request timeout"
+
+running (09m39.9s), 0612/0750 VUs, 173368 complete and 0 interrupted iterations
+constant_load   [  97% ] 0612/0750 VUs  09m39.9s/10m0s  300.00 iters/s
+
+running (09m40.9s), 0612/0750 VUs, 173668 complete and 0 interrupted iterations
+constant_load   [  97% ] 0612/0750 VUs  09m40.9s/10m0s  300.00 iters/s
+
+running (09m41.9s), 0611/0750 VUs, 173969 complete and 0 interrupted iterations
+constant_load   [  97% ] 0611/0750 VUs  09m41.9s/10m0s  300.00 iters/s
+
+running (09m42.9s), 0610/0750 VUs, 174270 complete and 0 interrupted iterations
+constant_load   [  97% ] 0610/0750 VUs  09m42.9s/10m0s  300.00 iters/s
+
+running (09m43.9s), 0610/0750 VUs, 174570 complete and 0 interrupted iterations
+constant_load   [  97% ] 0610/0750 VUs  09m43.9s/10m0s  300.00 iters/s
+
+running (09m44.9s), 0611/0750 VUs, 174869 complete and 0 interrupted iterations
+constant_load   [  97% ] 0611/0750 VUs  09m44.9s/10m0s  300.00 iters/s
+
+running (09m45.9s), 0611/0750 VUs, 175169 complete and 0 interrupted iterations
+constant_load   [  98% ] 0611/0750 VUs  09m45.9s/10m0s  300.00 iters/s
+
+running (09m46.9s), 0610/0750 VUs, 175470 complete and 0 interrupted iterations
+constant_load   [  98% ] 0610/0750 VUs  09m46.9s/10m0s  300.00 iters/s
+
+running (09m47.9s), 0612/0750 VUs, 175768 complete and 0 interrupted iterations
+constant_load   [  98% ] 0612/0750 VUs  09m47.9s/10m0s  300.00 iters/s
+
+running (09m48.9s), 0613/0750 VUs, 176067 complete and 0 interrupted iterations
+constant_load   [  98% ] 0613/0750 VUs  09m48.9s/10m0s  300.00 iters/s
+
+running (09m49.9s), 0612/0750 VUs, 176368 complete and 0 interrupted iterations
+constant_load   [  98% ] 0612/0750 VUs  09m49.9s/10m0s  300.00 iters/s
+
+running (09m50.9s), 0612/0750 VUs, 176668 complete and 0 interrupted iterations
+constant_load   [  98% ] 0612/0750 VUs  09m50.9s/10m0s  300.00 iters/s
+
+running (09m51.9s), 0610/0750 VUs, 176970 complete and 0 interrupted iterations
+constant_load   [  99% ] 0610/0750 VUs  09m51.9s/10m0s  300.00 iters/s
+
+running (09m52.9s), 0612/0750 VUs, 177268 complete and 0 interrupted iterations
+constant_load   [  99% ] 0612/0750 VUs  09m52.9s/10m0s  300.00 iters/s
+
+running (09m53.9s), 0613/0750 VUs, 177567 complete and 0 interrupted iterations
+constant_load   [  99% ] 0613/0750 VUs  09m53.9s/10m0s  300.00 iters/s
+
+running (09m54.9s), 0611/0750 VUs, 177869 complete and 0 interrupted iterations
+constant_load   [  99% ] 0611/0750 VUs  09m54.9s/10m0s  300.00 iters/s
+
+running (09m55.9s), 0623/0750 VUs, 178157 complete and 0 interrupted iterations
+constant_load   [  99% ] 0623/0750 VUs  09m55.9s/10m0s  300.00 iters/s
+
+running (09m56.9s), 0612/0750 VUs, 178468 complete and 0 interrupted iterations
+constant_load   [  99% ] 0612/0750 VUs  09m56.9s/10m0s  300.00 iters/s
+
+running (09m57.9s), 0611/0750 VUs, 178769 complete and 0 interrupted iterations
+constant_load   [ 100% ] 0611/0750 VUs  09m57.9s/10m0s  300.00 iters/s
+
+running (09m58.9s), 0614/0750 VUs, 179066 complete and 0 interrupted iterations
+constant_load   [ 100% ] 0614/0750 VUs  09m58.9s/10m0s  300.00 iters/s
+
+running (09m59.9s), 0611/0750 VUs, 179369 complete and 0 interrupted iterations
+constant_load   [ 100% ] 0611/0750 VUs  09m59.9s/10m0s  300.00 iters/s
+
+running (10m00.9s), 0337/0750 VUs, 179664 complete and 0 interrupted iterations
+constant_load ↓ [ 100% ] 0610/0750 VUs  10m0s  300.00 iters/s
+
+running (10m01.9s), 0032/0750 VUs, 179969 complete and 0 interrupted iterations
+constant_load ↓ [ 100% ] 0610/0750 VUs  10m0s  300.00 iters/s
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 180001 298.992414/s
+    checks_succeeded...: 99.56% 179213 out of 180001
+    checks_failed......: 0.43%  788 out of 180001
+
+    ✗ status is 200
+      ↳  99% — ✓ 179213 / ✗ 788
+
+    HTTP
+    http_req_duration..............: avg=2.05s min=0s     med=2.03s max=1m0s  p(90)=2.05s p(95)=2.06s
+      { expected_response:true }...: avg=2.04s min=2.02s  med=2.03s max=2.32s p(90)=2.05s p(95)=2.06s
+    http_req_failed................: 0.43%  788 out of 180001
+    http_reqs......................: 180001 298.992414/s
+
+    EXECUTION
+    iteration_duration.............: avg=2.05s min=6.26ms med=2.03s max=1m0s  p(90)=2.05s p(95)=2.06s
+    iterations.....................: 180001 298.992414/s
+    vus............................: 32     min=32            max=647
+    vus_max........................: 750    min=750           max=750
+
+    NETWORK
+    data_received..................: 1.3 GB 2.1 MB/s
+    data_sent......................: 54 MB  89 kB/s
+
+
+
+
+running (10m02.0s), 0000/0750 VUs, 180001 complete and 0 interrupted iterations
+constant_load ✓ [ 100% ] 0000/0750 VUs  10m0s  300.00 iters/s

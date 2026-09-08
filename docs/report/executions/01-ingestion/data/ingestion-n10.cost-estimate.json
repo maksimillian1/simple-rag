@@ -1,0 +1,10 @@
+{
+  "run": "ingestion-n10",
+  "window": {
+    "start": "2026-09-05T10:27:09Z",
+    "end": "2026-09-05T12:39:36Z"
+  },
+  "M10_compute_usd": 0.8032,
+  "M11_serving_gross_usd": 0.5711,
+  "note": "Non-standard point: did not converge within run-ingestion-point.py's own 1h30m max_wait (script exited 4, nothing exported/wiped by it), closed by hand after manual polling confirmed convergence + 300s buffer. 5 of 11 nodes in this window unpriced (instance_type unresolved -- describe-instances' ~1h post-termination visibility window had already passed by the time this was priced, several hours after point close): both figures above are a floor, not the real total. Node churn also visible on apps-serving (5 distinct node IDs across the window against a floor of 2) -- likely from repacking, not a clean single floor-to-burst transition like other points -- D23 (TEI above floor) not computed cleanly here, left out rather than guessed. M5: chunker 10/10 and indexer 10/10 (both at N ceiling -- first point where N=10 is stricter than chunker's own ~20 corpus-driven cap). M9 TEI peak: 3 replicas."
+}

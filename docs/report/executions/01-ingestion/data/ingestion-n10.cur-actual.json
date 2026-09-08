@@ -1,0 +1,15 @@
+{
+  "run": "ingestion-n10",
+  "pulled": "2026-09-07",
+  "hours_used": [10, 11, 12],
+  "note": "n10's own window (10:27-12:39Z) spans 3 UTC hour buckets, but nothing else ran during those hours on this cluster instance, so CUR attribution is clean despite the multi-hour span.",
+  "compute": 1.5475,
+  "serving_gross": 0.8733,
+  "nat": 2.6122,
+  "sqs": 0.0,
+  "s3": 0.0027,
+  "baseline_other": 3.0446,
+  "marginal_total": 4.1624,
+  "dollar_per_1M_docs": 41624.0,
+  "interpretation": "Nearly identical to n50's CUR figure ($41,400) despite N=10 being the lowest N tested -- breaks the otherwise-monotonic N-vs-cost trend. Most likely cause: n10's abnormal 2h12m wall time (script timeout + manual recovery, not representative of a clean N=10 run) inflated NAT/baseline exposure over far more clock-hours than a normal ~40-60min point. Not a clean N=10 cost read -- the anomaly is in the run's duration, not necessarily in N=10 itself."
+}

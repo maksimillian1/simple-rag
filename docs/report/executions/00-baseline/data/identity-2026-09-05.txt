@@ -1,0 +1,23 @@
+Cluster identity — captured 2026-09-05, before teardown
+
+Image digests (live, resolved sha):
+  chunker         ghcr.io/maksimillian1/simple-rag/chunker:sha-404a2670ee9e722ebf8d4f9a1f480c60c2360ab0
+  indexer         ghcr.io/maksimillian1/simple-rag/indexer:sha-32365dc9106736e8ebe5b24b09b87f6f7f18aed0
+  api             ghcr.io/maksimillian1/simple-rag/api:sha-bafdc1f5ac9ee762699a56cdc9a4f71c0637de3e
+  tei-embeddings  ghcr.io/huggingface/text-embeddings-inference:cpu-1.6 (no digest pin -- tag only, see 02-inference/index.md preflight warning)
+  qdrant          docker.io/qdrant/qdrant:v1.18.2
+
+Helm chart revisions:
+  argocd            argo-cd-7.0.0            (app v2.11.2)
+  argocd-root       argocd-root-0.1.2        (app 1.0.0)
+  cilium            cilium-1.19.5            (app 1.19.5)
+  gateway-api-crds  gateway-api-crds-0.0.1   (app 1.6.0-experimental)
+  karpenter         karpenter-1.13.0         (app 1.13.0)
+  keda              keda-2.14.2              (app 2.14.0)
+
+Node AMIs (this cluster instance, bootstrapped 2026-09-05T09:42Z):
+  Amazon Linux 2023.12.20260817 -- all EKS-managed and Karpenter-provisioned nodes
+  Instance types seen: c5a.2xlarge (apps-serving), r7g.large (database), t3.large (core-on-demand)
+  Fargate: 2 profiles, "Minimal" image (Karpenter controller)
+
+Git commit at capture time: 1ef1f0a8037d35e1ea5e454c430b8037c1baf543 (branch SR-system-configuration-for-report)

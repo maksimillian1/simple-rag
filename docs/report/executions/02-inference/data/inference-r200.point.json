@@ -1,0 +1,34 @@
+{
+  "ceiling_hits": [],
+  "collection_points": 84018,
+  "commit": "4e15a2ca6f488ba57e57ac8fa4a3220e29be0b87",
+  "dirty": true,
+  "duration": "10m",
+  "execution": "02-inference",
+  "freeze": {
+    "deployment/api": [
+      "ghcr.io/maksimillian1/simple-rag/api:sha-bafdc1f5ac9ee762699a56cdc9a4f71c0637de3e"
+    ],
+    "deployment/tei-embeddings": [
+      "ghcr.io/huggingface/text-embeddings-inference:cpu-1.6"
+    ]
+  },
+  "generator_rc": 0,
+  "guard_failures": [
+    "Q1",
+    "Q2",
+    "Q3"
+  ],
+  "offered_rate": "200",
+  "peak_replicas": {
+    "api": 2,
+    "tei-embeddings": 7
+  },
+  "point": "inference-r200",
+  "window": {
+    "end": "2026-09-05T13:39:24Z",
+    "generator_end": "2026-09-05T13:32:11Z",
+    "start": "2026-09-05T13:21:58Z",
+    "wall_seconds": 1046.073266
+  }
+}

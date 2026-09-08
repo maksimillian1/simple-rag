@@ -394,9 +394,8 @@ Two things confirmed, one thing newly found:
   estimator was never meant to replace CUR (says so in its own docstring), and this is the
   concrete gap that statement was hedging against.
 
-Pulled less than 24h after the last point, short of the Close checklist's "48h" guard — flagging
-in case a later CUR revision (credits, true-up) moves these numbers again; re-check advised before
-these replace the estimates permanently in §3.
+Re-pulled 2026-09-07, past the 48h guard: unchanged for all four points — no credits or true-ups
+moved anything. The table above is final.
 
 **#10 ingestion-n10** — off-plan, run on a freshly-bootstrapped cluster (2026-09-05) for a
 different reason than any prior point: `02-inference`'s precondition needs a loaded Qdrant
@@ -419,14 +418,13 @@ corpus-driven ceiling. Here N=10 sits below that ceiling, so chunker fills to N 
 *for* the corpus-cap reading, not against it: chunker's own appetite is still ≥10 here, it was
 `maxReplicaCount` binding this time, not the corpus.
 
-Cost estimate is a floor, not a real figure: 5 of 11 nodes seen in the window resolved to
-`instance_type: "?"` in `karpenter-cost-estimate.py` — all short-lived (7–13 min), replaced early
-in the window, and by the time pricing ran (hours after close, alongside everything else this
-session), EC2's ~1h post-termination `describe-instances` visibility had already lapsed for them.
-`M10` compute $0.80, `M11` serving gross $0.57 — both undercounts. `apps-serving` also churned
-through 5 distinct node IDs against a floor of 2 (not the usual clean 2-then-3 transition),
-so `D23` isn't cleanly separable here and is left out rather than guessed at.
-`./data/ingestion-n10.cost-estimate.json` has the full breakdown and caveats.
+Same-day provisional estimate was a floor, not a real figure: 5 of 11 nodes seen in the window
+resolved to `instance_type: "?"` in `karpenter-cost-estimate.py` (short-lived, replaced early,
+past EC2's ~1h post-termination `describe-instances` visibility by the time pricing ran). `apps-serving`
+also churned through 5 distinct node IDs against a floor of 2, so `D23` was left unresolved.
+Superseded 2026-09-07 by a real CUR read: **$41,624/1M docs** — see the Matrix in §3 for the
+number and why it breaks the otherwise-clean N-vs-cost trend. `./data/ingestion-n10.cost-estimate.json`
+has the provisional breakdown, `./data/ingestion-n10.cur-actual.json` the real one.
 
 **Fix landed alongside this point**: `02-inference`'s Qdrant-restore precondition had no actual
 implementation (checked — no snapshot/restore script existed anywhere in the repo). Took a live

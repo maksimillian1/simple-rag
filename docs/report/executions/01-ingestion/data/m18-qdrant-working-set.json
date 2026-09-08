@@ -1,0 +1,7 @@
+{
+  "captured_at": "2026-09-05T15:35:00Z",
+  "note": "M18 (container_memory_working_set_bytes, qdrant pods) was never actually queried during any ingestion point -- commented out in series.txt the whole campaign. Captured here instead, live, just before cluster teardown, against the same 84,018-point collection (same corpus, same R21 count as every point) that was live at the time -- not specifically n125's own run, but the same data volume/profile, which is what M18 actually measures (working set is a function of collection size, not ingestion concurrency).",
+  "qdrant-0_mib": 379.0,
+  "qdrant-1_mib": 97.7,
+  "asymmetry_note": "replication_factor=2 means both nodes should hold the full collection, so this ~4x asymmetry is unexpected -- not investigated before teardown. Read the max (379 MiB) as the conservative/upper-bound figure D30 sizing check should use."
+}

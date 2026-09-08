@@ -1,0 +1,15 @@
+{
+  "run": "inference-r050",
+  "window": {
+    "start": "2026-09-05T12:58:01Z",
+    "end": "2026-09-05T13:14:54Z"
+  },
+  "window_hours": 0.2814,
+  "M9_serving_gross_usd": 0.0747,
+  "serving_floor_rate_usd_per_hour": 0.2256,
+  "serving_floor_cost_for_window_usd": 0.0635,
+  "M9_net_of_floor_usd": 0.0112,
+  "queries_served": 29938,
+  "D16_dollar_per_1k_queries_usd": 0.00038,
+  "note": "karpenter-cost-estimate.py --nodepool apps-serving, provisional (not CUR). 5 distinct apps-serving nodes churned through this ~17min window (c5.xlarge, c5a.xlarge, c6a.xlarge, c6i.xlarge, c7i-flex.xlarge -- Karpenter picking different available spot capacity on each replacement), not a clean floor-then-burst transition. Floor rate is the 00-baseline serving-pool-idle-rate ($0.2256/h, itself a single non-diurnal hour -- see 00-baseline Floor notes). D16 rounds to near-zero at this rate, consistent with the plan's own expectation ('at low rates it can round to zero, which is a finding rather than an error')."
+}

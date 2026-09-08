@@ -1,0 +1,15 @@
+{
+  "run": "inference-r1000",
+  "window": {
+    "start": "2026-09-05T14:52:16Z",
+    "end": "2026-09-05T15:16:25Z"
+  },
+  "window_hours": 0.4025,
+  "M9_serving_gross_usd": 0.4992,
+  "serving_floor_rate_usd_per_hour": 0.2256,
+  "serving_floor_cost_for_window_usd": 0.0908,
+  "M9_net_of_floor_usd": 0.4084,
+  "queries_served": 569016,
+  "D16_dollar_per_1k_queries_usd": 0.00072,
+  "note": "karpenter-cost-estimate.py --nodepool apps-serving. First point with doubled tei-embeddings CPU (6/8 cores, commit 1ef1f0a). tei-embeddings peaked at 30 replicas (vs 16 at r500 with half the per-pod CPU) -- roughly proportional replica-count response given ~2x the offered rate. Despite doubled per-pod CPU, active-window p95 mean (6378ms) and especially the tail (max 51.7s vs r500's 26.1s) and error rate (4.97% avg / 35.1% peak vs r500's 0.78%/6.6%) are WORSE than r500, not better -- doubling TEI CPU did not make 1000rps sustainable, and by some measures made the failure mode more severe. Suggests the constraint at this rate may no longer be simply TEI-CPU-bound the way it was at r500; not yet investigated which component took over."
+}

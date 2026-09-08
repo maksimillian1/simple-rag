@@ -1,0 +1,17 @@
+{
+  "campaign": "02-inference full sweep",
+  "pulled": "2026-09-07",
+  "hours_used": [12, 13, 14, 15],
+  "day": "2026-09-05",
+  "note": "Multiple points share hourly CUR buckets by design (revised Plan, no clock-hour spacing) -- this is a campaign-level total, not per-point. compute_stray ($0.2127, hour 12) is leftover from an accidental ingestion run killed before r050 properly started -- excluded from the inference marginal total below.",
+  "serving_gross": 2.4505,
+  "nat": 2.8791,
+  "compute_stray_excluded": 0.2127,
+  "baseline_other": 4.1969,
+  "marginal_total": 5.3296,
+  "total_queries_served": 1166534,
+  "dollar_per_1k_queries": 0.00457,
+  "serving_floor_4h_usd": 0.9024,
+  "net_of_floor": 4.4272,
+  "interpretation": "NAT was never priced for any inference point during the campaign -- karpenter-cost-estimate.py only ever computed apps-serving node cost, no NAT component was added for 02-inference the way it eventually was for 01-ingestion. Real campaign $/1k queries ($0.00457) is 5-12x every individual point's provisional D16 ($0.00038-$0.00087), driven by two uncounted things: (1) NAT entirely, (2) real cost also includes floor/settle time between points that no single point's own narrow window captured."
+}

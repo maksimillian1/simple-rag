@@ -144,25 +144,14 @@ appear on their own.
 | SQS — idle scaler polling | B | ~$0 ᴿ (confirmed — every queue's request-cost row was $0 this hour) | variable |
 
 Superseded 2026-09-05 by a real `M1` read (`ᴿ` rows above) — see the capture window and Preflight
-revision at the top of this section. The 2026-09-02 list-price math this replaced is kept below
-for the two lines it still couldn't reach (Monitoring PVs, Qdrant snapshot rate):
+revision at the top of this section. The 2026-09-02 list-price math this replaced is kept only
+for the two lines it still couldn't reach:
 
-- EKS: $0.10/h × 730h
-- core-on-demand: 2 × `t3.large` × $0.096/h × 730h
 - Monitoring PVs: (10Gi + 10Gi) × $0.0952/GB-mo — **still this estimate**, not resolved by the CUR
   pull (Prometheus/Loki's `gp3` volumes don't carry a `tier` tag distinct from `core-on-demand`'s
   own volumes in the pulled hour, so M1 can't isolate them yet — would need a pod/PVC-level split,
   not just the node-pool tag)
-- Karpenter/Fargate: controller requests `300m`/`512Mi` (`terraform/modules/02-rag-k8s/karpenter.tf`) round up to Fargate's
-  nearest supported pod size, `0.5 vCPU`/`1GB` → (0.5 × $0.04656 + 1 × $0.00511)/h × 730h
-- NAT: single shared gateway (`single_nat_gateway=true`, `create_nat_instance` defaults `false` — confirmed, the fck-nat
-  module in code isn't active) × $0.052/h × 730h
-- Database: 2 × `r7g.large` × $0.1292/h × 730h (list price, confirmed still current via AWS Pricing
-  API 2026-09-05 — see the ⚠ against the real read below, they don't agree)
-- Qdrant volumes: 2 × 50Gi × $0.0952/GB-mo
-- Endpoints: `bedrock` + `bedrock-runtime`, both across all 3 private-subnet AZs → 6 ENIs × $0.012/h × 730h
-- Load balancer: confirmed **NLB** (not ALB) from the Gateway's `aws-load-balancer-nlb-target-type` annotation ×
-  $0.0270/h × 730h base, LCU usage not measured
+- Qdrant snapshot rate: no measurement exists at all (bucket was empty at capture)
 
 **Real read, one caveat carried over from Preflight** — the pulled hour (13:00–14:00Z) sits
 ~24 min after cluster bootstrap and isn't perfectly idle: `$0.0683` of that hour's spend is tagged
