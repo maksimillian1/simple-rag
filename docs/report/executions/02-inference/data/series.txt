@@ -8,13 +8,25 @@
 # Generation is stubbed, so every latency here describes retrieval and no p95 is
 # an end-to-end SLO → K1.
 #
-# The three http_ names assume the Go API's exporter. If it is instrumented
-# differently these are the only lines that change.
+# The three http_ names assumed the Go API's exporter — it has none (confirmed
+# twice, 2026-09-02: no /metrics endpoint at all). Unblocked 2026-09-05 via
+# Cilium's own Envoy proxy instead: traffic to `api` crosses
+# cilium-gateway-cilium-gateway, and its Envoy sidecars already export
+# envoy_cluster_upstream_rq_* per upstream cluster (scrape job `cilium-envoy`,
+# deploy/k8s/platform/monitoring/values/prometheus.yaml) — a drop-in
+# replacement, no application change needed. Confirmed live against real
+# inference-point traffic (r050, r200): non-zero, per-request counts, real
+# histogram buckets, real envoy_response_code_class="5" counts. One unit
+# change: Envoy's histogram is milliseconds, not seconds — no /1000 needed
+# here, unlike the original http_request_duration_seconds_bucket assumption.
+# envoy_cluster_upstream_rq_total/_xx/_time_bucket are cumulative counters
+# across the whole cluster lifetime, not per-point — every query below is
+# wrapped in rate(), same as the original http_ version, so this is fine.
 
-Q1|sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*"}[1m]))
-Q2|sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*",code=~"5.."}[1m])) or vector(0)
-Q3|histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="rag-api",job=~".*api.*"}[1m])))
-Q4|histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="rag-api",job=~".*api.*"}[1m])))
+Q1|sum(rate(envoy_cluster_upstream_rq_total{envoy_cluster_name="rag-platform/cilium-gateway-cilium-gateway/rag-api_api_80"}[1m]))
+Q2|sum(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name="rag-platform/cilium-gateway-cilium-gateway/rag-api_api_80",envoy_response_code_class="5"}[1m])) or vector(0)
+Q3|histogram_quantile(0.95, sum by (le) (rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name="rag-platform/cilium-gateway-cilium-gateway/rag-api_api_80"}[1m])))
+Q4|histogram_quantile(0.50, sum by (le) (rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name="rag-platform/cilium-gateway-cilium-gateway/rag-api_api_80"}[1m])))
 Q5|kube_deployment_status_replicas{namespace=~"rag-api|rag-platform",deployment=~"api|tei-embeddings"}
 Q6|keda_scaler_metrics_value{namespace=~"rag-api|rag-platform",scaledObject=~"api-scaler|tei-embeddings-scaler"}
 Q7|container_cpu_usage_seconds_total{namespace=~"rag-api|rag-platform",container!="",container!="POD",container=~"api|tei-embeddings"}

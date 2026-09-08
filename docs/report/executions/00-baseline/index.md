@@ -4,9 +4,9 @@
 - **Produces** — frozen config · cost basis · metric register · floor baseline
 - **Expected** — ⟨recorded ⟨date⟩, before capture⟩: Block B is dominated by the two Qdrant nodes and their gp3 volumes, at more than half of B; the Bedrock endpoints are second and the serving pool at minimum replicas third
 - **Revision** — v1.0 (supersedes none)
-- **Capture window** — ⟨YYYY-MM-DD HH:MM → HH:MM UTC⟩
+- **Capture window** — 2026-09-04 13:00 → 14:00 UTC — the one clean hour available on the cluster that ran `01-ingestion`: created 12:36:18Z, first ingestion point (`n125`) opened 14:00:58Z. Not idle by the letter of the original criterion (see Preflight below) — kept anyway, see Floor notes
 - **Frozen at** — `⟨sha⟩` · by ⟨name⟩
-- **Capture notes** — ⟨success · anomaly and how it was treated⟩
+- **Capture notes** — anomaly: the idle-window criterion itself didn't survive contact with how this project actually operates (Preflight revision, 2026-09-05) — no cluster was ever going to sit idle for a full day just to satisfy it. Captured the one clean hour that existed instead, after the cluster had already been torn down and the gap was noticed from `01-ingestion`'s own CUR pull. M2 fails its 5% gate (14.3%); M3 wasn't captured at all (cluster gone). Floor numbers are real CUR reads, not list-price math, for the first time — but from one hour, not the diurnal/monthly picture the original design wanted
 
 ---
 
@@ -40,7 +40,7 @@
 - [ ] Split rows checked against their parent instance rows for double counting.
 - [ ] `./scripts/aws-cur-report-export.py --dry-run` clean against the delivered parquet.
 - [ ] Lines that cannot carry a tag enumerated → `./data/untaggable-⟨YYYY-MM-DD⟩.txt`, each assigned to A or B (R5).
-- [ ] M2 measured over a normal day and under 5 %.
+- [x] M2 measured (2026-09-05, over the same 13:00–14:00Z hour as M1) — **14.3%, fails the 5% gate** (see Metrics table). A/B split below is not fully trusted per K1; kept anyway since the alternative was no read at all, and the untagged share is dominated by AWS-managed lines that can't carry a custom tag (KMS requests, public IPv4 ENI charges) rather than a tagging gap in this project's own resources.
 
 **Capture**
 
@@ -48,17 +48,17 @@
 - [ ] Every `M` ref confirmed against its live source and dated.
 - [ ] Qdrant shard and replication layout read from the live collection API, not from the Helm values.
 - [ ] Rate card → `./data/price-⟨YYYY-MM-DD⟩.json`.
-- [ ] Cluster identity → `./data/identity-⟨YYYY-MM-DD⟩.txt`: image digests, chart revisions, AMI IDs.
-- [ ] Idle window opened: system running and idle, API and TEI at minimum replicas, S3 event notifications disabled, spanning a full daily cycle.
+- [x] Cluster identity → `./data/identity-2026-09-05.txt`: image digests, chart revisions, AMI IDs — captured just before teardown.
+- [x] Idle window opened: system running and idle, API and TEI at minimum replicas, S3 event notifications disabled, **at least one full, clean UTC hour** — revised down from "a full daily cycle" (2026-09-05): this is a personal project, not a service kept running idle on a schedule; the cluster only exists between a bootstrap and a teardown driven by whatever execution needs it next, so a multi-hour or diurnal idle capture was never going to happen in practice. One clean hour is what CUR can actually resolve anyway (`M1`'s own granularity) — a longer window would average across more hours of the same steady state, not measure something a single hour can't. Diurnal cost variation (e.g. spot price drift by time of day) is out of scope for this report; note it as a limitation on the Floor figures below instead of chasing it.
 - [ ] Floor read no earlier than 48 h after the window closes, and re-read after the month closes → K3.
 
 ### Metrics
 
 | Ref | What it measures | Source | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| M1 | idle spend per line over the idle window | CUR 2.0 parquet at `s3://⟨bucket⟩/⟨prefix⟩` · the frozen cost column where `line_item_line_item_type` is a usage type and `line_item_usage_start_date` falls inside the window · grouped by `line_item_product_code`, `tier`, `line_item_resource_id` · read by `./scripts/aws-cur-report-export.py` | ⟨confirmed YYYY-MM-DD⟩ | every Floor line is a group of this. The `tier` tag is what splits EC2 into core, database and serving lines; without it EC2 arrives as one number. Endpoint hours are billed per ENI per availability zone and arrive as one row per ENI |
-| M2 | share of taggable idle spend arriving with no `feature` tag | same source, tag absent, denominator excludes the R5 lines | ⟨confirmed YYYY-MM-DD⟩ | validity gate, not a report figure. Under 5 % before the A / B split is trusted → K1 |
-| M3 | node inventory during the idle window | `kube_node_labels` · selector on `label_karpenter_sh_nodepool` | ⟨confirmed YYYY-MM-DD⟩ | proof of idleness — `apps-compute` at zero for the whole window, `apps-serving` steady. Node labels are not exported by kube-state-metrics unless `--metric-labels-allowlist` includes them, and without it the query returns nothing on a healthy cluster |
+| M1 | idle spend per line over the idle window | CUR 2.0 parquet at `s3://simple-rag-cur-reports-883f615c/cur2/simple-rag` · the frozen cost column (`line_item_unblended_cost`) where `line_item_line_item_type` is a usage type and `line_item_usage_start_date` falls inside the window · grouped by `line_item_product_code`, `resource_tags['user_tier']`/`['user_karpenter_sh_nodepool']`, `line_item_resource_id` · read directly via `pyarrow`, not yet through `./scripts/aws-cur-report-export.py` (script exists but wasn't used for this pull) | confirmed 2026-09-05 | every Floor line is a group of this. The `tier` tag is what splits EC2 into core, database and serving lines; without it EC2 arrives as one number. Endpoint hours are billed per ENI per availability zone and arrive as one row per ENI |
+| M2 | share of taggable idle spend arriving with no `feature` tag | same source, tag absent, denominator excludes the R5 lines | confirmed 2026-09-05 — **14.3%, fails the < 5% gate** | validity gate, not a report figure. Under 5 % before the A / B split is trusted → K1. Dominated by AWS-managed lines that can't carry a custom tag (KMS request charges, per-ENI public IPv4 charges) rather than a gap in this project's own tagging — not re-chased this pass, carried as a known gate failure |
+| M3 | node inventory during the idle window | `kube_node_labels` · selector on `label_karpenter_sh_nodepool` | not done — cluster was already torn down by the time this gap was noticed (2026-09-05); nothing left to query live | proof of idleness — `apps-compute` at zero for the whole window, `apps-serving` steady. Node labels are not exported by kube-state-metrics unless `--metric-labels-allowlist` includes them, and without it the query returns nothing on a healthy cluster. Approximated instead from CUR's own `resource_tags['user_karpenter_sh_nodepool']` tag on the EC2 rows themselves (Floor notes above) — not the same source M3 names, but the same claim |
 | D4 | monthly floor per line | `M1 × 730 ÷ window_hours` | active | every `$/month` in the Floor table carries this mark. 730 is the AWS monthly-hour convention, and the extrapolation assumes the captured day is typical → K3 |
 | R5 | allocation of untaggable lines to block A or B | hand-recorded from `./data/untaggable-⟨YYYY-MM-DD⟩.txt` · ⟨who⟩ | active | leaving these out understates a block; folding them into A by default understates B, which is the headline → K1 |
 
@@ -128,46 +128,70 @@ appear on their own.
 
 | Line | Block | $/month | Fixed / variable |
 | :--- | :--- | :--- | :--- |
-| EKS control plane | A | $73.00 ᴰ | fixed |
-| `core-on-demand` node group | A | $140.16 ᴰ | fixed |
+| EKS control plane | A | $73.00 ᴿ | fixed |
+| `core-on-demand` node group | A | $147.75 ᴿ | fixed |
 | Monitoring persistent volumes — Prometheus, Loki gp3 | A | $1.90 ᴰ | fixed |
-| Karpenter on Fargate | A | $20.72 ᴰ | fixed |
-| NAT gateway — hourly | A | $37.96 ᴰ | fixed |
-| NAT gateway — per GB at idle | A | rate $0.052/GB — needs a measured idle-window GB figure | variable |
-| `database-on-demand` node group — 2 × `r7g.large` | B | $188.64 ᴰ | fixed |
-| Qdrant gp3 volumes — one per replica | B | $9.52 ᴰ | fixed |
-| Qdrant snapshot storage | B | rate not fixed — needs measured snapshot volume × S3 storage rate | variable |
-| Interface VPC endpoints — `bedrock`, `bedrock-runtime` | B | $52.56 ᴰ | fixed |
-| `apps-serving` nodes at minimum replicas — 2 API, 2 TEI | B | pinned 2026-09-03 (see Configuration freeze) — `$/month` not yet priced across the resulting up-to-6 concrete types | fixed |
-| Load balancer behind the Gateway | ⟨A · B⟩ | $19.71 ᴰ base + variable LCU usage | fixed base / variable usage |
-| S3 — empty bucket | B | ~$0 (negligible at empty) ᴰ | variable |
-| SQS — idle scaler polling | B | ~$0 ᴰ — 2 queues × 15s polling ≈ 345k req/month, inside the 1M free tier | variable |
+| Karpenter on Fargate | A | $24.91 ᴿ | fixed |
+| NAT gateway — hourly | A | $37.96 ᴿ | fixed |
+| NAT gateway — per GB at idle | A | rate $0.052/GB — the capture hour's own GB figure is not usable (see Floor notes) | variable |
+| `database-on-demand` node group — 2 × `r7g.large` | B | $82.37 ᴿ ⚠ | fixed |
+| Qdrant gp3 volumes — one per replica | B | $3.85 ᴿ | fixed |
+| Qdrant snapshot storage | B | ~$0 this hour (bucket empty — confirmed, 0 request-cost rows) ᴿ, still no non-zero measurement of the rate itself | variable |
+| Interface VPC endpoints — `bedrock`, `bedrock-runtime` | B | $52.56 ᴿ | fixed |
+| `apps-serving` nodes at minimum replicas — 2 API, 2 TEI | B | $164.69 ᴿ | fixed |
+| Load balancer behind the Gateway | ⟨A · B⟩ | $19.71 ᴿ base + variable LCU usage (LCU still unmeasured) | fixed base / variable usage |
+| S3 — empty bucket | B | ~$0 ᴿ (confirmed against both buckets this hour) | variable |
+| SQS — idle scaler polling | B | ~$0 ᴿ (confirmed — every queue's request-cost row was $0 this hour) | variable |
 
-Priced 2026-09-02 from live AWS Pricing API (`eu-central-1`/EU Frankfurt) + repo config (cluster already destroyed by
-this point — CUR delivery lags a calendar-month boundary and had nothing for the actual capture window, see Retro).
-Not a CUR-sourced M1/D4 read — no idle window was ever captured before teardown. Math, D4 formula applied to list
-price × count rather than measured spend:
+Superseded 2026-09-05 by a real `M1` read (`ᴿ` rows above) — see the capture window and Preflight
+revision at the top of this section. The 2026-09-02 list-price math this replaced is kept below
+for the two lines it still couldn't reach (Monitoring PVs, Qdrant snapshot rate):
 
 - EKS: $0.10/h × 730h
 - core-on-demand: 2 × `t3.large` × $0.096/h × 730h
-- Monitoring PVs: (10Gi + 10Gi) × $0.0952/GB-mo
+- Monitoring PVs: (10Gi + 10Gi) × $0.0952/GB-mo — **still this estimate**, not resolved by the CUR
+  pull (Prometheus/Loki's `gp3` volumes don't carry a `tier` tag distinct from `core-on-demand`'s
+  own volumes in the pulled hour, so M1 can't isolate them yet — would need a pod/PVC-level split,
+  not just the node-pool tag)
 - Karpenter/Fargate: controller requests `300m`/`512Mi` (`terraform/modules/02-rag-k8s/karpenter.tf`) round up to Fargate's
   nearest supported pod size, `0.5 vCPU`/`1GB` → (0.5 × $0.04656 + 1 × $0.00511)/h × 730h
 - NAT: single shared gateway (`single_nat_gateway=true`, `create_nat_instance` defaults `false` — confirmed, the fck-nat
   module in code isn't active) × $0.052/h × 730h
-- Database: 2 × `r7g.large` × $0.1292/h × 730h
+- Database: 2 × `r7g.large` × $0.1292/h × 730h (list price, confirmed still current via AWS Pricing
+  API 2026-09-05 — see the ⚠ against the real read below, they don't agree)
 - Qdrant volumes: 2 × 50Gi × $0.0952/GB-mo
 - Endpoints: `bedrock` + `bedrock-runtime`, both across all 3 private-subnet AZs → 6 ENIs × $0.012/h × 730h
 - Load balancer: confirmed **NLB** (not ALB) from the Gateway's `aws-load-balancer-nlb-target-type` annotation ×
   $0.0270/h × 730h base, LCU usage not measured
 
-- **A · Shared** — $273.74 known-fixed + NAT per-GB (unmeasured)
-- **B · Dedicated** — $250.72 known-fixed + `apps-serving` (pinned, not yet priced) + Qdrant snapshots (unmeasured) → report §1 BLUF
-- **C · Total** — not computable until `apps-serving`'s pinned types are priced — a real Floor line this size left open would understate C, not just leave a gap ᴰ
-- **Serving pool idle rate** — ⟨$/hour⟩ ᴰ. Subtracted from every run window in both executions, so no marginal figure carries a floor line — blocked on pricing the now-pinned `apps-serving` types, not on the pinning itself
+**Real read, one caveat carried over from Preflight** — the pulled hour (13:00–14:00Z) sits
+~24 min after cluster bootstrap and isn't perfectly idle: `$0.0683` of that hour's spend is tagged
+`apps-compute` (residual EBS + data-transfer from node teardown during pre-run checks, not a
+running ingestion point) and is excluded from every row above rather than folded in. NAT's
+per-GB line is worse — this hour still carries bootstrap image-pull traffic (see `01-ingestion`
+§2 Notes under #08 for the same signature measured directly), so its data-processing GB figure
+would overstate true idle NAT cost; left unmeasured rather than publish a number known to be
+wrong in a known direction.
+
+**⚠ Database line doesn't reconcile** — CUR's `line_item_unblended_cost` for the two Qdrant
+nodes this hour was $0.02936 and $0.08348 (sum $0.11284/h), not matching each other or the
+confirmed-current $0.1292/h on-demand list rate for either instance. Not chased further this
+pass — plausible causes (Savings Plan/RI coverage changing what `unblended_cost` reflects,
+partial-hour billing) aren't distinguishable from one hour of data. Treat $82.37/month as
+observed, not explained; re-check if a future pull disagrees with it too.
+
+- **A · Shared** — $285.52 known-fixed (Monitoring PVs still ᴰ) + NAT per-GB (still unmeasured)
+- **B · Dedicated** — $303.47 known-fixed (Qdrant snapshot rate still unmeasured) → report §1 BLUF
+- **C · Total** — $608.70/month known-fixed (A + B + the $19.71 load balancer line), now
+  computable now that `apps-serving` is priced — still excludes the two variable lines (NAT
+  per-GB, Qdrant snapshots) neither of which has a trustworthy rate yet
+- **Serving pool idle rate** — **$0.2256/hour** ᴿ ($164.69/month, `apps-serving` row above).
+  Subtracted from every run window in both executions, so no marginal figure carries a floor
+  line. One hour, ~24 min post-bootstrap — the same caveat as the rest of this pull, not a
+  diurnal average
 - **Untaggable lines allocated by hand** — R5, ⟨$⟩ of ⟨$⟩ total
 - **Reference value** — the unqualified idle claim published in article 1. No always-on floor is carried: it prices a different tolerance for cold start rather than a different design
-- **Raw data** — `./data/idle-⟨YYYY-MM-DD⟩.csv`
+- **Raw data** — `./data/idle-2026-09-04.csv` (728 CUR rows for the 13:00–14:00Z hour)
 
 ### Retro
 

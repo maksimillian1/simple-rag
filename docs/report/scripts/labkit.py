@@ -267,19 +267,25 @@ def load_guards(path: Path, substitutions: dict | None = None) -> list[dict]:
 
 # --------------------------------------------------------------------------- prometheus
 
-def prom_query(prom_url: str, query: str) -> list[dict]:
-    url = f"{prom_url}/api/v1/query?" + urllib.parse.urlencode({"query": query})
+def prom_query(prom_url: str, query: str, at: "datetime | None" = None) -> list[dict]:
+    """`at`, when given, evaluates the query as of that instant rather than
+    Prometheus's own "now" — needed for anything checked well after the moment
+    it actually describes (see check_guards)."""
+    params = {"query": query}
+    if at is not None:
+        params["time"] = at.timestamp()
+    url = f"{prom_url}/api/v1/query?" + urllib.parse.urlencode(params)
     data = http_json("GET", url)
     if data.get("status") != "success":
         raise RuntimeError(data.get("error", "prometheus query failed"))
     return data.get("data", {}).get("result", [])
 
 
-def prom_scalar(prom_url: str, query: str) -> float | None:
+def prom_scalar(prom_url: str, query: str, at: "datetime | None" = None) -> float | None:
     """Max over the returned series. None when the query returns nothing, which
     is an instrumentation gap and never a zero."""
     values = []
-    for series in prom_query(prom_url, query):
+    for series in prom_query(prom_url, query, at=at):
         raw = series.get("value", [None, None])[1]
         if raw is not None:
             try:
@@ -296,14 +302,19 @@ def prom_targets_down(prom_url: str) -> list[str]:
     ]
 
 
-def check_guards(prom_url: str, guards: list[dict]) -> list[str]:
-    """Evaluated once, at window close. A guard returning nothing fails: an empty
-    result is a gap, not a pass. Use `or vector(0)` where a zero is honest."""
+def check_guards(prom_url: str, guards: list[dict], at: "datetime | None" = None) -> list[str]:
+    """Evaluated once, as of `at` (defaults to Prometheus's own "now" if not
+    given). Pass the generator's own end time, not the point's close time — the
+    two are minutes apart (scale-in wait plus the buffer), and a rate-based
+    guard checked after the generator already stopped sees whatever's left of
+    its own [5m] (or similar) lookback window landing on dead air, not the load
+    it's meant to validate. A guard returning nothing fails: an empty result is
+    a gap, not a pass. Use `or vector(0)` where a zero is honest."""
     failures = []
     for guard in guards:
         ref = guard["ref"]
         try:
-            value = prom_scalar(prom_url, guard["query"])
+            value = prom_scalar(prom_url, guard["query"], at=at)
         except RuntimeError as e:
             print(f"[{BAD}] guard {ref} — query failed: {e}")
             failures.append(ref)

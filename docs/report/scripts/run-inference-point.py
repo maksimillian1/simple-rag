@@ -38,7 +38,8 @@ import time
 from datetime import timedelta
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
 import labkit as lk                                            # noqa: E402
 
 # --------------------------------------------------------------------------- frozen
@@ -177,7 +178,7 @@ def run_generator(env: lk.Env, args, out_dir: Path) -> dict:
     t_start = lk.utcnow()
     with log_path.open("w") as handle:
         proc = subprocess.run(cmd, stdout=handle, stderr=subprocess.STDOUT,
-                              env={**os.environ, **extra})
+                              env={**os.environ, **extra}, cwd=SCRIPT_DIR)
     t_generator_end = lk.utcnow()
 
     print(f"[{lk.OK if proc.returncode == 0 else lk.WARN}] generator exit "
@@ -366,7 +367,7 @@ def main() -> int:
             return lk.EXIT_EXPORT_GAP
 
         print()
-        guard_failures = lk.check_guards(env.prom_url, guards)
+        guard_failures = lk.check_guards(env.prom_url, guards, at=run["t_generator_end"])
         if settle["ceiling_hits"]:
             guard_failures.append("configured replica ceiling reached")
 

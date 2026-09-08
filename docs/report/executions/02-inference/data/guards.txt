@@ -9,6 +9,11 @@
 # → K3. A served rate below the offered one means the generator queued its own
 # excess, and the percentile then describes the queue.
 
-Q1|min {rate_floor}|sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*"}[5m]))
-Q2|max 0.001|sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*",code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total{namespace="rag-api",job=~".*api.*"}[5m])), 1)
-Q3|max 10|histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="rag-api",job=~".*api.*"}[5m])))
+# The three http_ names assumed the Go API's exporter — it has none (confirmed
+# 2026-09-02). Unblocked 2026-09-05 via Cilium's own Envoy sidecars instead —
+# same fix, same reasoning as ./series.txt Q1-Q4. One more unit change here:
+# Envoy's histogram is milliseconds, so Q3's bound moved from 10 (s) to 10000 (ms).
+
+Q1|min {rate_floor}|sum(rate(envoy_cluster_upstream_rq_total{envoy_cluster_name="rag-platform/cilium-gateway-cilium-gateway/rag-api_api_80"}[5m]))
+Q2|max 0.001|sum(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name="rag-platform/cilium-gateway-cilium-gateway/rag-api_api_80",envoy_response_code_class="5"}[5m])) / clamp_min(sum(rate(envoy_cluster_upstream_rq_total{envoy_cluster_name="rag-platform/cilium-gateway-cilium-gateway/rag-api_api_80"}[5m])), 1)
+Q3|max 10000|histogram_quantile(0.95, sum by (le) (rate(envoy_cluster_upstream_rq_time_bucket{envoy_cluster_name="rag-platform/cilium-gateway-cilium-gateway/rag-api_api_80"}[5m])))
