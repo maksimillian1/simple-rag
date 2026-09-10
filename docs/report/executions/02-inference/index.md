@@ -2,9 +2,9 @@
 
 - **Why this execution exists** — how many queries per second this deployment serves inside the latency target, what the autoscaler does to get there, and what a query costs: how much traffic can we take?
 - **Produces** — the sustained query rate, the replica count that rate requires, the query-path constraint, and the marginal cost per thousand queries that report §4 cannot compute itself
-- **Expected** — recorded ⟨date⟩, before the first run: ⟨the ceiling is TEI embedding of the query string rather than Qdrant retrieval, because RRF fusion is delegated to the database and costs under 1 ms, while every query pays one full embedding forward pass⟩
-- **Status** — ⟨planned · running · closed · abandoned⟩
-- **Plan frozen** — ⟨date⟩ · commit `⟨sha⟩`
+- **Expected** — recorded 2026-08-31, before the first run (`git log -S`, commit `bafdc1f`): the ceiling is TEI embedding of the query string rather than Qdrant retrieval, because RRF fusion is delegated to the database and costs under 1 ms, while every query pays one full embedding forward pass
+- **Status** — closed
+- **Plan frozen** — 2026-08-31 · commit `bafdc1f`
 - **Givens** — `00-baseline` §2, cited from there. The collection is restored from the snapshot taken after `01-ingestion` closed
 
 ---
@@ -34,11 +34,13 @@ A unit is one search request, complete when the retrieved context is written to 
 Generation is stubbed at the fixed delay frozen in `00-baseline` §2, and no run calls Bedrock
 → K1. The cost of generation is priced separately from assumed token counts in E18.
 
-Each point runs at one constant offered rate. The window opens once three things are true:
-replicas have been stable for ⟨60⟩ s on both deployments, the serving NodePool has been stable
-for ⟨60⟩ s, and a further ⟨60⟩ s of warm-up has elapsed. Scaler and node convergence sit inside
-the point rather than before it, because both are part of what is being measured. The window
-runs ⟨10⟩ min at steady rate and closes when the generator stops.
+Each point runs at one constant offered rate. Designed to open once three things had held for
+60s each (replica stability on both deployments, NodePool stability, a warm-up interval) — not
+what `run-inference-point.py`'s actual `preflight()` checks: a single instant-in-time read of
+"replicas == floor right now," no duration requirement. Scaler and node convergence sit inside
+the point rather than before it, because both are part of what is being measured — true either
+way, designed or actual. The window runs 10 min at steady rate (`--duration` default,
+`run-inference-point.py:304`) and closes when the generator stops.
 
 The load generator runs **outside the VPC**, against the internet-facing NLB in front of
 `cilium-gateway` (`rag-platform`, `HTTPRoute api-route` → `api` Service), not through
@@ -53,17 +55,17 @@ run, not hardcoded: `kubectl get gateway cilium-gateway -n rag-platform -o
 jsonpath='{.status.addresses[0].value}'` (or the underlying Service's
 `.status.loadBalancer.ingress[0].hostname` if the Gateway status is unpopulated). Set it as
 `api.base_url` in `scripts/env.yaml` before the first point of a new cluster instantiation — this
-is exactly the kind of address `env.yaml` is for (`⟨cluster, not frozen⟩` per its own header) and
+is exactly the kind of address `env.yaml` is for (`"not frozen with any Plan and not cited by one"` per its own header) and
 needs no code change. Once `api.base_url` is a real reachable URL, drop `api.service`/`api.mapping`
 from `env.yaml` (or leave `service` unset) so `PortForwards` does not open an unused tunnel for it.
 
-**Points are spaced by convergence, not by the clock** (revised 2026-09-05 — see M9/M10 below).
+**Points are spaced by convergence, not by the clock** (revised 2026-09-05).
 Between points the generator stops and both deployments are allowed to return to their minimum
 replicas, so each point pays its own scale-out; that takes minutes, not an hour, and is the only
 hard spacing requirement. `01-ingestion/K6`'s one-per-clock-hour rule existed to keep CUR able to
 attribute cost to a single point — traded away deliberately here (no ingestion runs concurrently,
 so nothing else contends for the same window either way): points may share an hourly CUR bucket.
-`M9`/`M10` stop being CUR-sourced per point as a result — see below.
+`M9`/`M10` stop being CUR-sourced per point as a result — each point's own cost instead comes from `karpenter-cost-estimate.py`'s node-lifecycle reconstruction (§1 Metrics), with a campaign-level CUR cross-check once the whole sweep closes.
 
 No ingestion runs during this execution, except in the contention pass below.
 
@@ -87,14 +89,14 @@ are optional and gate one claim — whether the ceiling sits in embedding or in 
 | M8 | nodes on the serving pool, by capacity type | `kube_node_labels{label_karpenter_sh_nodepool="apps-serving"}`, split on `label_karpenter_sh_capacity_type` | confirmed 2026-09-02 | required · the pool is mixed Spot and On-Demand and the split is not optional · a node arriving mid-window means convergence was declared too early and the point is re-run · depends on `kube-state-metrics`' `--metric-labels-allowlist`, which was silently unset until fixed this session (`00-baseline/K3`) — re-check after any monitoring stack redeploy |
 | M9 | serving pool cost over the window | **per point**, same-day: `./scripts/karpenter-cost-estimate.py --nodepool apps-serving --start ⟨…⟩ --end ⟨…⟩` (node-lifecycle reconstruction — no CUR hour-alignment needed, works on an arbitrary sub-hour window). **Campaign-level cross-check**, once available: CUR 2.0 `line_item_unblended_cost` where `line_item_line_item_type='Usage'` and `resource_tags_user_tier='apps-serving'`, over whichever hourly buckets the campaign's points landed in — can no longer isolate one point once points share an hour (revised 2026-09-05, see Plan) | active (script), pending (CUR cross-check) | required for the campaign, blocks no point · gross, before the floor is removed · the script reports gross node cost only, same subtraction as `01-ingestion/M11` applies · mark each point's `M9` ᴰ until the CUR cross-check confirms it, same pattern `01-ingestion` used all the way to its own CUR pass |
 | M10 | pod-level split of M9 — api, tei, and capacity used by neither | CUR 2.0 split cost allocation columns only — `karpenter-cost-estimate.py` has no pod-level visibility, node cost only | **not attempted per point** (2026-09-05) | required for the campaign, not for any point · says which of the two deployments the marginal cost went to · deferred to the campaign's CUR pass, same as `01-ingestion/M12` was declared not attempted rather than blocking · if this matters before then, weighting each node's `M9` by its api/tei pods' CPU requests is the same allocation CUR's split-cost columns do — not built, would be new work → `01-ingestion/K5` |
-| M11 | TEI inference duration and queue depth | `te_request_inference_duration` · `te_queue_size` ⟨confirm⟩ | pending ServiceMonitor | optional · separates embedding time from retrieval time inside the p95 · a queue that grows while M7 is still climbing is scaler lag, not a capacity ceiling |
-| M12 | Qdrant search latency | ⟨confirm at `:6333/metrics`⟩ | **2026-09-02 scrape job added, not yet applied** | optional · earlier read of `GET :6333/metrics` looked empty, but that check grepped for a `qdrant_`/`process_*` prefix that was never confirmed against the real series names — inconclusive, not a confirmed disable · scraping here does not go through the `qdrant/qdrant` chart's own `metrics.serviceMonitor` toggle (chart default `false`) — this repo keeps scrapers centralized as raw `additionalScrapeConfigs` in `deploy/k8s/platform/monitoring/values/prometheus.yaml`, and a `qdrant` job already exists there (pod label `app.kubernetes.io/name=qdrant`, port `6333`) · re-check actual series names once a live cluster confirms the job resolves targets · the other half of the same split · also the second reading in the contention pass, where CPU headroom with latency rising points at page cache rather than cores |
-| R13 | run log — offered rate, UTC window, config commit, stub delay, convergence time, validity decision | emitted by `run-inference-point.py` into `./data/⟨point⟩.point.md` | active | the window is not recoverable afterwards, and the cost pass reads its windows from here |
-| R14 | saturation signal — which component sat at its ceiling | read in Grafana immediately after each point · ⟨who⟩ | active | candidates are TEI CPU, Go API CPU, Qdrant CPU or search latency, the scaler failing to converge, or the generator itself |
-| D15 | sustained rate | the highest swept rate holding p95 under ⟨200⟩ ms with M3 under ⟨0.1⟩ % and M1 matching the offered rate | active | the headline number of this execution → K3 |
+| M11 | TEI inference duration and queue depth | `te_request_inference_duration` · `te_queue_size` — metric names unconfirmed; TEI's own `/metrics` returns HTTP 200 with an empty body on this deployment, confirmed live, deeper than a missing scrape config | pending ServiceMonitor, blocked on the empty-body finding | optional · separates embedding time from retrieval time inside the p95 · a queue that grows while M7 is still climbing is scaler lag, not a capacity ceiling |
+| M12 | Qdrant search latency | real series names never confirmed against `:6333/metrics` | **2026-09-02 scrape job added, never applied — cluster torn down before a live check happened, permanently unconfirmed for this campaign** | optional · earlier read of `GET :6333/metrics` looked empty, but that check grepped for a `qdrant_`/`process_*` prefix that was never confirmed against the real series names — inconclusive, not a confirmed disable · scraping here does not go through the `qdrant/qdrant` chart's own `metrics.serviceMonitor` toggle (chart default `false`) — this repo keeps scrapers centralized as raw `additionalScrapeConfigs` in `deploy/k8s/platform/monitoring/values/prometheus.yaml`, and a `qdrant` job already exists there (pod label `app.kubernetes.io/name=qdrant`, port `6333`) · re-check actual series names once a live cluster confirms the job resolves targets · the other half of the same split · also the second reading in the contention pass, where CPU headroom with latency rising points at page cache rather than cores |
+| R13 | run log — offered rate, UTC window, config commit, stub delay, convergence time, validity decision | emitted by `run-inference-point.py` into `./data/⟨point⟩.point.md` — files exist for 4 of 5 real points (`r050` has none), but every one is still the unfilled script template (served rate, p95, error, cost, saturation signal all still blank); the real numbers live in this file's own Matrix and Notes instead, not in those files | active, but superseded in practice by this file | the window is not recoverable afterwards, and the cost pass reads its windows from here |
+| R14 | saturation signal — which component sat at its ceiling | read in Grafana immediately after each point · maksimillian1 | active | candidates are TEI CPU, Go API CPU, Qdrant CPU or search latency, the scaler failing to converge, or the generator itself |
+| D15 | sustained rate | the highest swept rate holding p95 at the converged floor (not rising with rate) with M3 under 0.1% and M1 matching the offered rate — the original draft's "under 200ms" is stale, predates the 2000ms Bedrock stub delay decision, and is impossible to meet under it (p95 floor is ~2425ms once converged); superseded by the actual criterion used in §3 | active | the headline number of this execution → K3 |
 | D16 | marginal `$/1k queries` | `(M9 − serving pool idle rate × window hours) ÷ queries_served × 1000`, idle rate from `00-baseline` §2 | active, inherits M9's ᴰ until the CUR cross-check | measured, because replicas and nodes move with the axis · the subtraction keeps the always-on minimum out of a marginal figure · at low rates it can round to zero, which is a finding rather than an error |
 | D17 | floor share per 1k queries at the sustained rate | `Block B ÷ (D15 × 3600 × 730) × 1000`, Block B from `00-baseline` §2 Floor | active | the other half of what a query costs, and the larger half at low volume · a best case: it assumes the tier runs at D15 continuously, and it grows inversely with utilisation |
-| E18 | `$/1k queries`, generation | ⟨n⟩ input and ⟨n⟩ output tokens × the Bedrock rate in `00-baseline` §2 | active | estimated, because the token count is assumed rather than swept and no run called Bedrock · reported beside D16 and D17, never added into either silently |
+| E18 | `$/1k queries`, generation | ~1800 input tokens (derived, not measured: `apps/api/core/llm.go`'s prompt template ~150 · 5 chunks × 300-token max each, `DEFAULT_MAX_TOKENS`, `apps/chunker/src/config.py:13` · `top_k: 5`, `load.js:67` · per-chunk formatting overhead ~100 · query ~20 — an upper bound, chunks rarely all hit the max) and up to 512 output tokens (`MaxGenLen`, `llm.go:101` — a cap, not an observed length) × the Bedrock rate in `00-baseline` §2 | active | estimated, because the token count is assumed rather than swept and no run called Bedrock · reported beside D16 and D17, never added into either silently |
 
 If M11 and M12 never land, the constraint is named at component granularity from M4 and M5, and
 the embedding-versus-retrieval split goes to report Coverage.
@@ -120,7 +122,7 @@ Prometheus-sourced and unaffected by hour-sharing. The contention pass point (in
 concurrently) still needs its own clean hour if a clean per-point CUR cost matters for it
 specifically — otherwise the same relaxation applies.
 
-A point is not trusted when M3 exceeds ⟨0.1⟩ %. Latency measured while requests are failing
+A point is not trusted when M3 exceeds 0.1% (`guards.txt` Q2: `max 0.001`, confirmed matching). Latency measured while requests are failing
 describes a system that is already broken.
 
 A point is re-run when M7 or M8 moved during the window. Convergence was declared too early, and
@@ -167,7 +169,7 @@ resolve to whichever group of points shares each hourly bucket, not to one point
 
 | # | Point | Rate | Window UTC | Commit | Converge | Replicas api / tei | Outcome | Signal | Exported | Cost read |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 01 | inference-r005 | 5 | ⟨HH:MM → HH:MM⟩ ᴿ | `⟨sha⟩` | ⟨s⟩ | ⟨⟩ / ⟨⟩ | ⟨ok · invalid, ⟨reason⟩⟩ | ⟨⟩ ᴿ | ⟨✓ · —⟩ | ⟨✓ · —⟩ |
+| 01 | inference-r005 | 5 | not run — bottom of the original grid; the swept grid started at r050 in practice | | | | | | | |
 | 02 | inference-r050 | 50 | 2026-09-05T12:58:01Z → 13:14:54Z | `4e15a2c` (dirty) | ~2min | 2 / 2→3 | ok, see Notes for a served-rate caveat | TEI dominant (~57% of limit), api/qdrant idle · M1-M3 unblocked here, see Notes | ✓ (10/10, re-exported) | ᴰ M9=$0.0747 gross, D16≈$0.0004/1k queries — see `./data/inference-r050.cost-estimate.json` |
 | 03 | inference-r200 | 200 | 2026-09-05T13:21:58Z → 13:39:24Z | `4e15a2c` (dirty) | ~2min | 2 / 2→7 | guard breach on error rate — real, see Notes | served ~192/200 rps (96%), p95≈2425ms, error 0.24% avg / ~4% peak | ✓ (10/10) | ᴰ M9=$0.1686 gross, D16≈$0.0009/1k queries — see `./data/inference-r200.cost-estimate.json` |
 | 04 | inference-r500 | 500 | 2026-09-05T13:53:36Z → 14:14:49Z | `4e15a2c` (dirty) | ~7min to 13 replicas | 2→3 / 2→16 | window-average looked like a collapse; **clean once TEI reached ~13 replicas** — convergence lag, not a ceiling, see Notes | ramp: p95 to 25.2s, 0-6.5% error · **steady (once tei≈13): p95 flat ~2425ms, error ~0%** | ✓ (10/10) | ᴰ M9=$0.3133 gross, D16≈$0.0009/1k queries |
@@ -255,8 +257,9 @@ repacking `apps-serving` as TEI scales, evicting a live pod mid-flight) — `M8`
 window would confirm if node churn lines up with the error timestamps; not pulled yet.
 
 Cost computed: `M9` gross $0.1686 (8 distinct `apps-serving` nodes across the window — heavy churn,
-same signature the error-rate investigation above flagged), net-of-floor $0.1031, `D16` ≈
-$0.00086/1k queries — about 2.3× `r050`'s figure despite queries served being ~4× higher. Cost
+same signature the error-rate investigation above flagged), net-of-floor $0.1079 (revised
+2026-09-09, corrected floor rate — see §3 Matrix note), `D16` ≈ $0.00090/1k queries — about 1.7×
+`r050`'s figure despite queries served being ~4× higher. Cost
 didn't scale down proportionally with rate the way `r050`'s near-zero `D16` might have predicted;
 node churn overhead, not TEI itself getting proportionally pricier, is the likely reason (same
 churn the 5xx investigation above couldn't fully pin down either) — worth watching whether this
@@ -379,12 +382,12 @@ story is in the latency/error columns, not the marginal dollar figure.
 
 ### Close
 
-- [ ] Saturation identified, or headroom confirmed at the top of the grid.
+- [x] Saturation identified, or headroom confirmed at the top of the grid — none found by resource signature (§3 Saturation): `tei-embeddings` CPU saturates during a ramp but self-resolves once KEDA converges, not a standing ceiling; no rate up to 1000 req/s found a real one.
 - [x] Cost pass run at least 48 h after the last point (2026-09-07) — first real CUR read for this execution (was provisional-only before). Campaign-level only, not per-point (points share hourly buckets by design). Found a real gap: NAT was never priced per-point, real cost is 5-12x the provisional `D16` figures — see Matrix's Cost-at-sustained-rate section. Re-run after the month closes still open.
 - [ ] Contention pass run at the point nearest D15.
 - [ ] Convergence time recorded at every point, and compared against the window length.
 - [ ] Every figure in §3 marked: unmarked · ᴰ · ᴿ · ᴱ.
-- [ ] Outcome compared against Expected in Retro, inversion included.
+- [x] Outcome compared against Expected in Retro, inversion included — see Retro's first bullet below.
 
 ---
 
@@ -406,15 +409,30 @@ confirmed steady-state numbers (~2425ms p95, ~0% error at both, once converged; 
 
 | Run | Offered req/s | Served req/s | api / tei replicas | Converge | p50 ms | p95 ms | p99 ms | Error % | Serving $ (net) | $/1k queries | Saturation signal |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| #02 | 50 | 45.5 (91%) | 2 / 3 | not timed ᴱ, window avg already clean | 1672 | 2418 | — | 0% | $0.0112 | $0.00038 | none |
-| #03 | 200 | 192.5 (96%) | 2 / 7 | not timed ᴱ, window avg already clean | 1750 | 2425 | — | 0.24% avg / 4.0% peak | $0.1031 | $0.00086 | none |
-| #05 | 300 | 296.4 (99%) | 3 / 11 | not timed ᴱ, window avg already clean | 1749 | 2425 | — | 0.20% avg / 2.75% peak | $0.1098 | $0.00061 | none |
-| #04 | 500 | 398.7 (80%, window avg) | 3 / 16 | **~7 min to 13 replicas** ᴿ, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / **~0% once converged** | $0.2335 | $0.00087 | scale-out lag, not a ceiling |
-| #06 | 1000 | 828.3 (83%, window avg) | 6 / 30 | **~4 min to 30 replicas** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / **~0% once converged** | $0.4084 | $0.00072 | scale-out lag, not a ceiling |
+| #02 | 50 | 45.5 (91%) | 2 / 3 | not timed ᴱ, window avg already clean | 1672 | 2418 | — | 0% | $0.0159 | $0.00054 | none |
+| #03 | 200 | 192.5 (96%) | 2 / 7 | not timed ᴱ, window avg already clean | 1750 | 2425 | — | 0.24% avg / 4.0% peak | $0.1079 | $0.00090 | none |
+| #05 | 300 | 296.4 (99%) | 3 / 11 | not timed ᴱ, window avg already clean | 1749 | 2425 | — | 0.20% avg / 2.75% peak | $0.1148 | $0.00064 | none |
+| #04 | 500 | 398.7 (80%, window avg) | 3 / 16 | **~7 min to 13 replicas** ᴿ, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / **~0% once converged** | $0.2394 | $0.00089 | scale-out lag, not a ceiling |
+| #06 | 1000 | 828.3 (83%, window avg) | 6 / 30 | **~4 min to 30 replicas** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / **~0% once converged** | $0.4151 | $0.00073 | scale-out lag, not a ceiling |
 
 `Replicas` is M7 peak, an outcome not a setting → K2. `Serving $` is M9 net of the `00-baseline`
-floor rate ($0.2256/h, itself a single non-diurnal hour — see `00-baseline` Floor notes). `$/1k
-queries` is D16, excludes generation. Convergence time was recorded for exactly the two points
+floor rate — **$0.20892/h ᴿ ⚠ provisional, revised 2026-09-09** (was `$0.2256/h`: `00-baseline`
+found that figure wrongly extrapolated `apps-serving`'s regional data-transfer *cost* ×730 as if
+it were a flat hourly rate, when it's a per-GB usage charge; corrected floor is compute+EBS only).
+Still provisional, not settled: `00-baseline` separately found its capture hour wasn't steady
+idle at all (0 EC2 instances the hour before, 11 joining during the captured hour — a bootstrap
+event, not a rest state), which understates any node-pool's compute line the same naive way the
+transfer line was understated — confirmed and fixed for `core-on-demand`/`database-on-demand`
+(both moved 30-55%), but `apps-serving` itself couldn't be cleanly fixed the same way (four
+different, transiently-churning Spot instance types this hour, no clean steady-state rate to
+recover from one contaminated hour — see `00-baseline` Floor notes). So this floor rate is likely
+still understated, direction known, magnitude not: every `Serving $ (net)`/`$/1k queries` figure
+below is a floor on the true marginal cost, not a settled reading. All five were recomputed
+against the corrected-but-still-provisional rate — every value moved up slightly (less floor
+subtracted), none by more than ~40% relative and none changing by more than $0.0005/1k queries in
+absolute terms; no saturation/latency finding in this doc depended on the old numbers, only the
+cost column itself. Itself a single non-diurnal hour either way — see `00-baseline` Floor notes.
+`$/1k queries` is D16, excludes generation. Convergence time was recorded for exactly the two points
 where it mattered (`r500`, `r1000`) — the Close checklist item asking for it "at every point" is
 only partly done; the other three never needed the question asked of them since their window
 averages were already clean throughout.
@@ -443,11 +461,12 @@ synthesized placeholder, not an LLM completion) → K1.
 - **Raw data** — no `./data/frontier.csv` and no `plot-rate.py` exist — the Matrix above is built
   directly from each point's `.jsonl`; chart by hand or from the table above
 
-**Cost at the sustained rate** — D16 at r1000 (the top of the tested range) = $0.00072/1k
-queries, D17 (floor share) and E18 (generation, estimated) not computed here — see `report.md`
-§4.2 for where they'd land. `D16` stays in a narrow $0.0004–0.0009 band across every rate tested
-— cost tracks node-hours roughly proportionally with rate, so it does not itself flag the
-convergence-lag finding above; latency/error columns are the only place that shows up.
+**Cost at the sustained rate** — D16 at r1000 (the top of the tested range) = $0.00073/1k
+queries (revised 2026-09-09, corrected floor rate — see §3 Matrix note), D17 (floor share) and
+E18 (generation, estimated) not computed here — see `report.md` §4.2 for where they'd land. `D16`
+stays in a narrow $0.0005–0.0009 band across every rate tested — cost tracks node-hours roughly
+proportionally with rate, so it does not itself flag the convergence-lag finding above;
+latency/error columns are the only place that shows up.
 
 **CUR campaign-level cross-check, pulled 2026-09-07 (>48h after the last point) — the per-point
 `D16` figures above understate the real cost, badly.** Every point's own `Serving $` in the
@@ -464,7 +483,8 @@ campaign-level, not per-point, same tradeoff the revised Plan already accepted):
 | Total queries served, all 5 points | 1,166,534 |
 | **Real campaign `$/1k queries`** | **$0.00457** |
 
-That's **5–12× every individual point's provisional `D16`** ($0.00038–$0.00087). Two things
+That's **5–8.5× every individual point's provisional `D16`** ($0.00054–$0.00090, revised
+2026-09-09 — see §3 Matrix note). Two things
 neither `karpenter-cost-estimate.py` nor any single point's own window ever captured: NAT
 entirely (same blind spot `01-ingestion` found and fixed for itself, never ported over here), and
 the floor/settle cost *between* points — five narrow point-windows summed to far less wall-clock
@@ -478,7 +498,7 @@ nor their sum, should be read as the real cost of running this campaign.
 ### Contention pass
 
 Not attempted this campaign — see `report.md` Coverage, which already marks this
-"⟨measured · declared, not measured⟩" for v1.0. Cluster was torn down before this was run.
+"declared, not measured" for v1.0. Cluster was torn down before this was run.
 Repeat the point nearest D15 with ingestion running at the `01-ingestion` guardrail value
 (N=50, per that execution's Guardrails). Qdrant serves both paths from one node and one process,
 and TEI serves both from one deployment, so a query run against an idle ingestion path measures a
@@ -557,7 +577,7 @@ section's evidence bullet, not in a named bottlenecked component.
   threshold tuned against mock data doesn't transfer to production traffic without at least one
   real-Bedrock calibration point, which this campaign never took (see the session's readiness
   assessment)
-- **Backfill `maxReplicaCount`** — not set. Contention pass never ran (see above) — nothing to
+- **Backfill `maxReplicaCount`** — not set. Contention pass never ran — cluster was torn down before it was scheduled — nothing to
   base this on
 
 Every guardrail in this list that would normally carry a number instead carries the reason it

@@ -2,9 +2,9 @@
 
 - **Why this execution exists** — how throughput and unit cost respond to ingestion concurrency on a Spot pool that scales to zero: how do we configure it?
 - **Produces** — the efficiency frontier, the constraint ladder, and the marginal cost per document that report §4 cannot compute itself
-- **Expected** — recorded ⟨date⟩, before the first run. Tier 1 is the Stage-1 chunker, not TEI. PyMuPDF extraction is single-threaded CPU work and may dominate embedding time by an order of magnitude, while the original design assumed inference would saturate first. Corollary: the unit-cost minimum sits below the throughput knee, driven by warm-up share rather than by any component ceiling
+- **Expected** — recorded 2026-08-31, before the first run (`git log -S`, commit `bafdc1f`). Tier 1 is the Stage-1 chunker, not TEI. PyMuPDF extraction is single-threaded CPU work and may dominate embedding time by an order of magnitude, while the original design assumed inference would saturate first. Corollary: the unit-cost minimum sits below the throughput knee, driven by warm-up share rather than by any component ceiling
 - **Status** — running
-- **Plan frozen** — ⟨date⟩ · commit `⟨sha⟩`
+- **Plan frozen** — 2026-08-31 · commit `bafdc1f`
 - **Givens** — `00-baseline` §2, cited from there
 
 ---
@@ -13,24 +13,24 @@
 
 ### Axis
 
-- **Varied parameter** — KEDA `maxReplicaCount` (N), one value on both ScaledJobs, in `deploy/k8s/apps/⟨…⟩/scaledjob.yaml`. Fixing one stage while sweeping the other makes the fixed stage the ceiling by construction, and the hypothesis names a stage. The split between them comes from M6 → K7
+- **Varied parameter** — KEDA `maxReplicaCount` (N), one value on both ScaledJobs, in `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`. Fixing one stage while sweeping the other makes the fixed stage the ceiling by construction, and the hypothesis names a stage. The split between them comes from M6 → K7
 - **Candidate grid** — N ∈ {4, 24, 50, 100, 125, 175}, revised from the original {4,8,12,16,20,24} — `ingestion-n50-test` (§2 Journal) showed indexer still at its full N=50 ceiling with no plateau (M5: 50/50 concurrent, vs. chunker's 20/50), meaning the original top of 24 would never have found indexer's real knee. Ceiling raised to 175 against the new Spot quota (192, up from 96) with headroom left for TEI
 - **Sweep order** — coarse to fine: {4, 50, 175}, then refinement points placed by the shape those three produce (`methodology.md` §7). `ingestion-n50-test` already covers the N=50 point
 - **Held constant** — image digests, corpus (`zabiullah/pdf-books-collection`, **stratified 100-file / 1.38 GB sample**, drawn from the full 1,041-PDF / 14.52 GB set — see Notes), Qdrant collection config, instance types, the TEI trigger, and every row of `00-baseline` §2 Configuration freeze. The config commit moves between points: the swept value lives in Git
 - **Not held constant, and measured instead** — TEI replicas. The indexer drives the same autoscaler the query path drives, so TEI scales during a run and its cost above the two-replica floor belongs to this execution → K5
 - **Reset between points** — both queues at zero, `apps-compute` at zero nodes, TEI back at 2 replicas, collection recreated
-- **Conditions carried to report §2** — bulk-drop arrival, worker packing density of ≈ ⟨n⟩ per node → K2, and the TEI trigger frozen in `00-baseline` §2
+- **Conditions carried to report §2** — bulk-drop arrival, worker packing density of ≈ 3–14 indexer pods per node (computed from frozen requests — `cpu 500m/mem 2Gi` against `c7g.xlarge`/`2xlarge`/`4xlarge` allocatable, memory-bound in every size; never observed live, `apps-compute`'s actual size mix per point wasn't captured) → K2, and the TEI trigger frozen in `00-baseline` §2
 
 ### Window
 
 - **Opens** — first `s3:ObjectCreated`, from the marker the upload script writes · recorded by `run-ingestion-point.py --start-marker`. Upload is outside the system under test
-- **Closes** — `apps-compute` at zero nodes **and** TEI back at 2 replicas, plus ⟨5⟩ min. Not at queue drain → K1
+- **Closes** — `apps-compute` at zero nodes **and** TEI back at 2 replicas, plus 5 min (`BUFFER_SECONDS = 300`, `run-ingestion-point.py:75`). Not at queue drain → K1
 - **Spacing** — one point per clock hour → K6
 - **Excluded from the window** — query load. TEI is shared, and its scale-out would be priced in two executions at once → K5
 
 ### Metrics
 
-The register is in `./metrics.md`. PromQL for M1–M9 is in `./data/series.txt` and `./data/guards.txt`, confirmed names only, dry run clean ⟨date⟩.
+The register is in `./metrics.md`. PromQL for M1–M9 is in `./data/series.txt` and `./data/guards.txt`, confirmed names only, dry run clean 2026-09-01 (`ingestion-n50-test`).
 
 ### Validity
 
@@ -97,8 +97,8 @@ before the figures land in `./data/frontier.csv`.
 
 | #  | Point              | Window UTC | Commit | Outcome | Signal | Exported | Cost read |
 |:---|:-------------------| :--- | :--- | :--- | :--- | :--- | :--- |
-| 01 | ingestion-n04      | ⟨HH:MM → HH:MM⟩ ᴿ | `⟨sha⟩` | ⟨ok · aborted, ⟨reason⟩ · invalid, ⟨reason⟩⟩ | ⟨component at its ceiling · headroom⟩ ᴿ | ⟨✓ · —⟩ | ⟨✓ · —⟩ |
-| 02 | ingestion-n24      | | | | | | |
+| 01 | ingestion-n04      | not run — original grid's low end, before the plan was revised to the 10/25/50/75/100/125 grid actually swept | | | | | |
+| 02 | ingestion-n24      | not run — same reason as `n04` | | | | | |
 | 03 | ingestion-n50-test | 2026-09-01T12:51:46Z → 13:43:14Z | `cacb7f5` (dirty) | ok — see Notes for the two node-loss warnings, reclassified benign | indexer at ceiling, M5 50/50 concurrent · chunker headroom, 20/50 ᴿ | ✓ (recovered by hand, `export-metrics.py --force`) | — |
 | 04a | ingestion-n100-sticky | 2026-09-03T15:19:31Z → 15:57:48Z | `9c280655cea7` | superseded — sticky TEI routing, see Notes; re-run after fix | indexer at N ceiling (M5 100/100) but M6=0.146, not CPU-bound ᴱ | ✓ (8/9, M8 gap) | — |
 | 04 | ingestion-n100     | 2026-09-03T16:24:23Z → 17:05:31Z | `cfa0ab7` (dirty) | ok — post-fix, see Notes for the wall-clock/cost nuance | indexer at N ceiling, M5 100/100 · chunker headroom 20/100 · TEI peak ~23 replicas ᴿ | ✓ (8/9, M8 gap — same GC-race as n100-sticky) | — |
@@ -126,7 +126,13 @@ impractical. 100-file / 1.38 GB sample (~9.5%), stratified over 10 size deciles 
 the size-mix driving PyMuPDF time matches the full corpus (13.77 MB/file mean vs. 13.96 MB).
 Manifest: `../../../../tmp/ingest-sample-manifest.tsv` · files: `tmp/ingest-sample/` (untracked).
 
-**Decision after the coarse pass** — ⟨which two refinement points, and the shape that placed them⟩
+**Decision after the coarse pass** — no clean "coarse pass, then two refinement points" happened.
+`n50-test` (off-plan, validation) came back clean and was kept as a real point; `n100` followed,
+then `n125` (top of grid). The downward-sloping cost trend from `n100`→`n125` motivated one
+off-plan refinement point, `n75`, to see the shape between them — not two points chosen from a
+plan, one point added live off a trend nobody had predicted. `n25` and `n10` followed later for
+different reasons (closing the low end, then reloading Qdrant for `02-inference`), not as planned
+refinement either. See the Run ledger and each point's own Notes for why each one actually happened.
 
 **#03 ingestion-n50-test** — run off-plan (N=50 wasn't in the original grid) to validate the
 automation end-to-end before the real sweep; kept as a real grid point after the fact since it
@@ -437,17 +443,17 @@ manual (download + Qdrant's snapshot-recovery API), not scripted — noted, not 
 
 ### Close
 
-- [ ] Saturation identified, or headroom confirmed at the top of the grid.
+- [x] Saturation identified, or headroom confirmed at the top of the grid — none found by resource signature (§3 Saturation): the real constraint is architectural (indexer's sequential one-in-flight-TEI design), and N reached tracked N set exactly through N=125 with no sign of flattening.
 - [x] Cost pass run at least 48 h after the last point (2026-09-07) — unchanged for N=25/50/75/125, first real read for N=10. Re-run after the month closes still open.
-- [ ] M12 decomposition present, or the per-component split declared not made.
+- [x] M12 decomposition present (2026-09-09, see §3 M12 table) — split-cost data for every point's own hour bucket, pulled directly from the CUR parquet. Covers the EKS instance-hour slice only, not the full `$/run`; D28/D29 still declared not made for their own separate reasons (see §3).
 - [ ] TEI peak replicas recorded at every point, and D23 computed or declared zero.
 - [x] `M14` re-pulled with both `AWS/NATGateway` byte-direction legs, then superseded entirely by real CUR actuals (2026-09-05) — see Notes under #08.
 - [ ] CUR-based `D23` (TEI above floor, net) — the CUR pull above reports `apps-serving` gross per hour but doesn't yet net out the two-replica floor rate; same open item as the CloudWatch-based estimate, not yet solved by switching to CUR.
 - [x] Re-checked the CUR pull after 48h (2026-09-07) — N=25/50/75/125 unchanged from the ~24h read, no credits/true-ups moved anything.
 - [ ] M18 read at the highest-N point and compared against D30, or the comparison declared not made.
-- [ ] Collection point count written back into `00-baseline` §2 Envelope.
+- [x] Collection point count written back into `00-baseline` §2 Envelope — 84,018, done 2026-09-09.
 - [ ] Every figure in §3 marked: unmarked · ᴰ · ᴿ · ᴱ.
-- [ ] Outcome compared against Expected in Retro, inversion included.
+- [x] Outcome compared against Expected in Retro, inversion included — see Retro's first bullet below.
 
 ---
 
@@ -480,43 +486,104 @@ checklist) — marked ᴰ throughout, not ᴿ; not available at all for N=10.
 | #06 | 75 | 40.5 (75) | 16 | 2.33 | 42.9 min | $1.54 | $0.35 ᴰ | $4.10 | $5.99 | $59,896 | none — the "waste boundary": +35% cost for +2.6% docs/min over N=50 |
 | #05 | 125 | 63.5 (125) | 26 | 2.60 | 38.5 min | $2.01 | $0.50 ᴰ | $5.99 | $8.50 | $84,999 | none |
 
-N=10 (#10) is still flagged non-standard for a different reason now: it has a real CUR cost, but
-it's the outlier that breaks the otherwise-clean monotonic N-vs-cost trend — $41,624 sits right
-next to N=50's $44,200, not below N=25's $24,750 the way the throughput trend alone would
-predict. Most likely explanation: the script's own timeout and the ~2h12m manual-recovery wall
-time (4× any other point) inflated NAT/baseline exposure over far more clock-hours than a clean
-N=10 run would need — this reads as "N=10 run inefficiently," not "N=10 is fundamentally not
-cheap." A clean re-run of N=10 (not attempted — cluster is gone) would be needed to settle which.
+N=10 (#10) breaks the otherwise-clean monotonic N-vs-cost trend — $41,624 sits right next to
+N=50's $44,200, not below N=25's $24,750 the way the throughput trend alone would predict — but
+the earlier read of *why* was wrong. It wasn't the script's timeout or the manual recovery that
+inflated the number: re-pulled NAT directly (2026-09-09, `./data/nat-by-window.json`), split by
+`Hours` (the flat per-hour NAT Gateway charge) vs. `Bytes` (data processing, ~98% of the total).
+Two honest denominators exist and they disagree on the fine-grained ordering — CUR is hourly
+(`00-baseline` already flags this as the floor of its own resolution), so dividing a bucketed cost
+by the *number of hour-buckets touched* (N=10: $0.87/h) vs. by the run's *actual* wall time (N=10:
+$1.18/h) gives different answers for whether N=10 sits above or below N=25 ($0.72/h vs. $1.39/h
+the same two ways) — not resolvable more precisely than that from this data. What **does** survive
+both conventions: N=10 and N=25 sit in the same order of magnitude either way (0.7–1.4), nothing
+like N=125's 5.99–9.36 — the actual "just-bootstrapped, many nodes churning" signature, present
+only on the day's *first* point and scaling with N (more concurrent chunker/indexer pods → more
+net-new `apps-compute` nodes → more image-pull bytes), not with cluster freshness alone. N=10 ran
+on a literally fresh cluster and still shows none of that signature — consistent with its low N
+needing few new nodes. N=10's *total* NAT ($2.61) is real and ~1.8x N=25's ($1.44), but that tracks its ~2.1x longer actual duration
+(2.207h vs. 1.029h) at a comparable-or-lower rate, not an elevated one. And the SQS-drain evidence
+in this run's own Notes above (709 → 639 over the 15 min around the timeout) already showed real,
+ongoing work at the moment the script gave up — not a stall the manual recovery had to rescue. Put
+together: N=10 really is just slow (0.76 docs/min, the lowest of any point, because only 3 TEI
+replicas ever justified themselves at this concurrency), and every fixed per-hour cost — NAT, the
+serving-pool floor, baseline compute — keeps accruing for as long as that takes. The 2h12m wall
+time is what a clean N=10 point plausibly costs, not an obviously corrupted read of one — though
+with only one N=10 run ever taken, "plausibly" is as far as this data can honestly go; a second,
+independent N=10 run (not attempted — cluster is gone) is what would turn this into a confirmed
+reading rather than the best available one.
 
 - **Knee** — N=50, the last point with a meaningful docs/min gain (25→50: +40%; 50→75: only
   +2.6%). Threshold used: 10% docs/min gain per step
-- **Sweet spot** — N=25, the minimum `$/1M docs` ($24,750) among the four points with a clean
-  cost read. N=10's real cost ($41,624) doesn't unseat it, but doesn't confirm it either — see the
-  non-standard-run caveat above; a genuinely clean point below N=25 is still untested. Landing on the
-  lowest N swept (excluding the non-standard N=10) is exactly the case `methodology.md` §7 flags
-  as unproven — the true minimum may sit below 25, untested
+- **Sweet spot** — N=25, the minimum `$/1M docs` ($24,750) among all five points, N=10 included —
+  N=10's real cost ($41,624) doesn't unseat it: it's *higher* than N=25, not lower, and the NAT
+  re-check above says that's a real reading of N=10's own economics (low throughput keeps the
+  fixed per-hour costs on the clock longer), not a corrupted one. Landing on the lowest N swept is
+  exactly the case `methodology.md` §7 flags as unproven either way — the true minimum could sit
+  below 25 (untested) or N=10 could already be past it and rising, which is what its real number
+  now suggests
 - **Waste boundary** — N=75, where `$/run` rises 35% for a 2.6% docs/min gain over N=50 — the
   single clearest example of the cost curve decoupling from throughput in this campaign
 - **Gap cost** — $19,450 extra per 1M docs paid running at the knee (N=50, $44,200) instead of
   the sweet spot (N=25, $24,750) → report §3.3
-- **Reference value** — no pre-sweep default `maxReplicaCount` was ever frozen for this parameter — this is the first exploration of it, so there is nothing to compare against here. Fargate equivalent (D29): not computed, see below
+- **Reference value** — no pre-sweep default `maxReplicaCount` was ever frozen for this parameter — this is the first exploration of it, so there is nothing to compare against here. Fargate equivalent (D29): not computed — rate card exists now, pod-hours don't, see §3 D29 for why
 - **Condition boundary** — `00-baseline` §2 Envelope, plus packing density, bulk-drop arrival and the TEI trigger
 - **Raw data** — no `./data/frontier.csv` was written and no `plot-frontier.py` exists — the Matrix above is built directly from each point's `.jsonl`/`.cost-estimate.json`; chart by hand from those, or from the table above, before this execution closes
 
-**Warm-up and unused capacity** — D26 declared not made. It needs `M12` (CUR split-cost
-allocation, `split_line_item_unused_cost`), which was never pulled — the CUR reads this campaign
-used grouped by `resource_tags`, not by the split-cost-allocation columns proper. The closest
-proxy actually collected is `N reached` vs `N set` in the Matrix above (indexer ran at a
-time-weighted mean of 50–65% of its peak across every point) — a real signal that a large share
-of every window is ramp/drain, not steady throughput, but not the same measurement D26 asks for.
+### M12 — split-cost decomposition by workload
 
-**Marginal decomposition** — D27 and amortization D28 both declared not made, same reason as
-D26 (both are `M12` splits).
+Pulled 2026-09-09, months after the window closed but from the same historical CUR parquet — the
+`M12` blocker in every earlier pass of this doc was never a data-availability problem, it was
+that nobody had gone and read `split_line_item_*` directly. All five points' hour buckets are
+still inside the export (ordinary CUR rows currently reach 2026-09-09; non-zero split rows stop
+at 2026-09-05T16:00Z, which covers every `01-ingestion` point with room to spare). Full detail →
+`./data/m12-eks-split.json`.
 
-**Fargate equivalent** — D29 declared not made. Its formula needs pod-hours "behind M12" — same
-blocker. A rough substitute (frozen worker resource requests × wall time, ignoring the
-per-task-microVM and cold-start effects the definition itself says only push the real number
-higher) was not attempted rather than published as if it were the real thing.
+**Scope caveat, applies to the whole table** — this is the EKS split-cost-allocation slice only:
+each pod's share of `AmazonEC2`/`AmazonEKS` instance vCPU+GB-hours, apportioned by resource
+request. It does not include NAT, gp3 volumes, the load balancer, or anything else non-instance-hour
+— so these rows do not sum to the Matrix's `$/run` above, and aren't meant to. `unused` is
+EKS-fleet-wide (every node in the cluster, not just this project's pods) — provisioned instance
+capacity no pod's request-share claimed that hour.
+
+| N | tei-embeddings | indexer | qdrant | api | chunker | **workload total** | unused (fleet-wide) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 10  | $0.4841 | $0.3405 | $0.3031 | $0.0317 | $0.0034 | **$1.1628** | $1.8478 |
+| 25  | $0.3256 | $0.2574 | $0.2021 | $0.0217 | $0.0021 | **$0.8090** | $1.4787 |
+| 50  | $0.2734 | $0.2660 | $0.1010 | $0.0108 | $0.0017 | **$0.6529** | $1.1984 |
+| 75  | $0.3524 | $0.3018 | $0.1010 | $0.0116 | $0.0020 | **$0.7688** | $1.4556 |
+| 125 | $0.4438 | $0.3971 | $0.1010 | $0.0109 | $0.0018 | **$0.9547** | $1.8123 |
+
+Reads consistently with everything else in this doc rather than against it: `tei-embeddings` and
+`indexer` are always the two real costs (chunker's share stays near-zero at every N, the same
+signature that put it outside Tier 1 saturation — it's cheap *and* uncontended); `api` barely
+moves, matching "never stressed" in Saturation below; `qdrant`'s per-point share roughly tracks
+wall time more than N (both replicas are always up regardless of load, so a longer window buys
+more of their fixed cost — visible directly in n10's $0.30 against n50/n75/n125's flat ~$0.10).
+
+**D26 — warm-up and unused capacity**: real numbers now exist (`unused` column above) where the
+doc previously had none. Still not resolved into a formula, because `D26` itself was never
+formally defined beyond its name ("warm-up and unused capacity") anywhere in this doc or
+`report.md` — same gap `D30` already had. The raw signal is there if a definition gets written:
+`unused` tracks wall time close to 1:1 with `qdrant`'s pattern above (both are fleet-idle-capacity
+effects), not with N.
+
+**D27 — marginal decomposition**: partially answered by the table above — a real per-workload
+split of the EKS instance-hour slice — but not the full decomposition the name implies, since NAT
+and the other non-instance-hour lines (the majority of `$/run` at every N — compare `$0.95` of
+EKS split cost against n125's `$8.50` `$/run`) are still outside it. Call this "answered for
+compute, not for the run."
+
+**D28 — amortization**: still declared not made. `M12` alone doesn't resolve it — needs a stated
+amortization horizon (this doc never fixed one), not just a cost split.
+
+**D29 — Fargate equivalent**: still declared not made. The rate half of the blocker is gone —
+`00-baseline`'s `./data/price-2026-09-09.json` now has a real `eu-central-1` Fargate rate
+($0.04656/vCPU-hour, $0.00511/GB-hour). The pod-hours half isn't: `M12` gives dollars per
+workload, not raw CPU/mem-second pod-hours, and the Matrix's `N reached` column is indexer's
+time-weighted concurrency only — chunker's own (qualitatively "headroom", never a precise
+time-weighted mean) isn't in this doc anywhere. Computing D29 now would mean guessing chunker's
+average concurrency; not done for that reason.
 
 **Sizing check** — D30 against M18: not made. `D30` itself was never defined anywhere in
 `00-baseline` or `report.md` — nothing exists to compare `M18` against. `M18` itself was captured
@@ -573,6 +640,9 @@ Rows whose source number does not survive the runs are deleted, not left blank.
 - **What should have been caught before the first run** — the plan's own `§1 Expected` bet on a U-shaped cost curve; nothing in `§1 Validity` would have caught "no U-shape appears" as an anomaly, because it isn't one — it's a real, valid finding the template just didn't anticipate. Nothing to fix in Validity; the gap is in Saturation's template shape, noted below
 - **Concurrency delivered** — yes, cleanly: M5 (peak) matched N set exactly at all five points, N=10 through 125. The Spot pool never capped the top of the tested range — headroom for N>125 was never exhausted, it was simply never tested (N=175 dropped from the plan once the cost trend proved monotonic downward, see Notes #08)
 - **TEI response** — yes: TEI peak replicas scaled from 3 (N=10) to 26 (N=125), a roughly linear response to N, and its `D23` share of `$/run` grew with it in the same direction (though `D23` itself is still the unresolved rough estimate, not CUR-confirmed)
-- **Attribution** — mostly: `M9`/compute resolved to tagged CUR rows for four of five points (N=25/50/75/125 — N=10 fell outside the CUR window pulled). Split cost allocation (`M12`) was never actually used — this campaign's CUR reads used `resource_tags` grouping instead, which answers "compute vs. serving vs. NAT" but not "chunker vs. indexer vs. unused capacity" — a real, acknowledged gap, not a silent one
-- **Month-close revision** — not yet checked. The CUR pull behind the Matrix above is ~24h old at time of writing, not the 48h the Close checklist asks for, and the month hasn't closed. Flagged in the Matrix header; re-check needed before these figures are treated as final
+- **Attribution** — good: `M9`/compute resolved to tagged CUR rows for all five points (N=10's own CUR read landed 2026-09-07, after the others). Split cost allocation (`M12`) is now pulled too (2026-09-09, §3) — answers "chunker vs. indexer vs. unused capacity" for the EKS instance-hour slice specifically, on top of `resource_tags`' "compute vs. serving vs. NAT." The earlier framing here ("M12 was never actually used," implying it couldn't be) was wrong — it was available the whole time, just never queried; corrected once actually checked
+- **Month-close revision** — the 48h re-check is done (2026-09-07, Close checklist above):
+  unchanged for N=25/50/75/125, first real read for N=10. Still open: the *month*-close
+  re-check — September hasn't closed yet, so a credit or true-up landing later this month
+  wouldn't show up in either CUR read so far
 - **Back into the kit** — the Saturation template (§3) asks for M6-at-frozen-limit as the evidence field; it has no slot for a constraint with no resource-ceiling signature. This campaign needed to write the real finding in Retro prose instead of in Saturation because the template assumed the wrong shape. Add a second Saturation evidence type — "no component pegged, but the D-series unit-cost curve is monotonic across the swept range" — so the next execution that hits this doesn't have to route around the template
