@@ -28,7 +28,7 @@ An open-loop generator past capacity queues its own excess, and the measured p95
 run length rather than describing the system. The sweep climbs from below and stops at the last
 rate holding the target, guarded by served rate matching offered and errors near zero.
 
-*Overload is a different question — served rate and status codes, not a percentile.*
+*Overload is a different question, answered by served rate and status codes rather than a percentile.*
 
 **Consequence** — where the grid stops, and why no throughput figure here is quoted without its
 latency condition.

@@ -1,0 +1,23 @@
+# Tech debt
+
+Changes that need a live cluster to test. Numbers come from `docs/report/executions/`; the
+multi-tenancy scope is tracked separately in `adr/0013-single-tenant-isolation-scope-tech-debt.md`.
+
+## Platform
+
+| # | Task | Why | Evidence | How to verify |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | Upgrade ArgoCD to the latest release: chart `argo-cd` 7.0.0 (v2.11.2) → 10.9.0 (v3.5.2), `argocd-image-updater` 0.11.x → 1.3.1 (v1.3.0). Both are major upgrades: read the upgrade notes first. Then enable `argocd.argoproj.io/compare-options: ServerSideDiff=true` | self-heal loop at rest: $65.81/month cross-AZ + $9.05/month T3 CPU credits. `ServerSideApply` runs with a client-side diff because the `ServerSideDiff` fix panicked on gitops-engine v0.7.1 | `00-baseline` Floor; `00-baseline/data/argocd-loop-probe-2026-09-04T1830.txt`; comment in `deploy/k8s/apps-applicationset.yaml` | at rest: no repeating "Initiating automated sync" in `argocd-application-controller` logs, `applications PATCH` near 0/s, core cross-AZ near 0.9 GiB/h |
+| 2 | Keep `argocd-application-controller` and `argocd-repo-server` in one AZ (pod affinity) | the controller pulls full manifests from repo-server on every comparison (`prometheus-stack` with CRDs is 3.98 MB) | same | cross-AZ bytes on core nodes |
+| 3 | Next launch and teardown checks | `scripts/teardown-cluster.sh` rewritten, never run: every launch used to leave 2 × 50 GB Qdrant + 2 × 10 GB monitoring volumes ($75.35 spent 08-01 → 09-11). EKS control-plane logging switched off in Terraform ($100.96/month at rest) | `00-baseline` Floor | after `terraform apply`: no `/aws/eks/<cluster>/cluster` log group; after teardown: `aws ec2 describe-volumes --filters Name=status,Values=available` returns nothing |
+| 4 | Revert TEI requests to `cpu 3 / limit 4` | HEAD has 6/8 from the r1000 test (`1ef1f0a`); the CPU limit was not the scaling lever, and a 6-CPU request rules out xlarge serving nodes | `02-inference` Saturation; `00-baseline` Configuration freeze (3/4) | r1000 converges to the same p95 (~2425 ms) |
+| 5 | Right-size the floor, HA topology unchanged: database 2 × c7g.large, serving 2 × c7i-flex.xlarge (pin `instance-size`), Qdrant PVC 10 Gi, Karpenter requests 250m | fixed floor $866.79 → $779.55/month (serving On-Demand per #6) | `00-baseline` Right-sized floor | Qdrant CPU and p95 at r1000 on c7g.large; TEI + API fit one xlarge node; Karpenter healthy at 250m |
+| 6 | HA serving base: 2 On-Demand `apps-serving` nodes in different AZs, each running at least 1 API and 1 TEI; scale-out above that stays on Spot | today the pool allows both capacity types with no base, and both floor nodes ran on Spot (a reclaim can take both TEI replicas) | `00-baseline` Floor (2 × c7i-flex.2xlarge Spot at rest) | a second NodePool `apps-serving-base` (`capacity-type: on-demand`, higher `weight`, `limits.cpu` for 2 nodes); TEI `topologySpreadConstraints` on `kubernetes.io/hostname` and `topology.kubernetes.io/zone` (`maxSkew: 1`, `DoNotSchedule`); API keeps its hostname anti-affinity and gets pod affinity to TEI. Check: at rest `kubectl get nodes -L karpenter.sh/capacity-type,topology.kubernetes.io/zone` shows 2 on-demand serving nodes in 2 AZs, each with 1 API + 1 TEI; cost 2 × c7i-flex.xlarge On-Demand = $282.51/month (2xlarge: $565.02) |
+
+## Measurements still open
+
+| # | Task | Why | Where |
+| :--- | :--- | :--- | :--- |
+| 7 | Contention pass: query load with ingestion running | every query-path finding assumes an idle ingestion path | `02-inference` questionnaire |
+| 8 | One run with real Bedrock generation | generation cost (`E18`, ~$0.51/1k queries) is derived, never measured | `02-inference` questionnaire |
+| 9 | Capture chunker time-weighted concurrency per N | Fargate break-even (`D29`) needs it | `01-ingestion` questionnaire |

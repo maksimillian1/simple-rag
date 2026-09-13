@@ -16,6 +16,9 @@ module "eks" {
 
   kms_key_deletion_window_in_days = 7
 
+  enabled_log_types           = []
+  create_cloudwatch_log_group = false
+
   node_security_group_tags = {
     "karpenter.sh/discovery" = var.cluster_name
   }

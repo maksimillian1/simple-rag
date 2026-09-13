@@ -1,0 +1,30 @@
+{
+  "pulled": "2026-09-09",
+  "source": "aws pricing get-products (Price List API, us-east-1 endpoint -- the only region this API is served from)",
+  "region": "eu-central-1",
+  "note": "Only the two rates report.md's Cost basis section actually asks for: Fargate vCPU/GB-hour (never bought by any run -- Karpenter's own Fargate use is priced from real CUR rows instead, see 00-baseline Floor) and Bedrock per-1K-token (no run in either execution called Bedrock -- both are stubbed/mocked). Real, dated AWS list prices, not derived from any run's own usage.",
+  "fargate": {
+    "region": "eu-central-1",
+    "vcpu_hour_usd": 0.04656,
+    "gb_hour_usd": 0.00511,
+    "sku_effective_date": "2026-07-01",
+    "usage_types": ["EUC1-Fargate-vCPU-Hours:perCPU", "EUC1-Fargate-GB-Hours"]
+  },
+  "bedrock": {
+    "model_id": "us.meta.llama3-1-8b-instruct-v1:0",
+    "model_name": "Llama 3.1 8B Instruct",
+    "note_region": "This model is NOT offered in eu-central-1 at all (checked: no eu-central-1 rows exist in the Price List API for it) -- the 'us.' prefix in MODEL_ID is a cross-region inference profile, meaning a real (non-stubbed) call would leave eu-central-1 and bill against US-region rates below. This is a real architectural fact about the current deployment, not a rate-card footnote: Bedrock traffic for this exact MODEL_ID cannot stay in-region.",
+    "on_demand_us_east_1": {
+      "input_usd_per_1k_tokens": 0.00022,
+      "output_usd_per_1k_tokens": 0.00022
+    },
+    "on_demand_us_west_2_us_east_2": {
+      "input_usd_per_1k_tokens": 0.00022,
+      "output_usd_per_1k_tokens": 0.00022
+    },
+    "batch_all_us_regions_checked": {
+      "input_usd_per_1k_tokens": 0.00011,
+      "output_usd_per_1k_tokens": 0.00011
+    }
+  }
+}

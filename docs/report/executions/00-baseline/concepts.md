@@ -7,8 +7,8 @@ Mechanisms only. Values are in `index.md`. Cited from outside as `00-baseline/K1
 Terraform's `default_tags` cover only what Terraform creates: Karpenter tags from its node class,
 a managed node group only through a launch template, the CSI driver from storage class parameters
 that are immutable after creation. A key also becomes a billing column only after activation in
-the payer account — applied everywhere and activated nowhere reads as untagged with nothing
-failing.
+the payer account. A key applied everywhere and activated nowhere reads as untagged, and nothing
+fails.
 
 **Consequence** — whether any Floor block means what it says, and whether an untagged reading is
 a real gap or a missing click.
@@ -19,7 +19,7 @@ The detailed export holds no data from before its creation, and pod-level splitt
 containers only while they are alive. A pod that declared no resource requests can also vanish
 from the split while the total still reconciles against the bill.
 
-*Example: correct cluster, export created after the campaign — full Prometheus data, zero cost
+*Example: correct cluster, export created after the campaign: full Prometheus data, zero cost
 data, re-run everything.*
 
 **Consequence** — the earliest moment any window may open, and which preparation a re-run cannot

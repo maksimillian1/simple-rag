@@ -1,0 +1,14 @@
+{
+  "window": "2026-09-04T13:00:00Z -> 14:00:00Z (00-baseline idle hour)",
+  "source": "s3://simple-rag-cur-reports-883f615c/cur2/simple-rag/simple-rag-cur/data/BILLING_PERIOD=2026-09/",
+  "pulled": "2026-09-09",
+  "method": "pyarrow direct read of split_line_item_split_cost, grouped by resource_tags['aws_eks_workload_name'] (normalized to app prefix) where line_item_product_code=AmazonEKS and resource_id contains ':pod/'. unused_ekslevel is split_line_item_unused_cost summed across ALL namespaces on every EKS-managed node in the window (core-on-demand + apps-serving + database-on-demand), not just this project's own pods.",
+  "caveat": "this is the EKS split-cost-allocation slice only (per-pod share of AmazonEC2/AmazonEKS vCPU+GB instance-hours). It does not include NAT, EBS/gp3 volumes, load balancer, or other non-instance-hour lines -- not directly comparable to the full $/run figures in the Matrix.",
+  "by_app": {
+    "api": 0.0065096619831729995,
+    "chunker": 5.9671416603e-05,
+    "tei-embeddings": 0.07447466995191,
+    "qdrant": 0.053243925579226
+  },
+  "unused_ekslevel": 0.305405164072386
+}
