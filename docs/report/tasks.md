@@ -82,6 +82,9 @@ after sections 2 and 3:
 - [ ] 3.4 `methodology.md` citation, line 18 (per D4); `data/*.point.md` and the R13 row that mentions them (per D8) · S
 - [x] 3.5 Questionnaire deleted 2026-09-19. Contention is a declared scope boundary (D3), the Bedrock calibration stays open in `report.md` §1 Verdict and tech-debt #9, the `point.md` files are D8 · S
 
+- [ ] 3.6 Pull the PrivateLink data-processing rate for `eu-central-1` from the Price List API into `price-2026-09-09.json` and `figures.yaml` → `endpoint_processed_gb` (currently `pending:`). It is the only input `D22` and report §4.5's crossover wait on; everything else in §4.5 already resolves · S
+- [ ] 3.7 `ADR-0007` claims PrivateLink "slashes NAT Gateway data processing charges". §4.5 shows that is wrong by three orders of magnitude at this workload's token-to-byte ratio. Decide: amend the ADR to rest on the privacy boundary alone, or supersede it — **not** done in this pass, an ADR is a dated decision record and editing its rationale after the fact needs its own call · S
+
 ## 4 · report.md (after 1–3)
 
 - [ ] 4.1 Header: Cost source (Floor = CUR inventory × unit rate, runs = CUR unblended); System under test says commit `1ef1f0a8` (TEI 6/8), the baseline is `cfa0ab79` (3/4); Raw data (per D7); Changes · S

@@ -86,9 +86,10 @@ def check_orphans(doc, values, rel):
     path = ROOT / rel
     if not path.exists():
         return None
+    numeric = [v for v in values.values() if v is not figures_model.PENDING]
     known = {figures_model.display(n, v, doc) for n, v in values.items()}
-    known |= {f"{v:,.0f}" for v in values.values()}
-    known |= {f"{v:,.2f}" for v in values.values()}
+    known |= {f"{v:,.0f}" for v in numeric}
+    known |= {f"{v:,.2f}" for v in numeric}
     orphans = {}
     for number, line in enumerate(path.read_text().splitlines(), 1):
         for token in MONEY.findall(line):

@@ -451,6 +451,28 @@ persistent by design, and per-second billing buys nothing when the pod never sto
 
 ---
 
+### 4.5 Bedrock VPC endpoint, query path
+
+The alternative to PrivateLink is the NAT gateway §4.1 already pays for. At a reference 1,000,000
+queries per month, `02-inference/E18`'s 2,312 tokens per query weigh 8.6 GB:
+
+| | Via NAT | Via the endpoint |
+| :--- | ---: | ---: |
+| Network | $0.45 ᴰ | $26.28 ᴰ + pending ᴱ |
+| Generation | $508.64 ᴱ | $508.64 ᴱ |
+| Network as a share of generation | **0.09%** ᴰ | — |
+
+Transport is not a cost argument on this path (`02-inference/K4`). `ADR-0007` rests the endpoint
+on a privacy boundary and on "slashes NAT Gateway data processing charges": the first holds, the
+second does not. The crossover (`02-inference/D22`) reads `pending` until the PrivateLink rate is
+pulled; across the values its inputs allow it falls between 31.5M and 72.6M queries per month.
+
+Reading the deployment settles two defects without a run, both `docs/tech-debt.md` #12: the
+`bedrock` control-plane endpoint, $26.28/month of `block_b_fixed`, is reachable by nothing, and
+the runtime endpoint's private DNS never matches the hostname the client resolves.
+
+---
+
 ## 5. Guardrails
 
 | Guardrail | Value | Derived from | Enforced in |

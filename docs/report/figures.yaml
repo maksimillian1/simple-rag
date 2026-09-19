@@ -36,6 +36,7 @@ figures:
     value: 0.052
     unit: usd_per_gb
     source: CUR, NAT data processing
+    display: 3
 
   fargate_vcpu_hour:
     value: 0.04656
@@ -91,6 +92,35 @@ figures:
     value: 0.012
     unit: usd_per_hour
     source: CUR, per ENI per AZ
+
+  endpoint_processed_gb:
+    pending: true
+    unit: usd_per_gb
+    source: AWS Price List API, PrivateLink data processing, eu-central-1 - NOT YET PULLED. Every figure below that depends on it resolves to "pending" until it is.
+
+  bedrock_token_1k:
+    value: 0.00022
+    unit: usd_per_1k_tokens
+    source: Price List API 2026-09-09, us-east-1 on-demand, input and output priced alike (executions/00-baseline/data/price-2026-09-09.json)
+    display: 5
+
+  bedrock_input_tokens:
+    value: 1800
+    unit: tokens
+    source: 02-inference/E18 assumption; no run called the provider
+    display: 0
+
+  bedrock_output_tokens:
+    value: 512
+    unit: tokens
+    source: MaxGenLen in apps/api/core/llm.go
+    display: 0
+
+  bytes_per_token:
+    value: 4
+    unit: bytes
+    source: English-text heuristic. The wire payload is JSON over TLS, so this is a floor; 02-inference/D22 states the range a larger value produces
+    display: 0
 
   nlb_hour:
     value: 0.027
@@ -422,6 +452,20 @@ figures:
     display: 5
     group: marginal
 
+  generation_per_1k_queries:
+    formula: (bedrock_input_tokens + bedrock_output_tokens) * bedrock_token_1k
+    unit: usd_per_1k_queries
+    source: 02-inference/E18
+    display: 4
+    group: marginal
+
+  query_wire_bytes:
+    formula: (bedrock_input_tokens + bedrock_output_tokens) * bytes_per_token
+    unit: bytes
+    display: 0
+    group: marginal
+
+
   docs_at_half_floor:
     formula: block_b_total / ingestion_per_doc
     unit: docs_per_month
@@ -456,6 +500,63 @@ figures:
     formula: block_b_total_rs / (1000 * 3600 * hours_per_month) * 1000
     unit: usd_per_1k_queries
     display: 6
+    group: amortization
+
+  vpc_endpoint_control_plane:
+    formula: 1 * 3 * endpoint_eni_hour * hours_per_month
+    unit: usd_per_month
+    source: the "bedrock" service of the two in terraform/modules/01-rag-core/modules/eks/vpc.tf. Inside block_b_fixed and reachable by nothing - the api imports only bedrockruntime, IAM grants only InvokeModel*, and the Cilium policy allows only bedrock-runtime.*.amazonaws.com
+    group: architecture
+
+  vpc_endpoint_runtime:
+    formula: 1 * 3 * endpoint_eni_hour * hours_per_month
+    unit: usd_per_month
+    source: the "bedrock-runtime" service. Required by ADR-0007's privacy boundary, not by cost - see report 4.5
+    group: architecture
+
+  endpoint_breakeven_gb:
+    formula: vpc_endpoint_runtime / (nat_processed_gb - endpoint_processed_gb)
+    unit: gb_per_month
+    group: amortization
+
+  endpoint_breakeven_queries:
+    formula: endpoint_breakeven_gb * 1073741824 / query_wire_bytes
+    unit: queries_per_month
+    display: 0
+    group: amortization
+
+  ref_queries_month:
+    value: 1000000
+    unit: queries_per_month
+    source: reference volume for report 4.5; chosen round, not measured
+    display: 0
+    group: amortization
+
+  generation_at_ref_queries:
+    formula: generation_per_1k_queries * ref_queries_month / 1000
+    unit: usd_per_month
+    group: amortization
+
+  query_gb_at_ref:
+    formula: query_wire_bytes * ref_queries_month / 1073741824
+    unit: gb_per_month
+    display: 1
+    group: amortization
+
+  nat_at_ref_queries:
+    formula: query_gb_at_ref * nat_processed_gb
+    unit: usd_per_month
+    group: amortization
+
+  endpoint_at_ref_queries:
+    formula: vpc_endpoint_runtime + query_gb_at_ref * endpoint_processed_gb
+    unit: usd_per_month
+    group: amortization
+
+  nat_share_of_generation:
+    formula: nat_at_ref_queries / generation_at_ref_queries * 100
+    unit: percent
+    display: 2
     group: amortization
 
   budget_alarm:
