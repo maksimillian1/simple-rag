@@ -120,46 +120,46 @@ Resting hour 2026-09-04 18:00–19:00 UTC: `n25` drained at ~17:50, teardown beg
 
 | Line | Block | Resource | Rate | $/month |
 | :--- | :--- | :--- | :--- | ---: |
-| EKS control plane | A | 1 cluster | $0.10/h | 73.00 |
-| `core-on-demand` nodes | A | 2 × t3.large On-Demand, amd64 | $0.0960/h | 140.16 |
-| `core-on-demand` root EBS | A | 2 × 20 GB gp3 | $0.0952/GB-mo | 3.81 |
-| Karpenter on Fargate | A | 2 pods × 0.5 vCPU / 1 GB (requests 300m / 512Mi, `karpenter.tf`) | $0.04656/vCPU-h + $0.00511/GB-h | 41.45 |
-| NAT gateway | A | 1 (single NAT) | $0.052/h | 37.96 |
-| Public IPv4 | A | 4 (NAT + internet-facing NLB in 3 AZs) | $0.005/h | 14.60 |
-| Monitoring PVs | A | 2 × 10 GB gp3 (Prometheus, Loki; current generation) | $0.0952/GB-mo | 1.90 |
-| KMS key | A | 1 | $1.00/key-month | 1.00 |
-| **A fixed** | | | | **313.88** |
-| `core-on-demand` cross-AZ, source unknown | A | 0.877 GiB/h (9.893 core − 9.016 ArgoCD) | $0.01/GB | 6.40 |
-| NAT processing | A | 0.053 GiB/h | $0.052/GB | 2.01 |
-| Other cross-AZ (NAT, Fargate, EKS ENIs) | A | 0.194 GiB/h | $0.01/GB | 1.42 |
-| **A variable at rest** | | | | **9.83** |
-| `database-on-demand` nodes | B | 2 × r7g.large On-Demand, arm64 | $0.1292/h | 188.63 |
-| `database-on-demand` root EBS | B | 2 × 14 GB gp3 | $0.0952/GB-mo | 2.67 |
-| Qdrant PVCs | B | 2 × 50 GB gp3 (`qdrant-storage-qdrant-{0,1}`; current generation) | $0.0952/GB-mo | 9.52 |
-| Interface VPC endpoints | B | 2 (`bedrock`, `bedrock-runtime`) × 3 AZ | $0.012/h per ENI | 52.56 |
-| `apps-serving` nodes | B | 2 × c7i-flex.2xlarge Spot, amd64, 1 TEI + 1 API each | $0.1912/h + $0.1882/h (Spot, as paid) | 276.96 |
-| `apps-serving` root EBS | B | 2 × 15 GB gp3 | $0.0952/GB-mo | 2.86 |
-| Load balancer (NLB behind the Gateway) | B | 1; LCU $0 at rest | $0.027/h | 19.71 |
+| EKS control plane | A | 1 cluster | $0.10<!--FR7-->/h | 73.00<!--FD1--> |
+| `core-on-demand` nodes | A | 2 × t3.large On-Demand, amd64 | $0.0960<!--FR8-->/h | 140.16<!--FD2--> |
+| `core-on-demand` root EBS | A | 2 × 20 GB gp3 | $0.0952<!--FR2-->/GB-mo | 3.81<!--FD3--> |
+| Karpenter on Fargate | A | 2 pods × 0.5 vCPU / 1 GB (requests 300m / 512Mi, `karpenter.tf`) | $0.04656<!--FR5-->/vCPU-h + $0.00511<!--FR6-->/GB-h | 41.45<!--FD4--> |
+| NAT gateway | A | 1 (single NAT) | $0.052<!--FR12-->/h | 37.96<!--FD5--> |
+| Public IPv4 | A | 4 (NAT + internet-facing NLB in 3 AZs) | $0.005<!--FR13-->/h | 14.60<!--FD6--> |
+| Monitoring PVs | A | 2 × 10 GB gp3 (Prometheus, Loki; current generation) | $0.0952<!--FR2-->/GB-mo | 1.90<!--FD7--> |
+| KMS key | A | 1 | $1.00<!--FR19-->/key-month | 1.00<!--FD8--> |
+| **A fixed** | | | | **313.88<!--FD21-->** |
+| `core-on-demand` cross-AZ, source unknown | A | 0.877<!--FM2--> GiB/h (9.893 core − 9.016 ArgoCD) | $0.01<!--FR3-->/GB | 6.40<!--FD9--> |
+| NAT processing | A | 0.053<!--FM3--> GiB/h | $0.052<!--FR4-->/GB | 2.01<!--FD10--> |
+| Other cross-AZ (NAT, Fargate, EKS ENIs) | A | 0.194<!--FM4--> GiB/h | $0.01<!--FR3-->/GB | 1.42<!--FD11--> |
+| **A variable at rest** | | | | **9.83<!--FD22-->** |
+| `database-on-demand` nodes | B | 2 × r7g.large On-Demand, arm64 | $0.1292<!--FR9-->/h | 188.63<!--FD12--> |
+| `database-on-demand` root EBS | B | 2 × 14 GB gp3 | $0.0952<!--FR2-->/GB-mo | 2.67<!--FD13--> |
+| Qdrant PVCs | B | 2 × 50 GB gp3 (`qdrant-storage-qdrant-{0,1}`; current generation) | $0.0952<!--FR2-->/GB-mo | 9.52<!--FD14--> |
+| Interface VPC endpoints | B | 2 (`bedrock`, `bedrock-runtime`) × 3 AZ | $0.012<!--FR14-->/h per ENI | 52.56<!--FD15--> |
+| `apps-serving` nodes | B | 2 × c7i-flex.2xlarge Spot, amd64, 1 TEI + 1 API each | $0.1912/h + $0.1882/h (Spot, as paid) | 276.96<!--FD16--> |
+| `apps-serving` root EBS | B | 2 × 15 GB gp3 | $0.0952<!--FR2-->/GB-mo | 2.86<!--FD17--> |
+| Load balancer (NLB behind the Gateway) | B | 1; LCU $0 at rest | $0.027<!--FR18-->/h | 19.71<!--FD19--> |
 | S3, SQS, Qdrant snapshots | B | empty buckets, idle polling | — | ~0 |
-| **B fixed** | | | | **552.91** |
-| Database + serving cross-AZ | B | 0.127 GiB/h | $0.01/GB | 0.93 |
-| **B variable at rest** | | | | **0.93** |
-| **C = A + B** | | fixed 866.79 + variable 10.76 | | **877.54** |
+| **B fixed** | | | | **552.91<!--FD23-->** |
+| Database + serving cross-AZ | B | 0.127<!--FM5--> GiB/h | $0.01<!--FR3-->/GB | 0.93<!--FD20--> |
+| **B variable at rest** | | | | **0.93<!--FD24-->** |
+| **C = A + B** | | fixed 866.79<!--FD27--> + variable 10.76<!--FD28--> | | **877.54<!--FD29-->** |
 
 Left out of every total, except the `bedrock` endpoint: that one was really provisioned and really
 billed, so it stays inside the as-built floor and comes out only in figure 2.
 
 | Line | Kind | Resource | Math | $ |
 | :--- | :--- | :--- | :--- | ---: |
-| ArgoCD self-heal loop, cross-AZ | error | `argocd-repo-server` + `argocd-redis` (1a) → `argocd-application-controller-0` (1b), 1.35 MB/s (`./data/argocd-loop-probe-2026-09-04T1830.txt`) | 4.51 GiB/h, billed both sides = 9.02 GiB/h × $0.01 × 730 | 65.85/month |
-| ArgoCD self-heal loop, T3 CPU credits | error | core node at 42% CPU against a 30% baseline; the controller alone uses 0.6 cores | 0.248 vCPU-h/h × $0.05 × 730 | 9.05/month |
-| EKS control-plane logs | error | CloudWatch vended logs of `/aws/eks/simple-rag-cluster/cluster`: module default `audit, api, authenticator`, never chosen; switched off in Terraform (`enabled_log_types = []`) | 0.2195 GB/h at rest × $0.63 × 730 | 100.95/month; 2.26 spent (09-04, 09-05) |
-| Orphaned PVCs | error | every launch left 2 × 50 GB Qdrant + 2 × 10 GB monitoring volumes (teardown never deleted PVCs); 35 volumes, 1,270 GB, all deleted by 2026-09-11 12:50Z | $74.88 billed (CUR, 08-01 → 09-11 02:00) + 9.84 h × 360 GB × $0.0952 / 720 | 75.35 spent; 0 now |
-| Standalone EBS `simple-rag-qdrant-data` | error | 150 GB gp3 per launch, never attached; removed from Terraform 2026-09-09 | 5 volumes, 38 volume-hours billed | 0.70 spent |
-| `bedrock` interface endpoint | error, inside the floor | the control-plane endpoint of the two in `vpc.tf`, reachable by nothing: the API imports only `bedrockruntime`, IAM grants only `InvokeModel*`, and the Cilium policy allows only `bedrock-runtime.*.amazonaws.com` | 1 endpoint × 3 AZ × $0.012/h × 730 | 26.28/month; figure 2 removes it (`docs/tech-debt.md` #12) |
-| Cluster startup | one-time | NAT 8.86 GiB + cross-AZ 14.88 GiB, 09-04 12:00–14:00 | 8.86 × $0.052 + 14.88 × $0.01 | 0.61 per launch |
+| ArgoCD self-heal loop, cross-AZ | error | `argocd-repo-server` + `argocd-redis` (1a) → `argocd-application-controller-0` (1b), 1.35 MB/s (`./data/argocd-loop-probe-2026-09-04T1830.txt`) | 4.51 GiB/h, billed both sides = 9.02<!--FM6--> GiB/h × $0.01<!--FR3--> × 730<!--FR1--> | 65.85<!--FD32-->/month |
+| ArgoCD self-heal loop, T3 CPU credits | error | core node at 42% CPU against a 30% baseline; the controller alone uses 0.6 cores | 0.248<!--FM7--> vCPU-h/h × $0.05<!--FR21--> × 730<!--FR1--> | 9.05<!--FD33-->/month |
+| EKS control-plane logs | error | CloudWatch vended logs of `/aws/eks/simple-rag-cluster/cluster`: module default `audit, api, authenticator`, never chosen; switched off in Terraform (`enabled_log_types = []`) | 0.2195<!--FM8--> GB/h at rest × $0.63<!--FR20--> × 730<!--FR1--> | 100.95<!--FD34-->/month; 2.26<!--FM11--> spent (09-04, 09-05) |
+| Orphaned PVCs | error | every launch left 2 × 50 GB Qdrant + 2 × 10 GB monitoring volumes (teardown never deleted PVCs); 35 volumes, 1,270 GB, all deleted by 2026-09-11 12:50Z | $74.88 billed (CUR, 08-01 → 09-11 02:00) + 9.84 h × 360 GB × $0.0952<!--FR2--> / 720 | 75.35<!--FM9--> spent; 0 now |
+| Standalone EBS `simple-rag-qdrant-data` | error | 150 GB gp3 per launch, never attached; removed from Terraform 2026-09-09 | 5 volumes, 38 volume-hours billed | 0.70<!--FM10--> spent |
+| `bedrock` interface endpoint | error, inside the floor | the control-plane endpoint of the two in `vpc.tf`, reachable by nothing: the API imports only `bedrockruntime`, IAM grants only `InvokeModel*`, and the Cilium policy allows only `bedrock-runtime.*.amazonaws.com` | 1 endpoint × 3 AZ × $0.012<!--FR14-->/h × 730<!--FR1--> | 26.28<!--FD47-->/month; figure 2 removes it (`docs/tech-debt.md` #12) |
+| Cluster startup | one-time | NAT 8.86 GiB + cross-AZ 14.88 GiB, 09-04 12:00–14:00 | 8.86 × $0.052<!--FR4--> + 14.88 × $0.01<!--FR3--> | 0.61<!--FM12--> per launch |
 
-- **Serving pool idle rate** — $0.3833/h ($279.82/month ÷ 730), 09-04. The pool did not rest on the same nodes every day: 09-05 rested on c5.xlarge + c6a.xlarge at $0.18754/h (`docs/report/figures.yaml`, `serving_idle_rate_0905`), so each execution nets against its own day. `01-ingestion` does this as of 2026-09-19; `02-inference`'s Matrix still carries a retired rate
+- **Serving pool idle rate** — $0.3833<!--FD30-->/h ($279.82<!--FD18-->/month ÷ 730<!--FR1-->), 09-04. The pool did not rest on the same nodes every day: 09-05 rested on c5.xlarge + c6a.xlarge at $0.18754<!--FD58-->/h (`docs/report/figures.yaml`, `serving_idle_rate_0905`), so each execution nets against its own day. `01-ingestion` does this as of 2026-09-19; `02-inference`'s Matrix still carries a retired rate
 - **Untaggable lines allocated by hand** — R5, all Block A → `./data/untaggable-2026-09-04.txt`
 - **Reference value** — the unqualified idle claim published in article 1. No always-on floor is carried
 - **Raw data** — CUR parquet `BILLING_PERIOD=2026-09`, hour 2026-09-04 18:00; `./data/idle-2026-09-04.csv` holds the original 13:00 capture hour
@@ -171,20 +171,20 @@ Same HA topology (2 core, 2 database, 2 serving nodes, 3 AZs, 2 Karpenter replic
 
 | Line | As built | Right-sized ᴱ | Evidence | $/month as built | $/month right-sized |
 | :--- | :--- | :--- | :--- | ---: | ---: |
-| Database nodes | 2 × r7g.large (2 vCPU, 16 GiB) On-Demand | 2 × c7g.large (2 vCPU, 4 GiB) On-Demand, $0.0825/h | Qdrant working set ≤ 379 MiB (M18); CPU peak 1.568 cores at r1000 keeps 2 vCPU | 188.63 | 120.45 |
-| Serving nodes | 2 × c7i-flex.2xlarge Spot | 2 × c7i-flex.xlarge On-Demand, $0.1935/h; 1 API + 1 TEI on each | TEI + API ran on xlarge nodes the full hour 09-05 11:00; needs TEI requests 3/4 (HEAD has 6/8) | 276.96 | 282.51 |
-| Qdrant PVCs | 2 × 50 GB gp3 | 2 × 10 GB gp3 | collection snapshot 496 MB | 9.52 | 1.90 |
-| Karpenter on Fargate | 2 × 0.5 vCPU / 1 GB (request 300m) | 2 × 0.25 vCPU / 1 GB (request 250m) | controller CPU ≈ 0 at rest (probe) | 41.45 | 24.46 |
-| Interface VPC endpoints | 2 × 3 AZ (`bedrock`, `bedrock-runtime`) | 1 × 3 AZ: the `bedrock` control-plane endpoint is a defect, not a size | nothing reaches it; the API imports only `bedrockruntime` (errors table) | 52.56 | 26.28 |
-| Core nodes | 2 × t3.large On-Demand | unchanged | memory never measured; CPU alone would fit t3.medium | 140.16 | 140.16 |
-| Everything else fixed | | unchanged | | 157.50 | 157.50 |
-| **C fixed** | | | | **866.79** | **753.26** |
-| Variable at rest | | unchanged | | 10.76 | 10.76 |
-| **C total** | | | | **877.54** | **764.02** |
+| Database nodes | 2 × r7g.large (2 vCPU, 16 GiB) On-Demand | 2 × c7g.large (2 vCPU, 4 GiB) On-Demand, $0.0825<!--FR10-->/h | Qdrant working set ≤ 379 MiB (M18); CPU peak 1.568 cores at r1000 keeps 2 vCPU | 188.63<!--FD12--> | 120.45<!--FE3--> |
+| Serving nodes | 2 × c7i-flex.2xlarge Spot | 2 × c7i-flex.xlarge On-Demand, $0.1935<!--FR11-->/h; 1 API + 1 TEI on each | TEI + API ran on xlarge nodes the full hour 09-05 11:00; needs TEI requests 3/4 (HEAD has 6/8) | 276.96<!--FD16--> | 282.51<!--FE4--> |
+| Qdrant PVCs | 2 × 50 GB gp3 | 2 × 10 GB gp3 | collection snapshot 496 MB | 9.52<!--FD14--> | 1.90<!--FE5--> |
+| Karpenter on Fargate | 2 × 0.5 vCPU / 1 GB (request 300m) | 2 × 0.25 vCPU / 1 GB (request 250m) | controller CPU ≈ 0 at rest (probe) | 41.45<!--FD4--> | 24.46<!--FE6--> |
+| Interface VPC endpoints | 2 × 3 AZ (`bedrock`, `bedrock-runtime`) | 1 × 3 AZ: the `bedrock` control-plane endpoint is a defect, not a size | nothing reaches it; the API imports only `bedrockruntime` (errors table) | 52.56<!--FD15--> | 26.28<!--FD47--> |
+| Core nodes | 2 × t3.large On-Demand | unchanged | memory never measured; CPU alone would fit t3.medium | 140.16<!--FD2--> | 140.16<!--FD2--> |
+| Everything else fixed | | unchanged | | 157.50<!--FD84--> | 157.50<!--FD84--> |
+| **C fixed** | | | | **866.79<!--FD27-->** | **753.26<!--FE10-->** |
+| Variable at rest | | unchanged | | 10.76<!--FD28--> | 10.76<!--FD28--> |
+| **C total** | | | | **877.54<!--FD29-->** | **764.02<!--FE11-->** |
 
 ### Retro
 
-- **Expectation** — not held. `apps-serving` is the largest B line at 50.6% ($279.82 of $552.91 fixed); Qdrant's nodes and volumes are second at 36.3% ($200.82), short of the predicted majority; the Bedrock endpoints are third at 9.5% ($52.56). Qdrant's PVC data alone is 1.7% ($9.52)
+- **Expectation** — not held. `apps-serving` is the largest B line at 50.6<!--FD85-->% ($279.82<!--FD18--> of $552.91<!--FD23--> fixed); Qdrant's nodes and volumes are second at 36.3<!--FD86-->% ($200.82<!--FD31-->), short of the predicted majority; the Bedrock endpoints are third at 9.5<!--FD87-->% ($52.56<!--FD15-->). Qdrant's PVC data alone is 1.7<!--FD88-->% ($9.52<!--FD14-->)
 - **Attribution coverage** — `M2` fails its 5% gate at capture (14.3%) and is kept anyway per K1 (Metrics table). R5 (2026-09-09) accounts for the whole gap in dollar terms: 8 non-zero untagged lines, $0.21163, all platform overhead in Block A. That mostly explains *why* M2 is high: the lines are AWS-managed and structurally untaggable (EKS control plane, Karpenter's Fargate pod, public IPv4, KMS). The exception is two lines (EKS control-plane hours, LB usage) that are tagged but whose tag doesn't reach CUR, a narrow gap worth fixing at the source
 - **Cost against estimate** — no capture-specific budget was set for this execution; not applicable
 - **Month-close revision** — not yet. September closes in October, so K3's second read is still open

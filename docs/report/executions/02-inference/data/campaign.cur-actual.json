@@ -1,17 +1,21 @@
 {
   "campaign": "02-inference full sweep",
   "pulled": "2026-09-07",
+  "revised": "2026-09-21",
   "hours_used": [12, 13, 14, 15],
   "day": "2026-09-05",
-  "note": "Multiple points share hourly CUR buckets by design (revised Plan, no clock-hour spacing) -- this is a campaign-level total, not per-point. compute_stray ($0.2127, hour 12) is leftover from an accidental ingestion run killed before r050 properly started -- excluded from the inference marginal total below.",
+  "note": "Multiple points share hourly CUR buckets by design (revised Plan, no clock-hour spacing) -- this is a campaign-level total, not per-point. compute_stray ($0.2127, hour 12) is leftover from an accidental ingestion run killed before r050 properly started -- excluded from the totals below.",
   "serving_gross": 2.4505,
-  "nat": 2.8791,
+  "nat": 2.8783,
   "compute_stray_excluded": 0.2127,
   "baseline_other": 4.1969,
-  "marginal_total": 5.3296,
+  "gross_total": 5.3288,
+  "serving_floor_4h_usd": 0.7502,
+  "nat_hourly_floor_usd": 0.2080,
+  "floor_subtracted_usd": 0.9582,
+  "marginal_total": 4.3706,
   "total_queries_served": 1166534,
-  "dollar_per_1k_queries": 0.00457,
-  "serving_floor_4h_usd": 0.9024,
-  "net_of_floor": 4.4272,
-  "interpretation": "NAT was never priced for any inference point during the campaign -- karpenter-cost-estimate.py only ever computed apps-serving node cost, no NAT component was added for 02-inference the way it eventually was for 01-ingestion. Real campaign $/1k queries ($0.00457) is 5-12x every individual point's provisional D16 ($0.00038-$0.00087), driven by two uncounted things: (1) NAT entirely, (2) real cost also includes floor/settle time between points that no single point's own narrow window captured."
+  "dollar_per_1k_queries": 0.00375,
+  "revision_note": "Revised 2026-09-21 against figures.yaml group campaign_0905. Three things were wrong. (1) nat was 2.8791 against components that sum to 2.8783 (bytes 2.3610 + hours 0.2080 + regional 0.3093); the components win, per figures.yaml meta.rule that totals come from exact values. (2) serving_floor_4h_usd was 0.9024 = 4 h x $0.2256/h, a rate retired twice (0.2256 -> 0.20892 -> 0.3833 for 09-04); 09-05 rested on c5.xlarge + c6a.xlarge at $0.18754/h, so the serving floor is 4 x 0.18754 = 0.7502. (3) dollar_per_1k_queries reported the gross figure as if it were the marginal. The floor now comes out once, here, per D2: serving floor plus the NAT hourly fee, which is floor by definition.",
+  "interpretation": "NAT was never priced for any inference point during the campaign -- karpenter-cost-estimate.py only ever computed apps-serving node cost, no NAT component was added for 02-inference the way it eventually was for 01-ingestion. The real campaign marginal ($0.00375/1k queries) is 1.5-4.3x every individual point's gross D16 ($0.00088 at r1000 to $0.00250 at r050), driven by two uncounted things: (1) NAT entirely, (2) floor and settle time between points that no single point's own narrow window captured."
 }

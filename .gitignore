@@ -53,6 +53,10 @@ Thumbs.db
 .antigravitycli/
 .env
 
+# Claude Code: the shared project settings and hooks are committed so everyone
+# gets them; the personal layer, where standing permission approvals land, is not
+.claude/settings.local.json
+
 # Python
 .venv/
 venv/

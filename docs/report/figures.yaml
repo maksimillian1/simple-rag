@@ -7,6 +7,7 @@ meta:
   rule: every currency figure printed in the report exists here; totals are summed from exact values, never from rounded parts
   rounding: AWS itself stores CUR costs unrounded (69% of this month's rows carry 10 decimals) and rounds once at the end; rounding per row and summing would have overstated 2026-09 by $2.06
   display: prose prints whole dollars; tables print cents where the lines have to add up; rates and per-unit figures keep the decimals that separate them
+  naming: name a figure after what it is, not after how it was produced. A leaf carries the metric ref when the report has one (m9_gross_r050), otherwise the resource (serving_nodes). A per-point figure ends in the point id (_r050, _n25), a per-day one in the date (_0905). Groups are named by subject, not by date. Two authors without this rule produced serving_gross_r050 and m9_gross_r050 for the same number on 2026-09-21; the m9_ form won because the report cites M9
 
 scan:
   - report.md
@@ -21,320 +22,442 @@ scan:
 
 figures:
   hours_per_month:
+    ref: FR1
+    kind: R
     value: 730
     unit: hours
     source: AWS monthly-hour convention
 
   gp3_gb_month:
+    ref: FR2
+    kind: R
     value: 0.0952
     unit: usd_per_gb_month
     source: CUR, current-generation gp3
 
   cross_az_gb:
+    ref: FR3
+    kind: R
     value: 0.01
     unit: usd_per_gb
     source: CUR, regional data transfer, billed both sides
 
   nat_processed_gb:
+    ref: FR4
+    kind: R
     value: 0.052
     unit: usd_per_gb
     source: CUR, NAT data processing
     display: 3
 
   fargate_vcpu_hour:
+    ref: FR5
+    kind: R
     value: 0.04656
     unit: usd_per_vcpu_hour
     source: Price List API 2026-09-09
 
   fargate_gb_hour:
+    ref: FR6
+    kind: R
     value: 0.00511
     unit: usd_per_gb_hour
     source: Price List API 2026-09-09
 
   eks_cluster_hour:
+    ref: FR7
+    kind: R
     value: 0.10
     unit: usd_per_hour
     source: CUR, EUC1-AmazonEKS-Hours:perCluster
 
   t3_large_od_hour:
+    ref: FR8
+    kind: R
     value: 0.0960
     unit: usd_per_hour
     source: CUR, on-demand
 
   r7g_large_od_hour:
+    ref: FR9
+    kind: R
     value: 0.1292
     unit: usd_per_hour
     source: CUR, on-demand
 
   c7g_large_od_hour:
+    ref: FR10
+    kind: R
     value: 0.0825
     unit: usd_per_hour
     source: Price List API 2026-09-11
 
   c7i_flex_xlarge_od_hour:
+    ref: FR11
+    kind: R
     value: 0.1935
     unit: usd_per_hour
     source: Price List API 2026-09-11
 
   serving_spot_pair_hour:
+    ref: FM1
+    kind: M
     value: 0.3794
     unit: usd_per_hour
     source: CUR, 2 x c7i-flex.2xlarge Spot as paid in the resting hour (0.1912 + 0.1882)
 
   nat_gateway_hour:
+    ref: FR12
+    kind: R
     value: 0.052
     unit: usd_per_hour
     source: CUR
 
   public_ipv4_hour:
+    ref: FR13
+    kind: R
     value: 0.005
     unit: usd_per_hour
     source: CUR
 
   endpoint_eni_hour:
+    ref: FR14
+    kind: R
     value: 0.012
     unit: usd_per_hour
     source: CUR, per ENI per AZ
 
   endpoint_processed_gb:
+    ref: FR15
+    kind: R
     pending: true
     unit: usd_per_gb
     source: AWS Price List API, PrivateLink data processing, eu-central-1 - NOT YET PULLED. Every figure below that depends on it resolves to "pending" until it is.
 
   bedrock_token_1k:
+    ref: FR16
+    kind: R
     value: 0.00022
     unit: usd_per_1k_tokens
     source: Price List API 2026-09-09, us-east-1 on-demand, input and output priced alike (executions/00-baseline/data/price-2026-09-09.json)
     display: 5
 
   bedrock_input_tokens:
+    ref: FE1
+    kind: E
     value: 1800
     unit: tokens
     source: 02-inference/E18 assumption; no run called the provider
     display: 0
 
   bedrock_output_tokens:
+    ref: FR17
+    kind: R
     value: 512
     unit: tokens
     source: MaxGenLen in apps/api/core/llm.go
     display: 0
 
   bytes_per_token:
+    ref: FE2
+    kind: E
     value: 4
     unit: bytes
     source: English-text heuristic. The wire payload is JSON over TLS, so this is a floor; 02-inference/D22 states the range a larger value produces
     display: 0
 
   nlb_hour:
+    ref: FR18
+    kind: R
     value: 0.027
     unit: usd_per_hour
     source: CUR, LCU at zero when idle
 
   kms_key_month:
+    ref: FR19
+    kind: R
     value: 1.00
     unit: usd_per_month
     source: CUR
 
   cloudwatch_vended_logs_gb:
+    ref: FR20
+    kind: R
     value: 0.63
     unit: usd_per_gb
     source: CUR, vended logs
 
   t3_credit_vcpu_hour:
+    ref: FR21
+    kind: R
     value: 0.05
     unit: usd_per_vcpu_hour
     source: CUR, T3 Unlimited surplus credits
 
   core_cross_az_gib_h:
+    ref: FM2
+    kind: M
     value: 0.877
     unit: gib_per_hour
-    source: resting hour, core flow of unknown origin (9.893 core - 9.016 ArgoCD)
+    source: CUR 2026-09-04 hour 18, DataTransfer-Regional-Bytes on the core nodes (9.893 GiB/h) minus the ArgoCD share from the probe (9.016); the remainder has no identified producer
 
   nat_processing_gib_h:
+    ref: FM3
+    kind: M
     value: 0.053
     unit: gib_per_hour
-    source: resting hour
+    source: CUR 2026-09-04 hour 18, NatGateway-Bytes
 
   other_cross_az_gib_h:
+    ref: FM4
+    kind: M
     value: 0.194
     unit: gib_per_hour
-    source: resting hour, NAT + Fargate + EKS ENIs
+    source: CUR 2026-09-04 hour 18, DataTransfer-Regional-Bytes on the NAT gateway, the Fargate ENIs and the EKS control-plane ENIs
 
   db_serving_cross_az_gib_h:
+    ref: FM5
+    kind: M
     value: 0.127
     unit: gib_per_hour
-    source: resting hour
+    source: CUR 2026-09-04 hour 18, DataTransfer-Regional-Bytes between the database and serving nodes
 
   argocd_cross_az_gib_h:
+    ref: FM6
+    kind: M
     value: 9.02
     unit: gib_per_hour
-    source: probe 2026-09-04T18:30, 4.51 GiB/h billed both sides
+    source: data/argocd-loop-probe-2026-09-04T1830.txt, 1.35 MB/s one way = 4.51 GiB/h, billed on both sides
 
   argocd_credit_vcpu_h:
+    ref: FM7
+    kind: M
     value: 0.248
     unit: vcpu_hours_per_hour
-    source: core node at 42% CPU against a 30% baseline
+    source: CloudWatch CPUUtilization on the core nodes in the resting hour, 42% against the t3.large 30% baseline; the surplus is what T3 Unlimited charges
 
   eks_logs_gb_h:
+    ref: FM8
+    kind: M
     value: 0.2195020318
     unit: gb_per_hour
     display: 4
     source: CUR 2026-09-04 hour 18, the single EUC1-VendedLog-Bytes row for /aws/eks/simple-rag-cluster/cluster, exact as billed
 
   eks_control_plane:
+    ref: FD1
+    kind: D
     formula: eks_cluster_hour * hours_per_month
     unit: usd_per_month
     group: a_fixed
 
   core_nodes:
+    ref: FD2
+    kind: D
     formula: 2 * t3_large_od_hour * hours_per_month
     unit: usd_per_month
     group: a_fixed
 
   core_root_ebs:
+    ref: FD3
+    kind: D
     formula: 2 * 20 * gp3_gb_month
     unit: usd_per_month
     group: a_fixed
 
   karpenter_fargate:
+    ref: FD4
+    kind: D
     formula: 2 * (0.5 * fargate_vcpu_hour + 1 * fargate_gb_hour) * hours_per_month
     unit: usd_per_month
     group: a_fixed
 
   nat_gateway:
+    ref: FD5
+    kind: D
     formula: nat_gateway_hour * hours_per_month
     unit: usd_per_month
     group: a_fixed
 
   public_ipv4:
+    ref: FD6
+    kind: D
     formula: 4 * public_ipv4_hour * hours_per_month
     unit: usd_per_month
     group: a_fixed
 
   monitoring_pvs:
+    ref: FD7
+    kind: D
     formula: 2 * 10 * gp3_gb_month
     unit: usd_per_month
     group: a_fixed
 
   kms_key:
+    ref: FD8
+    kind: D
     formula: kms_key_month
     unit: usd_per_month
     group: a_fixed
 
   core_cross_az_unknown:
+    ref: FD9
+    kind: D
     formula: core_cross_az_gib_h * cross_az_gb * hours_per_month
     unit: usd_per_month
     group: a_variable
 
   nat_processing:
+    ref: FD10
+    kind: D
     formula: nat_processing_gib_h * nat_processed_gb * hours_per_month
     unit: usd_per_month
     group: a_variable
 
   other_cross_az:
+    ref: FD11
+    kind: D
     formula: other_cross_az_gib_h * cross_az_gb * hours_per_month
     unit: usd_per_month
     group: a_variable
 
   db_nodes:
+    ref: FD12
+    kind: D
     formula: 2 * r7g_large_od_hour * hours_per_month
     unit: usd_per_month
     group: b_fixed
 
   db_root_ebs:
+    ref: FD13
+    kind: D
     formula: 2 * 14 * gp3_gb_month
     unit: usd_per_month
     group: b_fixed
 
   qdrant_pvcs:
+    ref: FD14
+    kind: D
     formula: 2 * 50 * gp3_gb_month
     unit: usd_per_month
     group: b_fixed
 
   vpc_endpoints:
+    ref: FD15
+    kind: D
     formula: 2 * 3 * endpoint_eni_hour * hours_per_month
     unit: usd_per_month
     group: b_fixed
 
   serving_nodes:
+    ref: FD16
+    kind: D
     formula: serving_spot_pair_hour * hours_per_month
     unit: usd_per_month
     group: b_fixed
 
   serving_root_ebs:
+    ref: FD17
+    kind: D
     formula: 2 * 15 * gp3_gb_month
     unit: usd_per_month
     group: b_fixed
 
   serving_total:
+    ref: FD18
+    kind: D
     formula: serving_nodes + serving_root_ebs
     unit: usd_per_month
     group: b_fixed
     appears_in: [executions/00-baseline/index.md, ../tech-debt.md]
 
   nlb:
+    ref: FD19
+    kind: D
     formula: nlb_hour * hours_per_month
     unit: usd_per_month
     group: b_fixed
 
   db_serving_cross_az:
+    ref: FD20
+    kind: D
     formula: db_serving_cross_az_gib_h * cross_az_gb * hours_per_month
     unit: usd_per_month
     group: b_variable
 
   block_a_fixed:
+    ref: FD21
+    kind: D
     formula: eks_control_plane + core_nodes + core_root_ebs + karpenter_fargate + nat_gateway + public_ipv4 + monitoring_pvs + kms_key
     unit: usd_per_month
     group: totals
     appears_in: [executions/00-baseline/index.md]
 
   block_a_variable:
+    ref: FD22
+    kind: D
     formula: core_cross_az_unknown + nat_processing + other_cross_az
     unit: usd_per_month
     group: totals
     appears_in: [executions/00-baseline/index.md]
 
   block_b_fixed:
+    ref: FD23
+    kind: D
     formula: db_nodes + db_root_ebs + qdrant_pvcs + vpc_endpoints + serving_nodes + serving_root_ebs + nlb
     unit: usd_per_month
     group: totals
     appears_in: [executions/00-baseline/index.md]
 
   block_b_variable:
+    ref: FD24
+    kind: D
     formula: db_serving_cross_az
     unit: usd_per_month
     group: totals
 
   block_a_total:
+    ref: FD25
+    kind: D
     formula: block_a_fixed + block_a_variable
     unit: usd_per_month
     group: totals
     appears_in: [report.md]
 
   block_b_total:
+    ref: FD26
+    kind: D
     formula: block_b_fixed + block_b_variable
     unit: usd_per_month
     group: totals
     appears_in: [report.md]
 
   c_fixed:
+    ref: FD27
+    kind: D
     formula: block_a_fixed + block_b_fixed
     unit: usd_per_month
     group: totals
     appears_in: [report.md, executions/00-baseline/index.md]
 
   c_variable:
+    ref: FD28
+    kind: D
     formula: block_a_variable + block_b_variable
     unit: usd_per_month
     group: totals
 
   c_total:
+    ref: FD29
+    kind: D
     formula: c_fixed + c_variable
     unit: usd_per_month
     group: totals
     appears_in: [report.md, executions/00-baseline/index.md]
 
   serving_idle_rate:
+    ref: FD30
+    kind: D
     formula: (serving_nodes + serving_root_ebs) / hours_per_month
     unit: usd_per_hour
     display: 4
@@ -342,125 +465,169 @@ figures:
     appears_in: [executions/00-baseline/index.md]
 
   db_nodes_rs:
+    ref: FE3
+    kind: E
     formula: 2 * c7g_large_od_hour * hours_per_month
     unit: usd_per_month
     group: right_sized
 
   serving_nodes_rs:
+    ref: FE4
+    kind: E
     formula: 2 * c7i_flex_xlarge_od_hour * hours_per_month
     unit: usd_per_month
     group: right_sized
 
   qdrant_pvcs_rs:
+    ref: FE5
+    kind: E
     formula: 2 * 10 * gp3_gb_month
     unit: usd_per_month
     group: right_sized
 
   karpenter_fargate_rs:
+    ref: FE6
+    kind: E
     formula: 2 * (0.25 * fargate_vcpu_hour + 1 * fargate_gb_hour) * hours_per_month
     unit: usd_per_month
     group: right_sized
 
   block_a_fixed_rs:
+    ref: FE7
+    kind: E
     formula: block_a_fixed - karpenter_fargate + karpenter_fargate_rs
     unit: usd_per_month
     group: right_sized
 
   block_b_fixed_rs:
+    ref: FE8
+    kind: E
     formula: block_b_fixed - db_nodes + db_nodes_rs - serving_nodes + serving_nodes_rs - qdrant_pvcs + qdrant_pvcs_rs - vpc_endpoint_control_plane
     unit: usd_per_month
     group: right_sized
 
   block_b_total_rs:
+    ref: FE9
+    kind: E
     formula: block_b_fixed_rs + block_b_variable
     unit: usd_per_month
     group: right_sized
     appears_in: [report.md]
 
   c_fixed_rs:
+    ref: FE10
+    kind: E
     formula: block_a_fixed_rs + block_b_fixed_rs
     unit: usd_per_month
     group: right_sized
     appears_in: [executions/00-baseline/index.md]
 
   c_total_rs:
+    ref: FE11
+    kind: E
     formula: c_fixed_rs + c_variable
     unit: usd_per_month
     group: right_sized
     appears_in: [report.md, executions/00-baseline/index.md]
 
   c_fixed_rs_sizing_only:
+    ref: FE12
+    kind: E
     formula: c_fixed_rs + vpc_endpoint_control_plane
     unit: usd_per_month
     group: right_sized
     appears_in: [../tech-debt.md]
 
   serving_nodes_2xlarge_od:
+    ref: FE13
+    kind: E
     formula: 2 * 2 * c7i_flex_xlarge_od_hour * hours_per_month
     unit: usd_per_month
     group: right_sized
     appears_in: [../tech-debt.md]
 
   qdrant_total:
+    ref: FD31
+    kind: D
     formula: db_nodes + db_root_ebs + qdrant_pvcs
     unit: usd_per_month
     group: b_fixed
     appears_in: [executions/00-baseline/index.md]
 
   argocd_loop_cross_az:
+    ref: FD32
+    kind: D
     formula: argocd_cross_az_gib_h * cross_az_gb * hours_per_month
     unit: usd_per_month
     group: errors
     appears_in: [executions/00-baseline/index.md]
 
   argocd_loop_credits:
+    ref: FD33
+    kind: D
     formula: argocd_credit_vcpu_h * t3_credit_vcpu_hour * hours_per_month
     unit: usd_per_month
     group: errors
     appears_in: [executions/00-baseline/index.md]
 
   eks_control_plane_logs:
+    ref: FD34
+    kind: D
     formula: eks_logs_gb_h * cloudwatch_vended_logs_gb * hours_per_month
     unit: usd_per_month
     group: errors
     appears_in: [executions/00-baseline/index.md]
 
   errors_recurring:
+    ref: FD35
+    kind: D
     formula: argocd_loop_cross_az + argocd_loop_credits + eks_control_plane_logs
     unit: usd_per_month
     group: errors
 
   orphaned_pvcs_spent:
+    ref: FM9
+    kind: M
     value: 75.35
     unit: usd
     source: CUR 08-01 to 09-11 02:00 ($74.88) plus 9.84 h x 360 GB tail
     group: errors
 
   standalone_ebs_spent:
+    ref: FM10
+    kind: M
     value: 0.70
     unit: usd
     source: CUR, 5 volumes, 38 volume-hours
     group: errors
 
   eks_logs_spent:
+    ref: FM11
+    kind: M
     value: 2.26
     unit: usd
     source: CUR, 09-04 and 09-05
     group: errors
 
   errors_spent:
+    ref: FD36
+    kind: D
     formula: orphaned_pvcs_spent + standalone_ebs_spent + eks_logs_spent
     unit: usd
     group: errors
 
   cluster_startup:
+    ref: FM12
+    kind: M
     value: 0.61
     unit: usd_per_launch
-    source: NAT 8.86 GiB + cross-AZ 14.88 GiB, 09-04 12:00-14:00
+    source: CUR 2026-09-04 hours 12-13, the bootstrap window, NatGateway-Bytes 8.86 GiB + DataTransfer-Regional-Bytes 14.88 GiB
     group: errors
     appears_in: [executions/00-baseline/index.md]
 
   ingestion_per_1m_docs:
+    ref: FD37
+    kind: D
     formula: per_1m_n25
     unit: usd_per_1m_docs
     display: 0
@@ -468,19 +635,16 @@ figures:
     appears_in: [report.md, executions/01-ingestion/index.md]
 
   ingestion_per_doc:
+    ref: FD38
+    kind: D
     formula: ingestion_per_1m_docs / 1000000
     unit: usd_per_doc
     display: 5
     group: marginal
 
-  query_per_1k_gross:
-    value: 0.00457
-    unit: usd_per_1k_queries
-    source: CUR campaign 09-05 hours 12-15; gross, still carries the serving floor and the NAT hourly fee (tasks 3.2 and 0.5.2)
-    display: 5
-    group: marginal
-
   generation_per_1k_queries:
+    ref: FD39
+    kind: D
     formula: (bedrock_input_tokens + bedrock_output_tokens) * bedrock_token_1k
     unit: usd_per_1k_queries
     source: 02-inference/E18
@@ -488,6 +652,8 @@ figures:
     group: marginal
 
   query_wire_bytes:
+    ref: FD40
+    kind: D
     formula: (bedrock_input_tokens + bedrock_output_tokens) * bytes_per_token
     unit: bytes
     display: 0
@@ -495,42 +661,56 @@ figures:
 
 
   docs_at_half_floor:
+    ref: FD41
+    kind: D
     formula: block_b_total / ingestion_per_doc
     unit: docs_per_month
     display: 0
     group: amortization
 
   docs_at_half_floor_rs:
+    ref: FD42
+    kind: D
     formula: block_b_total_rs / ingestion_per_doc
     unit: docs_per_month
     display: 0
     group: amortization
 
   queries_at_half_floor:
+    ref: FD43
+    kind: D
     formula: block_b_total / (query_per_1k_broad / 1000)
     unit: queries_per_month
     display: 0
     group: amortization
 
   queries_at_half_floor_rs:
+    ref: FD44
+    kind: D
     formula: block_b_total_rs / (query_per_1k_broad / 1000)
     unit: queries_per_month
     display: 0
     group: amortization
 
   floor_share_per_1k_queries:
+    ref: FD45
+    kind: D
     formula: block_b_total / (1000 * 3600 * hours_per_month) * 1000
     unit: usd_per_1k_queries
     display: 6
     group: amortization
 
   floor_share_per_1k_queries_rs:
+    ref: FD46
+    kind: D
     formula: block_b_total_rs / (1000 * 3600 * hours_per_month) * 1000
     unit: usd_per_1k_queries
     display: 6
     group: amortization
 
   vpc_endpoint_control_plane:
+    ref: FD47
+    kind: D
     formula: 1 * 3 * endpoint_eni_hour * hours_per_month
     unit: usd_per_month
     source: the "bedrock" service of the two in terraform/modules/01-rag-core/modules/eks/vpc.tf. Inside block_b_fixed and reachable by nothing - the api imports only bedrockruntime, IAM grants only InvokeModel*, and the Cilium policy allows only bedrock-runtime.*.amazonaws.com. Recorded as an error in 00-baseline and removed from the right-sized floor
@@ -538,23 +718,31 @@ figures:
     appears_in: [executions/00-baseline/index.md]
 
   vpc_endpoint_runtime:
+    ref: FD48
+    kind: D
     formula: 1 * 3 * endpoint_eni_hour * hours_per_month
     unit: usd_per_month
     source: the "bedrock-runtime" service. Required by ADR-0007's privacy boundary, not by cost - see report 4.5
     group: architecture
 
   endpoint_breakeven_gb:
+    ref: FD49
+    kind: D
     formula: vpc_endpoint_runtime / (nat_processed_gb - endpoint_processed_gb)
     unit: gb_per_month
     group: amortization
 
   endpoint_breakeven_queries:
+    ref: FD50
+    kind: D
     formula: endpoint_breakeven_gb * 1073741824 / query_wire_bytes
     unit: queries_per_month
     display: 0
     group: amortization
 
   ref_queries_month:
+    ref: FE14
+    kind: E
     value: 1000000
     unit: queries_per_month
     source: reference volume for report 4.5; chosen round, not measured
@@ -562,44 +750,60 @@ figures:
     group: amortization
 
   generation_at_ref_queries:
+    ref: FD51
+    kind: D
     formula: generation_per_1k_queries * ref_queries_month / 1000
     unit: usd_per_month
     group: amortization
 
   query_gb_at_ref:
+    ref: FD52
+    kind: D
     formula: query_wire_bytes * ref_queries_month / 1073741824
     unit: gb_per_month
     display: 1
     group: amortization
 
   nat_at_ref_queries:
+    ref: FD53
+    kind: D
     formula: query_gb_at_ref * nat_processed_gb
     unit: usd_per_month
     group: amortization
 
   endpoint_at_ref_queries:
+    ref: FD54
+    kind: D
     formula: vpc_endpoint_runtime + query_gb_at_ref * endpoint_processed_gb
     unit: usd_per_month
     group: amortization
 
   nat_share_of_generation:
+    ref: FD55
+    kind: D
     formula: nat_at_ref_queries / generation_at_ref_queries * 100
     unit: percent
     display: 2
     group: amortization
 
   budget_alarm:
+    ref: FD56
+    kind: D
     formula: block_b_total_rs * 1.4
     unit: usd_per_month
     group: guardrails
     appears_in: [report.md]
 
   budget_alarm_as_built:
+    ref: FD57
+    kind: D
     formula: block_b_total * 1.4
     unit: usd_per_month
     group: guardrails
 
   serving_rest_pair_0905_hour:
+    ref: FM13
+    kind: M
     value: 0.18480
     unit: usd_per_hour
     display: 5
@@ -607,6 +811,8 @@ figures:
     group: campaign_0905
 
   serving_rest_ebs_0905_hour:
+    ref: FM14
+    kind: M
     value: 0.00274
     unit: usd_per_hour
     display: 5
@@ -614,25 +820,33 @@ figures:
     group: campaign_0905
 
   serving_idle_rate_0905:
+    ref: FD58
+    kind: D
     formula: serving_rest_pair_0905_hour + serving_rest_ebs_0905_hour
     unit: usd_per_hour
     display: 5
     group: campaign_0905
 
   campaign_hours:
+    ref: FR22
+    kind: R
     value: 4
     unit: hours
     source: 2026-09-05 hours 12-15, the five inference points
     group: campaign_0905
 
   campaign_queries:
-    value: 1166534
+    ref: FD59
+    kind: D
+    formula: queries_r050 + queries_r200 + queries_r300 + queries_r500 + queries_r1000
     unit: queries
     display: 0
-    source: sum of the five points served counts
+    source: the five per-point counts, each from its own data/inference-r*.cost-estimate.json. Typed as 1166534 until 2026-09-21, now summed, so a correction to any point carries into the campaign figures instead of silently disagreeing with them
     group: campaign_0905
 
   campaign_serving_instances:
+    ref: FM15
+    kind: M
     value: 1.9088
     unit: usd
     display: 4
@@ -640,6 +854,8 @@ figures:
     group: campaign_0905
 
   campaign_serving_ebs:
+    ref: FM16
+    kind: M
     value: 0.0365
     unit: usd
     display: 4
@@ -647,6 +863,8 @@ figures:
     group: campaign_0905
 
   campaign_serving_transfer:
+    ref: FM17
+    kind: M
     value: 0.5052
     unit: usd
     display: 4
@@ -654,6 +872,8 @@ figures:
     group: campaign_0905
 
   campaign_nat_bytes:
+    ref: FM18
+    kind: M
     value: 2.3610
     unit: usd
     display: 4
@@ -661,6 +881,8 @@ figures:
     group: campaign_0905
 
   campaign_nat_hours:
+    ref: FM19
+    kind: M
     value: 0.2080
     unit: usd
     display: 4
@@ -668,6 +890,8 @@ figures:
     group: campaign_0905
 
   campaign_nat_regional:
+    ref: FM20
+    kind: M
     value: 0.3093
     unit: usd
     display: 4
@@ -675,48 +899,64 @@ figures:
     group: campaign_0905
 
   campaign_serving_gross:
+    ref: FD60
+    kind: D
     formula: campaign_serving_instances + campaign_serving_ebs + campaign_serving_transfer
     unit: usd
     display: 4
     group: campaign_0905
 
   campaign_nat_gross:
+    ref: FD61
+    kind: D
     formula: campaign_nat_bytes + campaign_nat_hours + campaign_nat_regional
     unit: usd
     display: 4
     group: campaign_0905
 
   campaign_floor_subtracted:
+    ref: FD62
+    kind: D
     formula: serving_idle_rate_0905 * campaign_hours + campaign_nat_hours
     unit: usd
     display: 4
     group: campaign_0905
 
   campaign_marginal_broad:
+    ref: FD63
+    kind: D
     formula: campaign_serving_gross + campaign_nat_gross - campaign_floor_subtracted
     unit: usd
     display: 4
     group: campaign_0905
 
   campaign_marginal_narrow:
+    ref: FD64
+    kind: D
     formula: campaign_serving_instances + campaign_serving_ebs + campaign_nat_bytes + campaign_nat_regional - serving_idle_rate_0905 * campaign_hours
     unit: usd
     display: 4
     group: campaign_0905
 
   query_per_1k_broad:
+    ref: FD65
+    kind: D
     formula: campaign_marginal_broad / campaign_queries * 1000
     unit: usd_per_1k_queries
     display: 5
     group: campaign_0905
 
   query_per_1k_narrow:
+    ref: FD66
+    kind: D
     formula: campaign_marginal_narrow / campaign_queries * 1000
     unit: usd_per_1k_queries
     display: 5
     group: campaign_0905
 
   d23_n125:
+    ref: FM21
+    kind: M
     value: 0.8161
     unit: usd
     display: 4
@@ -724,6 +964,8 @@ figures:
     group: d23
 
   d23_n75:
+    ref: FM22
+    kind: M
     value: 0.5173
     unit: usd
     display: 4
@@ -731,6 +973,8 @@ figures:
     group: d23
 
   d23_n50:
+    ref: FM23
+    kind: M
     value: 0.2935
     unit: usd
     display: 4
@@ -738,6 +982,8 @@ figures:
     group: d23
 
   d23_n25:
+    ref: FM24
+    kind: M
     value: 0.0075
     unit: usd
     display: 4
@@ -745,6 +991,8 @@ figures:
     group: d23
 
   d23_n10:
+    ref: FM25
+    kind: M
     value: 0.3107
     unit: usd
     display: 4
@@ -752,96 +1000,621 @@ figures:
     group: d23
 
   cur_marginal_n125:
+    ref: FM26
+    kind: M
     value: 8.00
     unit: usd
     source: CUR actual, compute + NAT, Notes under #08
     group: d23
 
   cur_marginal_n75:
+    ref: FM27
+    kind: M
     value: 5.64
     unit: usd
     source: CUR actual, compute + NAT
     group: d23
 
   cur_marginal_n50:
+    ref: FM28
+    kind: M
     value: 4.14
     unit: usd
     source: CUR actual, compute + NAT
     group: d23
 
   cur_marginal_n25:
+    ref: FM29
+    kind: M
     value: 2.48
     unit: usd
     source: CUR actual, compute + NAT
     group: d23
 
   cur_marginal_n10:
+    ref: FM30
+    kind: M
     value: 4.16
     unit: usd
     source: CUR actual, compute + NAT, D23 excluded at the time
     group: d23
 
   run_total_n125:
+    ref: FD67
+    kind: D
     formula: cur_marginal_n125 + d23_n125
     unit: usd
     group: d23
 
   run_total_n75:
+    ref: FD68
+    kind: D
     formula: cur_marginal_n75 + d23_n75
     unit: usd
     group: d23
 
   run_total_n50:
+    ref: FD69
+    kind: D
     formula: cur_marginal_n50 + d23_n50
     unit: usd
     group: d23
 
   run_total_n25:
+    ref: FD70
+    kind: D
     formula: cur_marginal_n25 + d23_n25
     unit: usd
     group: d23
 
   run_total_n10:
+    ref: FD71
+    kind: D
     formula: cur_marginal_n10 + d23_n10
     unit: usd
     group: d23
 
   per_1m_n125:
+    ref: FD72
+    kind: D
     formula: run_total_n125 * 10000
     unit: usd_per_1m_docs
     display: 0
     group: d23
 
   per_1m_n75:
+    ref: FD73
+    kind: D
     formula: run_total_n75 * 10000
     unit: usd_per_1m_docs
     display: 0
     group: d23
 
   per_1m_n50:
+    ref: FD74
+    kind: D
     formula: run_total_n50 * 10000
     unit: usd_per_1m_docs
     display: 0
     group: d23
 
   per_1m_n25:
+    ref: FD75
+    kind: D
     formula: run_total_n25 * 10000
     unit: usd_per_1m_docs
     display: 0
     group: d23
 
   per_1m_n10:
+    ref: FD76
+    kind: D
     formula: run_total_n10 * 10000
     unit: usd_per_1m_docs
     display: 0
     group: d23
 
   gap_cost:
+    ref: FD77
+    kind: D
     formula: per_1m_n50 - per_1m_n25
     unit: usd_per_1m_docs
     display: 0
     group: d23
     appears_in: [executions/01-ingestion/index.md]
+
+  m9_gross_r050:
+    ref: FM31
+    kind: M
+    value: 0.0747
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 12:58-13:14 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r050.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r050:
+    ref: FM32
+    kind: M
+    value: 29938
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r050.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r050:
+    ref: FD78
+    kind: D
+    formula: m9_gross_r050 / queries_r050 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_r200:
+    ref: FM33
+    kind: M
+    value: 0.1686
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 13:21-13:39 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r200.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r200:
+    ref: FM34
+    kind: M
+    value: 119623
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r200.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r200:
+    ref: FD79
+    kind: D
+    formula: m9_gross_r200 / queries_r200 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_r300:
+    ref: FM35
+    kind: M
+    value: 0.1769
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 14:27-14:45 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r300.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r300:
+    ref: FM36
+    kind: M
+    value: 180001
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r300.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r300:
+    ref: FD80
+    kind: D
+    formula: m9_gross_r300 / queries_r300 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_r500:
+    ref: FM37
+    kind: M
+    value: 0.3133
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 13:53-14:14 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r500.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r500:
+    ref: FM38
+    kind: M
+    value: 267956
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r500.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r500:
+    ref: FD81
+    kind: D
+    formula: m9_gross_r500 / queries_r500 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_r1000:
+    ref: FM39
+    kind: M
+    value: 0.4992
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 14:52-15:16 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r1000.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r1000:
+    ref: FM40
+    kind: M
+    value: 569016
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r1000.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r1000:
+    ref: FD82
+    kind: D
+    formula: m9_gross_r1000 / queries_r1000 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_sum:
+    ref: FD83
+    kind: D
+    formula: m9_gross_r050 + m9_gross_r200 + m9_gross_r300 + m9_gross_r500 + m9_gross_r1000
+    unit: usd
+    display: 4
+    group: inference_points
+
+  everything_else_fixed:
+    ref: FD84
+    kind: D
+    formula: c_fixed - db_nodes - serving_nodes - qdrant_pvcs - karpenter_fargate - vpc_endpoints - core_nodes
+    unit: usd_per_month
+    source: the fixed floor lines the right-sized table does not resize, as one row. Unchanged between the two columns, which is the point of showing it
+    group: right_sized
+    appears_in: [executions/00-baseline/index.md]
+
+  serving_share_of_b:
+    ref: FD85
+    kind: D
+    formula: serving_total / block_b_fixed * 100
+    unit: percent
+    display: 1
+    group: totals
+
+  qdrant_share_of_b:
+    ref: FD86
+    kind: D
+    formula: qdrant_total / block_b_fixed * 100
+    unit: percent
+    display: 1
+    group: totals
+
+  endpoints_share_of_b:
+    ref: FD87
+    kind: D
+    formula: vpc_endpoints / block_b_fixed * 100
+    unit: percent
+    display: 1
+    group: totals
+
+  qdrant_pvc_share_of_b:
+    ref: FD88
+    kind: D
+    formula: qdrant_pvcs / block_b_fixed * 100
+    unit: percent
+    display: 1
+    group: totals
+
+  campaign_gross_total:
+    ref: FD89
+    kind: D
+    formula: campaign_serving_gross + campaign_nat_gross
+    unit: usd
+    display: 4
+    source: the campaign's whole serving and NAT spend over hours 12-15, before any netting. Printed beside the marginal so the netting step is visible rather than implied. Replaces the typed leaf query_per_1k_gross (0.00457), which stated a gross number as if it were the marginal
+    group: campaign_0905
+    appears_in: [executions/02-inference/index.md]
+
+  campaign_vs_d16_low:
+    ref: FD90
+    kind: D
+    formula: query_per_1k_broad / d16_gross_r050
+    unit: ratio
+    display: 1
+    source: how far the cheapest-looking per-point gross figure sits below the real campaign marginal
+    group: campaign_0905
+
+  campaign_vs_d16_high:
+    ref: FD91
+    kind: D
+    formula: query_per_1k_broad / d16_gross_r1000
+    unit: ratio
+    display: 1
+    source: the same against r1000, the point that understates by the most
+    group: campaign_0905
+
+  campaign_contamination_excluded:
+    ref: FM41
+    kind: M
+    value: 0.2127
+    unit: usd
+    display: 4
+    source: CUR 2026-09-05 hour 12, an accidental ingestion run killed before r050 started; identified and excluded from the campaign totals (data/campaign.cur-actual.json)
+    group: campaign_0905
+
+  eff_per_doc_1k:
+    ref: FD92
+    kind: D
+    formula: (block_b_total + ingestion_per_doc * 1000) / 1000
+    unit: usd_per_doc
+    display: 4
+    group: amortization
+    appears_in: [report.md]
+
+  eff_per_doc_10k:
+    ref: FD93
+    kind: D
+    formula: (block_b_total + ingestion_per_doc * 10000) / 10000
+    unit: usd_per_doc
+    display: 4
+    group: amortization
+    appears_in: [report.md]
+
+  eff_per_doc_100k:
+    ref: FD94
+    kind: D
+    formula: (block_b_total + ingestion_per_doc * 100000) / 100000
+    unit: usd_per_doc
+    display: 4
+    group: amortization
+    appears_in: [report.md]
+
+  eff_per_doc_1m:
+    ref: FD95
+    kind: D
+    formula: (block_b_total + ingestion_per_doc * 1000000) / 1000000
+    unit: usd_per_doc
+    display: 4
+    group: amortization
+    appears_in: [report.md]
+
+  floor_share_docs_1k:
+    ref: FD96
+    kind: D
+    formula: block_b_total / (block_b_total + ingestion_per_doc * 1000) * 100
+    unit: percent
+    display: 1
+    group: amortization
+
+  floor_share_docs_10k:
+    ref: FD97
+    kind: D
+    formula: block_b_total / (block_b_total + ingestion_per_doc * 10000) * 100
+    unit: percent
+    display: 1
+    group: amortization
+
+  floor_share_docs_100k:
+    ref: FD98
+    kind: D
+    formula: block_b_total / (block_b_total + ingestion_per_doc * 100000) * 100
+    unit: percent
+    display: 1
+    group: amortization
+
+  floor_share_docs_1m:
+    ref: FD99
+    kind: D
+    formula: block_b_total / (block_b_total + ingestion_per_doc * 1000000) * 100
+    unit: percent
+    display: 1
+    group: amortization
+
+  query_per_query:
+    ref: FD100
+    kind: D
+    formula: query_per_1k_broad / 1000
+    unit: usd_per_query
+    display: 8
+    group: amortization
+    appears_in: [report.md]
+
+  eff_per_query_10k:
+    ref: FD101
+    kind: D
+    formula: (block_b_total + query_per_query * 10000) / 10000
+    unit: usd_per_query
+    display: 5
+    group: amortization
+    appears_in: [report.md]
+
+  eff_per_query_100k:
+    ref: FD102
+    kind: D
+    formula: (block_b_total + query_per_query * 100000) / 100000
+    unit: usd_per_query
+    display: 5
+    group: amortization
+    appears_in: [report.md]
+
+  eff_per_query_1m:
+    ref: FD103
+    kind: D
+    formula: (block_b_total + query_per_query * 1000000) / 1000000
+    unit: usd_per_query
+    display: 5
+    group: amortization
+    appears_in: [report.md]
+
+  eff_per_query_10m:
+    ref: FD104
+    kind: D
+    formula: (block_b_total + query_per_query * 10000000) / 10000000
+    unit: usd_per_query
+    display: 7
+    group: amortization
+    appears_in: [report.md]
+
+  floor_share_queries_10k:
+    ref: FD105
+    kind: D
+    formula: block_b_total / (block_b_total + query_per_query * 10000) * 100
+    unit: percent
+    display: 2
+    group: amortization
+
+  floor_share_queries_100k:
+    ref: FD106
+    kind: D
+    formula: block_b_total / (block_b_total + query_per_query * 100000) * 100
+    unit: percent
+    display: 2
+    group: amortization
+
+  floor_share_queries_1m:
+    ref: FD107
+    kind: D
+    formula: block_b_total / (block_b_total + query_per_query * 1000000) * 100
+    unit: percent
+    display: 1
+    group: amortization
+
+  floor_share_queries_10m:
+    ref: FD108
+    kind: D
+    formula: block_b_total / (block_b_total + query_per_query * 10000000) * 100
+    unit: percent
+    display: 1
+    group: amortization
+
+  chunker_per_1m:
+    ref: FM42
+    kind: M
+    value: 21
+    unit: usd_per_1m_docs
+    display: 0
+    source: CUR split cost allocation at N=25, pulled 2026-09-09; 01-ingestion M12, stage-1 chunker pods
+    group: marginal
+
+  indexer_per_1m:
+    ref: FM43
+    kind: M
+    value: 2574
+    unit: usd_per_1m_docs
+    display: 0
+    source: CUR split cost allocation at N=25, pulled 2026-09-09; 01-ingestion M12, stage-2 indexer pods
+    group: marginal
+
+  tei_apportioned_per_1m:
+    ref: FM44
+    kind: M
+    value: 3256
+    unit: usd_per_1m_docs
+    display: 0
+    source: CUR split cost allocation at N=25; the embedding tier's whole apportioned share for the window, before the always-on minimum is removed
+    group: marginal
+
+  tei_idle_share_per_1m:
+    ref: FM45
+    kind: M
+    value: 766
+    unit: usd_per_1m_docs
+    display: 0
+    source: the two-replica idle floor's share of the same window, subtracted so the tier is charged to ingestion only above its always-on minimum
+    group: marginal
+
+  tei_above_floor_per_1m:
+    ref: FD109
+    kind: D
+    formula: tei_apportioned_per_1m - tei_idle_share_per_1m
+    unit: usd_per_1m_docs
+    display: 0
+    group: marginal
+
+  undecomposed_per_1m:
+    ref: FD110
+    kind: D
+    formula: ingestion_per_1m_docs - chunker_per_1m - indexer_per_1m - tei_above_floor_per_1m
+    unit: usd_per_1m_docs
+    display: 0
+    source: NAT, SQS, S3 and node capacity billed to no pod. A residual by construction - M12's unused_cost is fleet-wide rather than isolated to apps-compute, so this does not decompose further
+    group: marginal
+
+  share_chunker:
+    ref: FD111
+    kind: D
+    formula: chunker_per_1m / ingestion_per_1m_docs * 100
+    unit: percent
+    display: 1
+    group: marginal
+
+  share_indexer:
+    ref: FD112
+    kind: D
+    formula: indexer_per_1m / ingestion_per_1m_docs * 100
+    unit: percent
+    display: 1
+    group: marginal
+
+  share_tei:
+    ref: FD113
+    kind: D
+    formula: tei_above_floor_per_1m / ingestion_per_1m_docs * 100
+    unit: percent
+    display: 1
+    group: marginal
+
+  share_undecomposed:
+    ref: FD114
+    kind: D
+    formula: undecomposed_per_1m / ingestion_per_1m_docs * 100
+    unit: percent
+    display: 1
+    group: marginal
+
+  generation_vs_retrieval:
+    ref: FD115
+    kind: D
+    formula: generation_per_1k_queries / query_per_1k_broad
+    unit: ratio
+    display: 0
+    source: what turning generation on would multiply the query-path marginal by. Stated as a figure because the report quotes it in two sections and it moves whenever either input does
+    group: marginal
+
+  queries_at_sustained_rate_month:
+    ref: FD116
+    kind: D
+    formula: 1000 * 3600 * hours_per_month
+    unit: queries_per_month
+    display: 0
+    source: what the sustained rate D15 would serve if it ran continuously for a month; the denominator that makes the floor share look negligible
+    group: amortization
+
+  tokens_per_query:
+    ref: FD117
+    kind: D
+    formula: bedrock_input_tokens + bedrock_output_tokens
+    unit: tokens
+    display: 0
+    source: 02-inference/E18, assumed input plus the MaxGenLen cap on output
+    group: marginal
+
+  generation_per_query:
+    ref: FD118
+    kind: D
+    formula: generation_per_1k_queries / 1000
+    unit: usd_per_query
+    display: 6
+    source: the per-query form of E18, quoted in 02-inference/K4 against the bytes that carry the same answer
+    group: marginal
+    appears_in: [executions/02-inference/concepts.md]
 
 allow:
   - pattern: "24,750"
@@ -911,3 +1684,33 @@ retired:
   - pattern: "0.02475"
     replaced_by: ingestion_per_doc
     why: per-document marginal before D23 was measured
+  - pattern: "0.0159"
+    replaced_by: m9_gross_r050
+    why: r050 serving cost netted per point against the 09-04 rate; per-point figures are gross since D2
+  - pattern: "0.1079"
+    replaced_by: m9_gross_r200
+    why: r200 serving cost netted per point
+  - pattern: "0.1148"
+    replaced_by: m9_gross_r300
+    why: r300 serving cost netted per point
+  - pattern: "0.2394"
+    replaced_by: m9_gross_r500
+    why: r500 serving cost netted per point
+  - pattern: "0.4151"
+    replaced_by: m9_gross_r1000
+    why: r1000 serving cost netted per point
+  - pattern: "0.00054"
+    replaced_by: d16_gross_r050
+    why: per-point D16 netted against the 09-04 rate
+  - pattern: "0.00090"
+    replaced_by: d16_gross_r200
+    why: per-point D16 netted against the 09-04 rate
+  - pattern: "0.00064"
+    replaced_by: d16_gross_r300
+    why: per-point D16 netted against the 09-04 rate
+  - pattern: "0.00089"
+    replaced_by: d16_gross_r500
+    why: per-point D16 netted against the 09-04 rate
+  - pattern: "0.00073"
+    replaced_by: d16_gross_r1000
+    why: per-point D16 netted against the 09-04 rate

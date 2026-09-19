@@ -35,7 +35,7 @@ latency condition.
 
 ## K4 · Token cost and byte cost diverge by three orders of magnitude
 
-A generated answer is priced by tokens and carried by bytes. `E18`'s 2,312 tokens cost $0.000509
+A generated answer is priced by tokens and carried by bytes. `E18`'s 2,312<!--FD117--> tokens cost $0.000509<!--FD118--> ᴱ
 to generate and weigh roughly 9 KB, so whatever moves them — NAT processing or a PrivateLink
 endpoint — bills about a tenth of a percent of what generating them bills. The ingestion path
 inverts it: documents are carried, nothing is generated, and NAT is 62.8% of the marginal total

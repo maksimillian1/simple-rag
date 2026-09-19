@@ -1,0 +1,10 @@
+# The report's numbers are checked by report-kit's `figures` command. The pin is
+# a tag, not a branch: the 308 marks in these documents were verified against one
+# version of the resolver, and `@master` would quietly become a different one.
+#
+#   pip install -r docs/report/requirements.txt
+#   cd docs/report && report-kit figures check
+#
+# Bump deliberately, then re-run the check and read the mark count before
+# treating the new version as equivalent.
+report-kit @ git+https://github.com/maksimillian1/report-kit@v0.2
