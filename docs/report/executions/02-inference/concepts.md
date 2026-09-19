@@ -32,3 +32,20 @@ rate holding the target, guarded by served rate matching offered and errors near
 
 **Consequence** — where the grid stops, and why no throughput figure here is quoted without its
 latency condition.
+
+## K4 · Token cost and byte cost diverge by three orders of magnitude
+
+A generated answer is priced by tokens and carried by bytes, and for this workload those two
+quantities part company. `E18`'s 2,312 tokens cost $0.000509 to generate and weigh roughly 9 KB
+on the wire, so the network that moves them — NAT processing or a PrivateLink endpoint, whichever
+the deployment uses — bills about a tenth of a percent of what the generation itself bills.
+
+The ratio is a property of generative traffic rather than of this cluster: a token is priced in
+fractions of a cent and weighs a handful of bytes, so any network line under it is dominated by
+the model's own rate long before volume matters. The same reasoning does not transfer to the
+ingestion path, where documents are carried but nothing is generated: there NAT processing is
+62.8% of the marginal total in the one run with a CUR actual (`01-ingestion/data/ingestion-n10.cur-actual.json`).
+
+**Consequence** — that no network-topology choice on the query path can be argued on cost, that
+`D22`'s crossover is reported as a range rather than a value, and that a guardrail on generation
+spend belongs on prompt size rather than on transport.

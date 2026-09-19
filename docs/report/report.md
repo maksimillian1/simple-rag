@@ -451,6 +451,61 @@ persistent by design, and per-second billing buys nothing when the pod never sto
 
 ---
 
+### 4.5 Break-even for the Bedrock VPC endpoint, query path only
+
+The cluster reaches Bedrock either through a PrivateLink interface endpoint or through the NAT
+gateway §4.1 already pays for. So the realistic alternative is not "no network" but the transport
+already on the bill, and the comparison is a fixed monthly cost against a per-GB premium. It turns
+on one quantity: how many bytes a query actually moves.
+
+At `02-inference/E18`'s token counts a query moves ~9 KB round trip — 2,312 tokens at roughly four
+bytes each. That is three orders of magnitude lighter than what the same query costs to generate,
+and `02-inference/K4` explains why the two quantities part company for generative traffic.
+
+At a reference 1,000,000 queries per month — round, not measured — that is 8.6 GB of traffic:
+
+| | Via NAT | Via the endpoint |
+| :--- | ---: | ---: |
+| Fixed per month | none beyond §4.1 | $26.28 ᴰ, 3 ENIs across 3 AZs |
+| Per GB | $0.052 ᴿ | pending ᴱ, never pulled from the Price List API |
+| Network at the reference volume | $0.45 ᴰ | $26.28 + pending |
+| Generation at the same volume | $508.64 ᴱ | $508.64 ᴱ |
+| Network as a share of generation | **0.09%** ᴰ | above the endpoint's fixed cost either way |
+
+**Crossover — `02-inference/D22`, and it resolves to `pending`.** The PrivateLink data-processing
+rate is the one input this report never captured. Held at the values the rate card would plausibly
+carry, the crossover lands between **31.5 and 72.6 million queries per month** — 12 to 28 requests
+per second sustained around the clock. The whole `02-inference` campaign served 1.17M queries.
+
+The 2.3× spread is not imprecision to be tightened later. It comes from three inputs, and each is
+a different kind of unknown: the PrivateLink rate is unpulled and could be pinned; bytes-per-token
+is a property of the corpus and the tokenizer that no run in this report measured, and `E18`'s
+1,800-token input is explicitly an upper bound; and whether cross-region transfer applies depends
+on an unsettled architectural question (`AWS_BEDROCK_REGION` is `us-east-1` while the endpoints
+are in `eu-central-1`). Pulling one rate narrows the range without closing it.
+
+**The decision does not wait on the crossover.** Whatever the volume, the network line stays
+around a tenth of a percent of the generation bill on the NAT side, so no reading of D22 makes
+transport a cost argument on the query path. `ADR-0007` justifies the endpoint on two grounds —
+the data-privacy boundary, and that PrivateLink "slashes NAT Gateway data processing charges."
+The first holds. **The second does not survive this table at this workload's token-to-byte
+ratio**, and it is the only quantitative claim the ADR makes.
+
+**Two lines this section does settle**, both from reading the deployment rather than from a run (`docs/tech-debt.md` #12):
+
+- The `bedrock` control-plane endpoint, $26.28/month of `block_b_fixed`, is reachable by nothing.
+  `apps/api` imports only `bedrockruntime` and the control-plane SDK is absent from `go.mod`; the
+  IAM policy grants only `InvokeModel` and `InvokeModelWithResponseStream`; and the Cilium egress
+  policy admits only `bedrock-runtime.*.amazonaws.com`, so a control-plane call would be dropped
+  before it left the pod. `figures.yaml` → `vpc_endpoint_control_plane`.
+- The `bedrock-runtime` endpoint sits in `eu-central-1` while `AWS_BEDROCK_REGION` is `us-east-1`,
+  so its private DNS never matches the hostname the client resolves. Under the configuration as
+  committed, generation traffic would leave through NAT — which is the transport `ADR-0007`
+  forbids, for the reason that survives above. Neither endpoint is on the request path today,
+  and no run has exercised either.
+
+---
+
 ## 5. Guardrails
 
 | Guardrail | Value | Derived from | Enforced in |

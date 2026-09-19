@@ -37,10 +37,19 @@ GROUP_ORDER = [
     "errors",
     "marginal",
     "amortization",
+    "architecture",
     "guardrails",
 ]
 
 _ALLOWED_BINOPS = (ast.Add, ast.Sub, ast.Mult, ast.Div)
+
+
+class _Pending:
+    def __repr__(self):
+        return "pending"
+
+
+PENDING = _Pending()
 
 
 class FigureError(Exception):
@@ -66,10 +75,13 @@ def _eval(node, figures, resolved, stack):
     if isinstance(node, ast.Name):
         return _resolve_one(node.id, figures, resolved, stack)
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
-        return -_eval(node.operand, figures, resolved, stack)
+        operand = _eval(node.operand, figures, resolved, stack)
+        return PENDING if operand is PENDING else -operand
     if isinstance(node, ast.BinOp) and isinstance(node.op, _ALLOWED_BINOPS):
         left = _eval(node.left, figures, resolved, stack)
         right = _eval(node.right, figures, resolved, stack)
+        if left is PENDING or right is PENDING:
+            return PENDING
         if isinstance(node.op, ast.Add):
             return left + right
         if isinstance(node.op, ast.Sub):
@@ -90,6 +102,9 @@ def _resolve_one(name, figures, resolved, stack):
     if name in stack:
         raise FigureError("cycle: " + " -> ".join(list(stack) + [name]))
     spec = figures[name] or {}
+    if spec.get("pending"):
+        resolved[name] = PENDING
+        return PENDING
     if "value" in spec:
         value = float(spec["value"])
     elif "formula" in spec:
@@ -110,6 +125,8 @@ def resolve(doc):
 
 
 def display(name, value, doc):
+    if value is PENDING:
+        return "pending"
     spec = doc["figures"].get(name) or {}
     decimals = spec.get("display", 2)
     unit = str(spec.get("unit", ""))
