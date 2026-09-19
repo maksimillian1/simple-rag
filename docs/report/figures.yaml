@@ -5,6 +5,8 @@ meta:
   cur: s3://simple-rag-cur-reports-883f615c/cur2/simple-rag BILLING_PERIOD=2026-09
   rate_card: executions/00-baseline/data/price-2026-09-09.json
   rule: every currency figure printed in the report exists here; totals are summed from exact values, never from rounded parts
+  rounding: AWS itself stores CUR costs unrounded (69% of this month's rows carry 10 decimals) and rounds once at the end; rounding per row and summing would have overstated 2026-09 by $2.06
+  display: prose prints whole dollars; tables print cents where the lines have to add up; rates and per-unit figures keep the decimals that separate them
 
 scan:
   - report.md
@@ -401,10 +403,9 @@ figures:
     appears_in: [executions/00-baseline/index.md]
 
   ingestion_per_1m_docs:
-    value: 24750
+    formula: per_1m_n25
     unit: usd_per_1m_docs
     display: 0
-    source: CUR actual at N=25, the sweet spot
     group: marginal
     appears_in: [report.md, executions/01-ingestion/index.md]
 
@@ -427,14 +428,32 @@ figures:
     display: 0
     group: amortization
 
+  docs_at_half_floor_rs:
+    formula: block_b_total_rs / ingestion_per_doc
+    unit: docs_per_month
+    display: 0
+    group: amortization
+
   queries_at_half_floor:
-    formula: block_b_total / (query_per_1k_gross / 1000)
+    formula: block_b_total / (query_per_1k_broad / 1000)
+    unit: queries_per_month
+    display: 0
+    group: amortization
+
+  queries_at_half_floor_rs:
+    formula: block_b_total_rs / (query_per_1k_broad / 1000)
     unit: queries_per_month
     display: 0
     group: amortization
 
   floor_share_per_1k_queries:
     formula: block_b_total / (1000 * 3600 * hours_per_month) * 1000
+    unit: usd_per_1k_queries
+    display: 6
+    group: amortization
+
+  floor_share_per_1k_queries_rs:
+    formula: block_b_total_rs / (1000 * 3600 * hours_per_month) * 1000
     unit: usd_per_1k_queries
     display: 6
     group: amortization
@@ -449,6 +468,260 @@ figures:
     formula: block_b_total * 1.4
     unit: usd_per_month
     group: guardrails
+
+  serving_rest_pair_0905_hour:
+    value: 0.18480
+    unit: usd_per_hour
+    display: 5
+    source: CUR 2026-09-05 hour 12, the only clean rest between n10 draining and r050 starting; 2 full-hour Spot nodes, c5.xlarge + c6a.xlarge
+    group: campaign_0905
+
+  serving_rest_ebs_0905_hour:
+    value: 0.00274
+    unit: usd_per_hour
+    display: 5
+    source: CUR 2026-09-05 hour 12, root volumes of the same pair
+    group: campaign_0905
+
+  serving_idle_rate_0905:
+    formula: serving_rest_pair_0905_hour + serving_rest_ebs_0905_hour
+    unit: usd_per_hour
+    display: 5
+    group: campaign_0905
+
+  campaign_hours:
+    value: 4
+    unit: hours
+    source: 2026-09-05 hours 12-15, the five inference points
+    group: campaign_0905
+
+  campaign_queries:
+    value: 1166534
+    unit: queries
+    display: 0
+    source: sum of the five points served counts
+    group: campaign_0905
+
+  campaign_serving_instances:
+    value: 1.9088
+    unit: usd
+    display: 4
+    source: CUR hours 12-15, Spot instance-hours tagged apps-serving
+    group: campaign_0905
+
+  campaign_serving_ebs:
+    value: 0.0365
+    unit: usd
+    display: 4
+    source: CUR hours 12-15, gp3 tagged apps-serving
+    group: campaign_0905
+
+  campaign_serving_transfer:
+    value: 0.5052
+    unit: usd
+    display: 4
+    source: CUR hours 12-15, DataTransfer-Regional-Bytes tagged apps-serving
+    group: campaign_0905
+
+  campaign_nat_bytes:
+    value: 2.3610
+    unit: usd
+    display: 4
+    source: CUR hours 12-15, EUC1-NatGateway-Bytes
+    group: campaign_0905
+
+  campaign_nat_hours:
+    value: 0.2080
+    unit: usd
+    display: 4
+    source: CUR hours 12-15, EUC1-NatGateway-Hours, floor rather than marginal
+    group: campaign_0905
+
+  campaign_nat_regional:
+    value: 0.3093
+    unit: usd
+    display: 4
+    source: CUR hours 12-15, DataTransfer-Regional-Bytes on the NAT gateway resource
+    group: campaign_0905
+
+  campaign_serving_gross:
+    formula: campaign_serving_instances + campaign_serving_ebs + campaign_serving_transfer
+    unit: usd
+    display: 4
+    group: campaign_0905
+
+  campaign_nat_gross:
+    formula: campaign_nat_bytes + campaign_nat_hours + campaign_nat_regional
+    unit: usd
+    display: 4
+    group: campaign_0905
+
+  campaign_floor_subtracted:
+    formula: serving_idle_rate_0905 * campaign_hours + campaign_nat_hours
+    unit: usd
+    display: 4
+    group: campaign_0905
+
+  campaign_marginal_broad:
+    formula: campaign_serving_gross + campaign_nat_gross - campaign_floor_subtracted
+    unit: usd
+    display: 4
+    group: campaign_0905
+
+  campaign_marginal_narrow:
+    formula: campaign_serving_instances + campaign_serving_ebs + campaign_nat_bytes + campaign_nat_regional - serving_idle_rate_0905 * campaign_hours
+    unit: usd
+    display: 4
+    group: campaign_0905
+
+  query_per_1k_broad:
+    formula: campaign_marginal_broad / campaign_queries * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: campaign_0905
+
+  query_per_1k_narrow:
+    formula: campaign_marginal_narrow / campaign_queries * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: campaign_0905
+
+  d23_n125:
+    value: 0.8161
+    unit: usd
+    display: 4
+    source: CUR 2026-09-04 hour 14, serving gross (instances + transfer + EBS) minus the 09-04 rest rate
+    group: d23
+
+  d23_n75:
+    value: 0.5173
+    unit: usd
+    display: 4
+    source: CUR 2026-09-04 hour 15, same method
+    group: d23
+
+  d23_n50:
+    value: 0.2935
+    unit: usd
+    display: 4
+    source: CUR 2026-09-04 hour 16, same method
+    group: d23
+
+  d23_n25:
+    value: 0.0075
+    unit: usd
+    display: 4
+    source: CUR 2026-09-04 hour 17 plus the 0.0005 spill into hour 18; the run closed at 18:02
+    group: d23
+
+  d23_n10:
+    value: 0.3107
+    unit: usd
+    display: 4
+    source: CUR 2026-09-05 hours 10-12 at that day's rest rate; hour 12 overlaps the inference campaign window by $0.0441
+    group: d23
+
+  cur_marginal_n125:
+    value: 8.00
+    unit: usd
+    source: CUR actual, compute + NAT, Notes under #08
+    group: d23
+
+  cur_marginal_n75:
+    value: 5.64
+    unit: usd
+    source: CUR actual, compute + NAT
+    group: d23
+
+  cur_marginal_n50:
+    value: 4.14
+    unit: usd
+    source: CUR actual, compute + NAT
+    group: d23
+
+  cur_marginal_n25:
+    value: 2.48
+    unit: usd
+    source: CUR actual, compute + NAT
+    group: d23
+
+  cur_marginal_n10:
+    value: 4.16
+    unit: usd
+    source: CUR actual, compute + NAT, D23 excluded at the time
+    group: d23
+
+  run_total_n125:
+    formula: cur_marginal_n125 + d23_n125
+    unit: usd
+    group: d23
+
+  run_total_n75:
+    formula: cur_marginal_n75 + d23_n75
+    unit: usd
+    group: d23
+
+  run_total_n50:
+    formula: cur_marginal_n50 + d23_n50
+    unit: usd
+    group: d23
+
+  run_total_n25:
+    formula: cur_marginal_n25 + d23_n25
+    unit: usd
+    group: d23
+
+  run_total_n10:
+    formula: cur_marginal_n10 + d23_n10
+    unit: usd
+    group: d23
+
+  per_1m_n125:
+    formula: run_total_n125 * 10000
+    unit: usd_per_1m_docs
+    display: 0
+    group: d23
+
+  per_1m_n75:
+    formula: run_total_n75 * 10000
+    unit: usd_per_1m_docs
+    display: 0
+    group: d23
+
+  per_1m_n50:
+    formula: run_total_n50 * 10000
+    unit: usd_per_1m_docs
+    display: 0
+    group: d23
+
+  per_1m_n25:
+    formula: run_total_n25 * 10000
+    unit: usd_per_1m_docs
+    display: 0
+    group: d23
+
+  per_1m_n10:
+    formula: run_total_n10 * 10000
+    unit: usd_per_1m_docs
+    display: 0
+    group: d23
+
+  gap_cost:
+    formula: per_1m_n50 - per_1m_n25
+    unit: usd_per_1m_docs
+    display: 0
+    group: d23
+    appears_in: [executions/01-ingestion/index.md]
+
+allow:
+  - pattern: "24,750"
+    file: executions/01-ingestion/index.md
+    must_contain: "$1.3823"
+    why: the CUR-actuals table prices compute and NAT only, so by its own definition it carries no D23
+  - pattern: "41,624"
+    file: executions/01-ingestion/index.md
+    must_contain: replaced the estimate
+    why: a deliberate was-then-now sentence, the superseded figure is the point of it
 
 retired:
   - pattern: "426.93"
@@ -481,3 +754,30 @@ retired:
   - pattern: "$24.91"
     replaced_by: karpenter_fargate
     why: Karpenter Fargate line before the vCPU and GB dimensions were both counted
+  - pattern: "0.00457"
+    replaced_by: query_per_1k_broad
+    why: campaign figure before the 09-05 serving floor and the NAT hourly fee were netted out
+  - pattern: "0.9024"
+    replaced_by: campaign_floor_subtracted
+    why: serving floor for the campaign, computed from the retired $0.2256/h rate
+  - pattern: "24,750"
+    replaced_by: per_1m_n25
+    why: sweet spot before D23 was measured
+  - pattern: "44,200"
+    replaced_by: per_1m_n50
+    why: knee before D23 was measured
+  - pattern: "41,624"
+    replaced_by: per_1m_n10
+    why: N=10 before D23 was measured
+  - pattern: "59,896"
+    replaced_by: per_1m_n75
+    why: waste boundary before D23 was measured
+  - pattern: "84,999"
+    replaced_by: per_1m_n125
+    why: top of the grid before D23 was measured
+  - pattern: "19,450"
+    replaced_by: gap_cost
+    why: knee-to-sweet-spot gap before D23 was measured
+  - pattern: "0.02475"
+    replaced_by: ingestion_per_doc
+    why: per-document marginal before D23 was measured

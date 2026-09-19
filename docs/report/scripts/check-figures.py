@@ -43,13 +43,26 @@ def scan_paths(doc):
     return paths
 
 
+def allowed(doc, pattern, rel, line):
+    for item in doc.get("allow", []):
+        if str(item.get("pattern")) != pattern:
+            continue
+        if item.get("file") and str(item["file"]) != rel:
+            continue
+        if item.get("must_contain") and str(item["must_contain"]) not in line:
+            continue
+        return True
+    return False
+
+
 def check_retired(doc, paths):
     hits = []
     for item in doc.get("retired", []):
         pattern = str(item["pattern"])
         for path in paths:
+            rel = str(path.relative_to(ROOT))
             for number, line in enumerate(path.read_text().splitlines(), 1):
-                if pattern in line:
+                if pattern in line and not allowed(doc, pattern, rel, line):
                     hits.append((path, number, pattern, item.get("replaced_by", ""), line.strip()))
     return hits
 

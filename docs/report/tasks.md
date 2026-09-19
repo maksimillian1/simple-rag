@@ -40,10 +40,17 @@ after sections 2 and 3:
 | D8 | `02-inference/data/*.point.md` (4 unfilled templates) | delete · keep | delete | 3.4 |
 | D9 | §1 Verdict | ship · ship with guardrails · do not ship | business call, last | 4.11 |
 
+## 0.6 · Settled 2026-09-19, applies everywhere
+
+- **Query marginal: the broad definition.** Every row tagged to the serving pool and every NAT row counts; only what is floor by definition is subtracted (the 09-05 resting pair × 4 h + the NAT hourly fee = $0.9582). Campaign marginal $4.3706 → **$0.00375/1k queries**, against the published $0.00457. Cross-AZ transfer on serving nodes stays in: query traffic causes it. The narrow variant ($0.00331) stays in `figures.yaml` as the alternative, unused.
+- **Arithmetic at full precision, rounded once at print.** This is what AWS does: 69% of this month's CUR rows carry 10 decimals, and rounding per row before summing would have overstated 2026-09 by $2.06 (1.4%).
+- **Prose prints whole dollars** ($554, $484, $790). Cents stay in the §4.1 Floor table, where lines have to add up, and in rates and per-unit figures.
+
 ## 0.5 · Precondition for D2 (blocks 2.1, 3.1, 3.2)
 
-- [ ] 0.5.1 Confirm the CUR bucket survived teardown: `s3://simple-rag-cur-reports-883f615c/cur2/simple-rag/simple-rag-cur/data/BILLING_PERIOD=2026-09/`. If it is gone, D2 (b) is unreachable and the whole of 2.1/3.1/3.2 falls back to (c) with a declared caveat · S
-- [ ] 0.5.2 Pull the resting `apps-serving` inventory for 2026-09-05, hours 12–15, and derive that day's floor rate. Nothing in the repo holds it today, and 2.1/3.1/3.2 are written as if it does · M
+- [x] 0.5.1 CUR bucket alive (2026-09-19): `BILLING_PERIOD=2026-09` parquet, 46,905 rows, refreshed 07:22 the same morning. September is still open, so K3's month-close re-read is still owed · S
+- [x] 0.5.2 Done 2026-09-19, in `figures.yaml` group `campaign_0905`. The two days rested on different hardware: 09-04 on 2 × c7i-flex.2xlarge Spot ($0.37940/h, confirmed twice, hours 17 and 18), 09-05 on c5.xlarge + c6a.xlarge ($0.18480/h + $0.00274/h EBS = **$0.18754/h**, hour 12, the only clean rest between n10 draining and r050 starting at 12:58). The 09-05 floor is 49% of the 09-04 one, which is why subtracting $0.3833/h drove r050 negative. Hour 11 is not rest: n10 was still running and TEI held 3 replicas on 3 nodes · M
+- [x] 0.5.3 The published campaign figures are reconciled rather than wrong: `serving_gross` $2.4505 = instances 1.9088 + EBS 0.0365 + **cross-AZ transfer tagged to the serving nodes 0.5052**; `nat` $2.8791 = NatGateway-Bytes 2.3610 + NatGateway-Hours 0.2080 + the NAT resource's own regional bytes 0.3093 (2.8783, a $0.0008 rounding gap). CUR has not been restated: the stray ingestion run still reconciles to the cent ($0.2127). What stays wrong in `campaign.cur-actual.json` is `serving_floor_4h_usd: 0.9024` (4 h × the retired $0.2256/h) and `net_of_floor: 4.4272`; correct floor is 4 × $0.18754 = $0.7502 · S
 - [ ] 0.5.3 `02-inference/data/campaign.cur-actual.json` carries `serving_floor_4h_usd: 0.9024` = 4 h × $0.2256/h — a rate retired twice (0.2256 → 0.20892 → 0.3833). `net_of_floor: 4.4272` is therefore wrong. Recompute both from 0.5.2; the §4.10 grep does not catch stale arithmetic in data files · S
 
 ## 1 · 00-baseline (finish proofreading)
@@ -60,7 +67,7 @@ after sections 2 and 3:
 
 ## 2 · 01-ingestion
 
-- [ ] 2.1 `TEI $` (D23, N=25–125) is still the pre-CUR estimate ᴰ. Recompute per D2, close the two D23 items in Close. NAT `Hours` inside `Other $` is floor too ($0.052/h, ~2% of NAT). Feeds report §3.1 and §4.2 ($766 floor share) · M
+- [~] 2.1 D23 measured 2026-09-19 for all five points, in `figures.yaml` group `d23`: each point owns one clock hour (n125→14, n75→15, n50→16, n25→17, n10→09-05 10-12), confirmed by matching CUR compute to the published per-point figures to the cent. Serving gross minus that day's rest rate gives $0.8161 / $0.5173 / $0.2935 / $0.0075 / $0.3107. NAT `Hours` is flat $0.0520 in every hour of both days, so it is floor, as assumed. **Still to write:** the Matrix `TEI $`, `$/run` and `$/1M docs` columns in `01-ingestion` and report §3.1 move with it, and the sweet spot becomes $24,875/1M docs · M
 - [ ] 2.2 Lines 384–385: "two core nodes (`r7g.large`, `t3.large`)" is wrong: core is 2 × t3.large, r7g.large is the database. Check "~$0.9–1.15/hour of `baseline_other`" against the Floor (C = $1.20/h, serving $0.38/h of it) · S
 - [ ] 2.3 Close: 4 open items (TEI peak at every point, CUR D23, M18 vs D30, every §3 figure marked). Do each or declare it not made · S–M
 - [ ] 2.4 `methodology.md` citations: line 18, line 518, `metrics.md` D24 (per D4) · S

@@ -370,7 +370,7 @@ for compute and serving, and by the NAT gateway's `line_item_resource_id`
 (`EUC1-DataTransfer-Regional-Bytes`) that neither the original nor the corrected CloudWatch-based
 `M14` had priced.
 
-| N | reported `D24` | CUR compute | CUR NAT (both legs + regional transfer) | CUR marginal (compute+NAT+SQS+S3) | ratio | real `D25` $/1M docs |
+| N | reported `D24` | CUR compute | CUR NAT (both legs + regional transfer) | CUR marginal (compute+NAT+SQS+S3) | ratio | `D25` compute+NAT only, $/1M docs |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 125 | $1.97  | $2.0069 | $5.9919 | **$8.00** | ×4.1 | $79,999 |
 | 75  | $1.56  | $1.5446 | $4.0939 | **$5.64** | ×3.6 | $56,396 |
@@ -380,8 +380,9 @@ for compute and serving, and by the NAT gateway's `line_item_resource_id`
 `CUR marginal` = tagged `apps-compute` cost + the NAT gateway's full line-item set for that hour +
 SQS + S3 (both ~$0, covered by the free tier at this volume). It excludes `apps-serving` on
 purpose: the underlying query shows it gross next to compute ($1.20/$0.90/$0.68/$0.39 for
-125/75/50/25), and TEI above floor net of the floor (`D23`) still isn't resolved from CUR, the
-same open item as before. It also excludes ~$0.9–1.15/hour of `baseline_other` (EKS control
+125/75/50/25). `D23` (TEI above floor, net) is measured separately as of 2026-09-19 and added in
+the Matrix, so this table's last column sits below the Matrix's `$/1M docs` by exactly
+D23 × 10,000 at every point. It also excludes ~$0.9–1.15/hour of `baseline_other` (EKS control
 plane, two core nodes (`r7g.large`, `t3.large`), ELB, CloudWatch, KMS), which appears in every
 hour regardless of N and is fixed cluster overhead rather than marginal to any one point.
 
@@ -424,7 +425,8 @@ The same-day provisional estimate was only a floor: 5 of 11 nodes seen in the wi
 `instance_type: "?"` in `karpenter-cost-estimate.py`. They were short-lived, replaced early, and
 past EC2's ~1h post-termination `describe-instances` visibility by the time pricing ran.
 `apps-serving` also churned through 5 distinct node IDs against a floor of 2, so `D23` was left
-unresolved. A CUR read on 2026-09-07 replaced the estimate: **$41,624/1M docs**. The §3 Matrix
+unresolved. A CUR read on 2026-09-07 replaced the estimate with $41,624/1M docs, and measuring
+`D23` on 2026-09-19 brought it to **$44,707/1M docs**. The §3 Matrix
 gives the number and explains why it breaks the otherwise clean N-vs-cost trend.
 `./data/ingestion-n10.cost-estimate.json` has the provisional breakdown,
 `./data/ingestion-n10.cur-actual.json` the CUR one.
@@ -442,9 +444,9 @@ points). It is the first snapshot this project has taken; the CronJob in
 - [x] Saturation identified, or headroom confirmed at the top of the grid: none found by resource signature (§3 Saturation). The constraint is architectural (the indexer's sequential one-in-flight TEI design), and N reached tracked N set exactly through N=125 with no sign of flattening.
 - [x] Cost pass run at least 48 h after the last point (2026-09-07): unchanged for N=25/50/75/125, first real read for N=10. The re-run after month close is still open.
 - [x] M12 decomposition present (2026-09-09, §3 M12 table): split-cost data for every point's hour bucket, pulled directly from the CUR parquet. It covers the EKS instance-hour slice only, not the full `$/run`. D28/D29 are still declared not made, each for its own reason (§3).
-- [ ] TEI peak replicas recorded at every point, and D23 computed or declared zero.
+- [x] TEI peak replicas recorded at every point, and D23 computed: measured from CUR on 2026-09-19 for all five points (Matrix, `figures.yaml` group `d23`). No point declares zero any more; `n25` is $0.0075, the smallest.
 - [x] `M14` re-pulled with both `AWS/NATGateway` byte-direction legs, then superseded entirely by CUR actuals (2026-09-05); Notes under #08.
-- [ ] CUR-based `D23` (TEI above floor, net): the CUR pull reports `apps-serving` gross per hour but doesn't net out the two-replica floor rate. Switching to CUR didn't close this open item from the CloudWatch-based estimate.
+- [x] CUR-based `D23` (TEI above floor, net): closed 2026-09-19. The missing piece was the floor rate itself, not the gross. Each run day's own resting hour supplies it ($0.37940/h on 09-04, $0.18480/h on 09-05), so the two-replica floor now nets out per point.
 - [x] Re-checked the CUR pull after 48h (2026-09-07): N=25/50/75/125 unchanged from the ~24h read, no credits or true-ups.
 - [ ] M18 read at the highest-N point and compared against D30, or the comparison declared not made.
 - [x] Collection point count written back into `00-baseline` §2 Envelope: 84,018, done 2026-09-09.
@@ -469,20 +471,26 @@ it well below peak), with the peak in brackets. Cost columns for N=25/50/75/125 
 **re-pulled 2026-09-07 (>48h after the last point) and unchanged from the 2026-09-05 read**, so
 the 48h guard is cleared with no revisions, credits or true-ups. N=10's CUR actual was first
 pulled on 2026-09-07; it ran a day after the other four, and no earlier CUR delivery covered it
-(`./data/ingestion-n10.cur-actual.json`). `TEI $` (D23) for N=25–125 is still the rough pre-CUR
-estimate, because a CUR-based net D23 was never resolved (Close checklist). It is marked ᴰ
-throughout rather than ᴿ, and is not available for N=10.
+(`./data/ingestion-n10.cur-actual.json`). `TEI $` (D23) is measured ᴿ for all five points as of
+2026-09-19 (`docs/report/figures.yaml`, group `d23`). Each point owns one clock hour, confirmed by
+matching CUR compute against the per-point figures below to the cent, so D23 is that hour's
+`apps-serving` gross (instances, cross-AZ transfer and root volumes) net of the day's resting
+rate. The two days rest differently: 09-04 held 2 × c7i-flex.2xlarge Spot at $0.37940/h, 09-05
+held c5.xlarge + c6a.xlarge at $0.18480/h, so each point is netted against its own day. `n10`'s
+last hour overlaps `02-inference`'s campaign window by $0.0441.
 
 | Run | N set | N reached | TEI peak | Docs/min | Wall time | Compute $ | TEI $ | Other $ | $/run | $/1M docs | Saturation signal |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| #10 | 10 | 9.0 (10) | 3 | 0.76 | 132.5 min | $1.55 | — ᴱ (not resolved) | $2.61 | $4.16 ᴿ (D23 excluded) | **$41,624** | chunker *also* at N ceiling; the one point below the corpus's ~20-concurrent cap |
-| #08 | 25 | 19.5 (25) | 4 | 1.62 | 61.7 min | $1.09 | $0.00 ᴰ | $1.38 | $2.48 | $24,750 | none; indexer at ceiling, no resource pegged |
-| #07 | 50 | 32.6 (50) | 10 | 2.27 | 44.0 min | $1.26 | $0.28 ᴰ | $2.88 | $4.42 | $44,200 | none |
-| #06 | 75 | 40.5 (75) | 16 | 2.33 | 42.9 min | $1.54 | $0.35 ᴰ | $4.10 | $5.99 | $59,896 | none; the "waste boundary": +35% cost for +2.6% docs/min over N=50 |
-| #05 | 125 | 63.5 (125) | 26 | 2.60 | 38.5 min | $2.01 | $0.50 ᴰ | $5.99 | $8.50 | $84,999 | none |
+| #10 | 10 | 9.0 (10) | 3 | 0.76 | 132.5 min | $1.55 | $0.31 ᴿ | $2.61 | $4.47 | **$44,707** | chunker *also* at N ceiling; the one point below the corpus's ~20-concurrent cap |
+| #08 | 25 | 19.5 (25) | 4 | 1.62 | 61.7 min | $1.09 | $0.01 ᴿ | $1.38 | $2.49 | $24,875 | none; indexer at ceiling, no resource pegged |
+| #07 | 50 | 32.6 (50) | 10 | 2.27 | 44.0 min | $1.26 | $0.29 ᴿ | $2.88 | $4.43 | $44,335 | none |
+| #06 | 75 | 40.5 (75) | 16 | 2.33 | 42.9 min | $1.54 | $0.52 ᴿ | $4.10 | $6.16 | $61,573 | none; the "waste boundary": +39% cost for +2.6% docs/min over N=50 |
+| #05 | 125 | 63.5 (125) | 26 | 2.60 | 38.5 min | $2.01 | $0.82 ᴿ | $5.99 | $8.82 | $88,161 | none |
 
-N=10 (#10) breaks the otherwise clean monotonic N-vs-cost trend: $41,624 sits next to N=50's
-$44,200 instead of below N=25's $24,750, where the throughput trend alone would put it. The
+N=10 (#10) breaks the otherwise clean monotonic N-vs-cost trend: $44,707 sits just above N=50's
+$44,335 instead of below N=25's $24,875, where the throughput trend alone would put it. With D23
+measured rather than estimated, N=10 is now the second most expensive point of the five, not the
+third. The
 script's timeout and the manual recovery did not inflate the number, as was first assumed. NAT
 was re-pulled directly (2026-09-09, `./data/nat-by-window.json`) and split into `Hours` (the flat
 per-hour NAT Gateway charge) and `Bytes` (data processing, ~98% of the total). Two honest
@@ -512,16 +520,16 @@ cluster is gone) would turn this into a confirmed reading.
 
 - **Knee** — N=50, the last point with a meaningful docs/min gain (25→50: +40%; 50→75: only
   +2.6%). Threshold used: 10% docs/min gain per step
-- **Sweet spot** — N=25, the minimum `$/1M docs` ($24,750) among all five points, N=10 included.
-  N=10's real cost ($41,624) is *higher*, and the NAT re-check shows that is a genuine reading of
+- **Sweet spot** — N=25, the minimum `$/1M docs` ($24,875) among all five points, N=10 included.
+  N=10's real cost ($44,707) is *higher*, and the NAT re-check shows that is a genuine reading of
   N=10's economics (low throughput keeps the fixed per-hour costs running longer), not a corrupted
   one. Landing on the lowest clean N swept is the case `methodology.md` §7 flags as unproven: the
   true minimum could sit below 25 (untested), or N=10 could already be past it and rising, which
   its real number now suggests
 - **Waste boundary** — N=75, where `$/run` rises 35% for a 2.6% docs/min gain over N=50. It is the
   clearest case in this campaign of the cost curve decoupling from throughput
-- **Gap cost** — $19,450 extra per 1M docs paid running at the knee (N=50, $44,200) instead of
-  the sweet spot (N=25, $24,750) → report §3.3
+- **Gap cost** — $19,460 extra per 1M docs paid running at the knee (N=50, $44,335) instead of
+  the sweet spot (N=25, $24,875) → report §3.3
 - **Reference value** — no pre-sweep default `maxReplicaCount` was frozen for this parameter. This is its first exploration, so there is nothing to compare against. Fargate equivalent (D29): not computed; the rate card exists and the pod-hours don't (§3 D29)
 - **Condition boundary** — `00-baseline` §2 Envelope, plus packing density, bulk-drop arrival and the TEI trigger
 - **Raw data** — no `./data/frontier.csv` was written and no `plot-frontier.py` exists. The Matrix is built directly from each point's `.jsonl`/`.cost-estimate.json`; chart it by hand from those files or from the Matrix before this execution closes
@@ -609,7 +617,7 @@ slot for what was found here (Retro, last line).
 
 ### Guardrails
 
-- **`maxReplicaCount` = 20 ᴱ** — the sweet spot (N=25, $24,750/1M docs ᴿ) ran at a time-weighted
+- **`maxReplicaCount` = 20 ᴱ** — the sweet spot (N=25, $24,875/1M docs ᴿ) ran at a time-weighted
   mean of 19.5, so the cap bound only at the peak, and 20 is the concurrency the cheapest measured
   run actually sustained. Not a claim that 20 beats 25: no point separates them, and the grid's
   next step is 50. N=50 stays the knee, the documented ceiling for a hurry. Valid for this corpus

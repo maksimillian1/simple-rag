@@ -157,7 +157,7 @@ Left out of every total:
 | Standalone EBS `simple-rag-qdrant-data` | error | 150 GB gp3 per launch, never attached; removed from Terraform 2026-09-09 | 5 volumes, 38 volume-hours billed | 0.70 spent |
 | Cluster startup | one-time | NAT 8.86 GiB + cross-AZ 14.88 GiB, 09-04 12:00–14:00 | 8.86 × $0.052 + 14.88 × $0.01 | 0.61 per launch |
 
-- **Serving pool idle rate** — $0.3833/h ($279.82/month ÷ 730); `01-ingestion` and `02-inference` still subtract the old $0.20892/h
+- **Serving pool idle rate** — $0.3833/h ($279.82/month ÷ 730), 09-04. The pool did not rest on the same nodes every day: 09-05 rested on c5.xlarge + c6a.xlarge at $0.18754/h (`docs/report/figures.yaml`, `serving_idle_rate_0905`), so each execution nets against its own day. `01-ingestion` does this as of 2026-09-19; `02-inference`'s Matrix still carries a retired rate
 - **Untaggable lines allocated by hand** — R5, all Block A → `./data/untaggable-2026-09-04.txt`
 - **Reference value** — the unqualified idle claim published in article 1. No always-on floor is carried
 - **Raw data** — CUR parquet `BILLING_PERIOD=2026-09`, hour 2026-09-04 18:00; `./data/idle-2026-09-04.csv` holds the original 13:00 capture hour
