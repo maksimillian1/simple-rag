@@ -96,7 +96,7 @@ are optional and gate one claim: whether the ceiling sits in embedding or in ret
 | R13 | run log — offered rate, UTC window, config commit, stub delay, convergence time, validity decision | emitted by `run-inference-point.py` into `./data/⟨point⟩.point.md`. Files exist for 4 of 5 real points (`r050` has none), but each is still the unfilled script template (served rate, p95, error, cost and saturation signal blank); the real numbers are in this file's Matrix and Notes | active, but superseded in practice by this file | the window is not recoverable afterwards, and the cost pass reads its windows from here |
 | R14 | saturation signal — which component sat at its ceiling | read in Grafana immediately after each point · maksimillian1 | active | candidates are TEI CPU, Go API CPU, Qdrant CPU or search latency, the scaler failing to converge, or the generator itself |
 | D15 | sustained rate | the highest swept rate holding p95 at the converged floor (not rising with rate), with M3 under 0.1% and M1 matching the offered rate. The original draft's "under 200ms" predates the 2000ms Bedrock stub delay and can't be met under it (the p95 floor is ~2425ms once converged), so §3 uses this criterion instead | active | the headline number of this execution → K3 |
-| D16 | marginal `$/1k queries` | `(M9 − serving pool idle rate × window hours) ÷ queries_served × 1000`, idle rate from `00-baseline` §2 | active, inherits M9's ᴰ until the CUR cross-check | measured, because replicas and nodes move with the axis · the subtraction keeps the always-on minimum out of a marginal figure · at low rates it can round to zero, which is a finding rather than an error |
+| D16 | `$/1k queries`, gross | `M9 ÷ queries_served × 1000`, no floor subtracted (D2: points share clock hours, so no per-point rest inventory exists; netting happens once, at campaign level, against the 09-05 resting pair) | active, inherits M9's ᴰ until the CUR cross-check | measured, because replicas and nodes move with the axis · gross, so it carries the resting pair's share of the window and falls with rate as more queries dilute it · good for comparing rates against each other, not for pricing a query; `figures.yaml` group `inference_points` |
 | D17 | floor share per 1k queries at the sustained rate | `Block B ÷ (D15 × 3600 × 730) × 1000`, Block B from `00-baseline` §2 Floor | active | the other half of what a query costs, and the larger half at low volume · a best case: it assumes the tier runs at D15 continuously, and it grows inversely with utilisation |
 | E18 | `$/1k queries`, generation | ~1800 input tokens (derived, not measured: `apps/api/core/llm.go`'s prompt template ~150 · 5 chunks × 300-token max each, `DEFAULT_MAX_TOKENS`, `apps/chunker/src/config.py:13` · `top_k: 5`, `load.js:67` · per-chunk formatting overhead ~100 · query ~20; an upper bound, since chunks rarely all hit the max) and up to 512 output tokens (`MaxGenLen`, `llm.go:101`, a cap rather than an observed length) × the Bedrock rate in `00-baseline` §2 | active | estimated, because the token count is assumed rather than swept and no run called Bedrock · reported beside D16 and D17, never added into either silently |
 | D22 | Bedrock VPC endpoint crossover, queries/month | `figures.yaml` → `endpoint_breakeven_queries`, over `E18`'s token counts and the two per-GB rates | blocked | the volume above which PrivateLink costs less than the NAT it replaces · the PrivateLink rate was never pulled, so the figure reads `pending` · range, and why the decision does not wait on it: report §4.5 and `K4` |
@@ -173,11 +173,11 @@ group of points sharing each hourly bucket, not to a single point inside it:
 | # | Point | Rate | Window UTC | Commit | Converge | Replicas api / tei | Outcome | Signal | Exported | Cost read |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 01 | inference-r005 | 5 | not run: bottom of the original grid; the swept grid started at r050 | | | | | | | |
-| 02 | inference-r050 | 50 | 2026-09-05T12:58:01Z → 13:14:54Z | `4e15a2c` (dirty) | ~2min | 2 / 2→3 | ok; served-rate caveat in Notes | TEI dominant (~57% of limit), api/qdrant idle · M1-M3 unblocked here (Notes) | ✓ (10/10, re-exported) | ᴰ M9=$0.0747 gross, D16≈$0.0004/1k queries; `./data/inference-r050.cost-estimate.json` |
-| 03 | inference-r200 | 200 | 2026-09-05T13:21:58Z → 13:39:24Z | `4e15a2c` (dirty) | ~2min | 2 / 2→7 | real guard breach on error rate (Notes) | served ~192/200 rps (96%), p95≈2425ms, error 0.24% avg / ~4% peak | ✓ (10/10) | ᴰ M9=$0.1686 gross, D16≈$0.0009/1k queries; `./data/inference-r200.cost-estimate.json` |
-| 04 | inference-r500 | 500 | 2026-09-05T13:53:36Z → 14:14:49Z | `4e15a2c` (dirty) | ~7min to 13 replicas | 2→3 / 2→16 | window average looked like a collapse; **clean once TEI reached ~13 replicas**, so convergence lag rather than a ceiling (Notes) | ramp: p95 to 25.2s, 0-6.5% error · **steady (once tei≈13): p95 flat ~2425ms, error ~0%** | ✓ (10/10) | ᴰ M9=$0.3133 gross, D16≈$0.0009/1k queries |
-| 05 | inference-r300 | 300 | 2026-09-05T14:27:50Z → 14:45:40Z | `4e15a2c` (dirty) | ~2min | 2→3 / 2→11 | real, minor guard breach on error rate | served 296/300 (98.8%), **p95 still flat (2425ms)**, error 0.20% avg / 2.75% peak | ✓ (10/10) | ᴰ M9=$0.1769 gross, D16≈$0.0006/1k queries |
-| 06 | inference-r1000 | 1000 | 2026-09-05T14:52:16Z → 15:16:25Z | `1ef1f0a` (dirty) | ~4min | 2→6 / 2→30 | guard breach on the window average, **clean at steady state**: a convergence problem, not a ceiling (Notes) | ramp (0-4min): p95 to 24.6s, error to 35% · **steady (5min once at 30 replicas): p95 flat ~2425ms, error ~0%, rate on target** | ✓ (10/10) | ᴰ M9=$0.4992 gross, D16≈$0.0007/1k queries |
+| 02 | inference-r050 | 50 | 2026-09-05T12:58:01Z → 13:14:54Z | `4e15a2c` (dirty) | ~2min | 2 / 2→3 | ok; served-rate caveat in Notes | TEI dominant (~57% of limit), api/qdrant idle · M1-M3 unblocked here (Notes) | ✓ (10/10, re-exported) | ᴰ M9=$0.0747 gross, D16 $0.00250/1k queries gross; `./data/inference-r050.cost-estimate.json` |
+| 03 | inference-r200 | 200 | 2026-09-05T13:21:58Z → 13:39:24Z | `4e15a2c` (dirty) | ~2min | 2 / 2→7 | real guard breach on error rate (Notes) | served ~192/200 rps (96%), p95≈2425ms, error 0.24% avg / ~4% peak | ✓ (10/10) | ᴰ M9=$0.1686 gross, D16 $0.00141/1k queries gross; `./data/inference-r200.cost-estimate.json` |
+| 04 | inference-r500 | 500 | 2026-09-05T13:53:36Z → 14:14:49Z | `4e15a2c` (dirty) | ~7min to 13 replicas | 2→3 / 2→16 | window average looked like a collapse; **clean once TEI reached ~13 replicas**, so convergence lag rather than a ceiling (Notes) | ramp: p95 to 25.2s, 0-6.5% error · **steady (once tei≈13): p95 flat ~2425ms, error ~0%** | ✓ (10/10) | ᴰ M9=$0.3133 gross, D16 $0.00117/1k queries gross |
+| 05 | inference-r300 | 300 | 2026-09-05T14:27:50Z → 14:45:40Z | `4e15a2c` (dirty) | ~2min | 2→3 / 2→11 | real, minor guard breach on error rate | served 296/300 (98.8%), **p95 still flat (2425ms)**, error 0.20% avg / 2.75% peak | ✓ (10/10) | ᴰ M9=$0.1769 gross, D16 $0.00098/1k queries gross |
+| 06 | inference-r1000 | 1000 | 2026-09-05T14:52:16Z → 15:16:25Z | `1ef1f0a` (dirty) | ~4min | 2→6 / 2→30 | guard breach on the window average, **clean at steady state**: a convergence problem, not a ceiling (Notes) | ramp (0-4min): p95 to 24.6s, error to 35% · **steady (5min once at 30 replicas): p95 flat ~2425ms, error ~0%, rate on target** | ✓ (10/10) | ᴰ M9=$0.4992 gross, D16 $0.00088/1k queries gross |
 
 ### Notes
 
@@ -260,11 +260,10 @@ mid-flight), but that is unproven. `M8`'s node list for this window would show w
 lines up with the error timestamps; it hasn't been pulled.
 
 Cost: `M9` gross $0.1686 (8 distinct `apps-serving` nodes across the window, the same heavy churn
-the error-rate investigation flagged), net of floor $0.1079 (revised 2026-09-09 with the
-corrected floor rate; §3 Matrix note), `D16` ≈ $0.00090/1k queries. That is about 1.7× `r050`'s
-figure while ~4× as many queries were served, so cost per query didn't fall with rate the way
-`r050`'s near-zero `D16` suggested. Node churn overhead is the likely reason, rather than TEI
-getting proportionally pricier; it is the same churn the 5xx investigation couldn't pin down.
+the error-rate investigation flagged), `D16` $0.00141/1k queries gross. That is 2.3× `r050`'s
+serving cost for ~4× as many queries, so the gross figure per query fell to 56% of `r050`'s
+($0.00250) rather than to a quarter of it. Node churn overhead is the likely reason, rather than
+TEI getting proportionally pricier; it is the same churn the 5xx investigation couldn't pin down.
 Watch whether this holds at the next point or belongs to this point's churn pattern.
 
 **#04 inference-r500** — 500 was chosen over an intermediate value on purpose. `p95` hadn't moved
@@ -364,14 +363,14 @@ headroom mid-ramp, but it wouldn't change KEDA's steady-state target or speed up
 levers are the trigger threshold (lower means scaling out sooner, ahead of demand) and scale-out
 speed (poll interval, cooldown, pod-ready time). Not tested this pass.
 
-Cost: `M9` gross $0.4992, `D16` ≈ $0.0007/1k queries, in the same narrow band as every other
-point (`$0.0004–0.0009`). `D16` says little about this point; the latency and error columns carry
-the finding.
+Cost: `M9` gross $0.4992, `D16` $0.00088/1k queries gross, the lowest of the five points: the
+gross figure falls with rate as more queries share the resting pair. `D16` says little about
+this point; the latency and error columns carry the finding.
 
 ### Close
 
 - [x] Saturation identified, or headroom confirmed at the top of the grid: none found by resource signature (§3 Saturation). `tei-embeddings` CPU saturates during a ramp and recovers once KEDA converges, so it is not a standing ceiling; no rate up to 1000 req/s found one.
-- [x] Cost pass run at least 48 h after the last point (2026-09-07): the first CUR read for this execution, which had only provisional figures before. Campaign-level only, not per point (points share hourly buckets by design). It found a gap: NAT was never priced per point, and the real cost is 5-12x the provisional `D16` figures (§3, CUR campaign-level cross-check). The re-run after month close is still open.
+- [x] Cost pass run at least 48 h after the last point (2026-09-07): the first CUR read for this execution, which had only provisional figures before. Campaign-level only, not per point (points share hourly buckets by design). It found a gap: NAT was never priced per point, and the real cost is 1.8–5.2× the per-point gross `D16` figures (§3, CUR campaign-level cross-check). The re-run after month close is still open.
 - [ ] Contention pass run at the point nearest D15.
 - [ ] Convergence time recorded at every point, and compared against the window length.
 - [ ] Every figure in §3 marked: unmarked · ᴰ · ᴿ · ᴱ.
@@ -395,35 +394,25 @@ unless noted. They include the ramp, so `r500`/`r1000` read worse here than thei
 steady-state numbers (~2425ms p95 and ~0% error at both once converged; Notes). `p99` was never
 queried; `series.txt` has no `Q` ref for it.
 
-| Run | Offered req/s | Served req/s | api / tei replicas | Converge | p50 ms | p95 ms | p99 ms | Error % | Serving $ (net) | $/1k queries | Saturation signal |
+| Run | Offered req/s | Served req/s | api / tei replicas | Converge | p50 ms | p95 ms | p99 ms | Error % | Serving $ (gross) | $/1k queries (gross) | Saturation signal |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| #02 | 50 | 45.5 (91%) | 2 / 3 | not timed ᴱ, window avg already clean | 1672 | 2418 | — | 0% | $0.0159 | $0.00054 | none |
-| #03 | 200 | 192.5 (96%) | 2 / 7 | not timed ᴱ, window avg already clean | 1750 | 2425 | — | 0.24% avg / 4.0% peak | $0.1079 | $0.00090 | none |
-| #05 | 300 | 296.4 (99%) | 3 / 11 | not timed ᴱ, window avg already clean | 1749 | 2425 | — | 0.20% avg / 2.75% peak | $0.1148 | $0.00064 | none |
-| #04 | 500 | 398.7 (80%, window avg) | 3 / 16 | **~7 min to 13 replicas** ᴿ, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / **~0% once converged** | $0.2394 | $0.00089 | scale-out lag, not a ceiling |
-| #06 | 1000 | 828.3 (83%, window avg) | 6 / 30 | **~4 min to 30 replicas** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / **~0% once converged** | $0.4151 | $0.00073 | scale-out lag, not a ceiling |
+| #02 | 50 | 45.5 (91%) | 2 / 3 | not timed ᴱ, window avg already clean | 1672 | 2418 | — | 0% | $0.0747 | $0.00250 | none |
+| #03 | 200 | 192.5 (96%) | 2 / 7 | not timed ᴱ, window avg already clean | 1750 | 2425 | — | 0.24% avg / 4.0% peak | $0.1686 | $0.00141 | none |
+| #05 | 300 | 296.4 (99%) | 3 / 11 | not timed ᴱ, window avg already clean | 1749 | 2425 | — | 0.20% avg / 2.75% peak | $0.1769 | $0.00098 | none |
+| #04 | 500 | 398.7 (80%, window avg) | 3 / 16 | **~7 min to 13 replicas** ᴿ, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / **~0% once converged** | $0.3133 | $0.00117 | scale-out lag, not a ceiling |
+| #06 | 1000 | 828.3 (83%, window avg) | 6 / 30 | **~4 min to 30 replicas** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / **~0% once converged** | $0.4992 | $0.00088 | scale-out lag, not a ceiling |
 
-`Replicas` is M7 peak, an outcome rather than a setting → K2. `Serving $` is M9 net of the
-`00-baseline` floor rate, **$0.20892/h ᴿ ⚠ provisional, revised 2026-09-09**. The rate was
-`$0.2256/h` until `00-baseline` found that figure had extrapolated `apps-serving`'s regional
-data-transfer *cost* ×730 as if it were a flat hourly rate, when it is a per-GB usage charge; the
-corrected floor is compute+EBS only. It is still provisional. `00-baseline` also found that its
-capture hour wasn't steady idle (0 EC2 instances the hour before, 11 joining during the captured
-hour: a bootstrap event, not a rest state). That understates any node pool's compute line in the
-same naive way the transfer line was understated. The error was confirmed and fixed for
-`core-on-demand`/`database-on-demand` (both moved 30-55%), but `apps-serving` couldn't be fixed
-the same way: it ran four different, churning Spot instance types that hour, so one contaminated
-hour gives no clean steady-state rate (`00-baseline` Floor notes). The floor rate is therefore
-probably still understated, with the direction known and the magnitude not, and every
-`Serving $ (net)`/`$/1k queries` figure in the Matrix is a floor on the true marginal cost rather
-than a settled reading. All five were recomputed against the corrected, still provisional rate.
-Every value moved up slightly (less floor subtracted), none by more than ~40% relative or
-$0.0005/1k queries absolute, and no saturation or latency finding in this doc depended on the old
-numbers. The rate comes from a single non-diurnal hour either way (`00-baseline` Floor notes).
-`$/1k queries` is D16 and excludes generation. Convergence time was recorded for the two points
-where it mattered (`r500`, `r1000`), so the Close checklist item asking for it "at every point" is
-only partly done. The other three didn't need it, because their window averages were clean
-throughout.
+`Replicas` is M7 peak, an outcome rather than a setting → K2. `Serving $` is M9 gross ᴰ from
+`karpenter-cost-estimate.py --nodepool apps-serving` over each point's window (node-lifecycle
+reconstruction, 2026-09-05, not CUR), with no floor subtracted per point: the points share clock
+hours, so the only resting inventory that can be netted is the campaign's, 2 × Spot xlarge at
+$0.18754/h ᴿ (CUR 2026-09-05 hour 12), netted once in the cross-check below (D2; `figures.yaml`
+group `inference_points`).
+
+`$/1k queries` is D16, gross for the same reason, and excludes generation. Convergence time was
+recorded for the two points where it mattered (`r500`, `r1000`), so the Close checklist item
+asking for it "at every point" is only partly done. The other three didn't need it, because their
+window averages were clean throughout.
 
 Every latency column excludes generation, which is stubbed at a fixed 2000ms (`mock_delay_ms`),
 confirmed live before the sweep started (a direct test request returned `execution_time_ms: 2060` and a
@@ -449,11 +438,12 @@ synthesized placeholder, not an LLM completion) → K1.
 - **Raw data** — no `./data/frontier.csv` and no `plot-rate.py` exist. The Matrix is built
   directly from each point's `.jsonl`; chart it by hand from those files or from the Matrix
 
-**Cost at the sustained rate** — D16 at r1000 (the top of the tested range) = $0.00073/1k
-queries (revised 2026-09-09 with the corrected floor rate; Matrix note). D17 (floor share) and
-E18 (generation, estimated) are not computed here; `report.md` §4.2 has them. `D16` stays in a
-narrow $0.0005–0.0009 band across every rate tested. Cost tracks node-hours roughly in proportion
-to rate, so D16 doesn't reveal the convergence lag; only the latency and error columns show it.
+**Cost at the sustained rate** — D16 at r1000 (the top of the tested range) = $0.00088/1k
+queries gross (Matrix note). D17 (floor share) and E18 (generation, estimated) are not computed
+here; `report.md` §4.2 has them. Gross `D16` falls from $0.00250 at r050 to $0.00088 at r1000,
+because the resting pair inside every window is spread over more queries as rate rises. Serving
+cost itself tracks node-hours roughly in proportion to rate, so D16 doesn't reveal the
+convergence lag; only the latency and error columns show it.
 
 **CUR campaign-level cross-check, pulled 2026-09-07 (>48h after the last point): the per-point
 `D16` figures badly understate the real cost.** Every point's `Serving $` in the Matrix came from
@@ -470,8 +460,8 @@ per-point one, the trade-off the revised Plan accepted:
 | Total queries served, all 5 points | 1,166,534 |
 | **Real campaign `$/1k queries`** | **$0.00457** |
 
-That is **5–8.5× every individual point's provisional `D16`** ($0.00054–$0.00090, revised
-2026-09-09; Matrix note). Neither `karpenter-cost-estimate.py` nor any single point's window
+That is **1.8–5.2× every individual point's gross `D16`** ($0.00088–$0.00250; Matrix note).
+Neither `karpenter-cost-estimate.py` nor any single point's window
 captured two things. One is NAT, the blind spot `01-ingestion` found and fixed for itself but
 never ported here. The other is the floor and settle cost *between* points: the five narrow point
 windows add up to far less wall-clock time than the four hours CUR bills. A small unrelated

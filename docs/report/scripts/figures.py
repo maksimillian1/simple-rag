@@ -39,6 +39,9 @@ GROUP_ORDER = [
     "amortization",
     "architecture",
     "guardrails",
+    "campaign_0905",
+    "inference_points",
+    "d23",
 ]
 
 _ALLOWED_BINOPS = (ast.Add, ast.Sub, ast.Mult, ast.Div)

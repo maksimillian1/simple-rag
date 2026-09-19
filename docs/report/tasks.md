@@ -79,7 +79,7 @@ rather than from here:
 
 ## 3 · 02-inference
 
-- [ ] 3.1 Matrix `Serving $ (net)` and `$/1k queries` (D16) per D2. Replace the provisional paragraph under the Matrix (lines 405–421) with one line: rate, source, date · M
+- [x] 3.1 Done 2026-09-19 per D2 (c): the columns are now `Serving $ (gross)` = M9 and `$/1k queries (gross)` = M9 ÷ queries × 1000, in `figures.yaml` group `inference_points` (leaves from `data/*.cost-estimate.json`, D16 as formula). Gross D16 runs $0.00250 (r050) → $0.00088 (r1000), falling with rate as the resting pair is diluted; the old net values ($0.0159–$0.4151, $0.00054–$0.00090) are `retired`. The provisional paragraph is one sentence: M9 gross ᴰ, script, 2026-09-05, netted once at campaign level against $0.18754/h. Still flagged by the checker: report.md §3.6 carries the old net column (4.8) · M
 - [ ] 3.2 Campaign cross-check: "Marginal total" $5.33 = serving **gross** for 4 hours + NAT, so $0.00457/1k includes the serving floor (and the NAT hourly fee, if the NAT line has it). Subtract 09-05 floor node-hours for hours 12–15. Feeds report §1, §3.6, §4.2, §4.3 · M
 - [ ] 3.3 r1000 ran with TEI 6/8 (`1ef1f0a`), the other points with 3/4: state it in Matrix and Saturation · S
 - [ ] 3.4 `methodology.md` citation, line 18 (per D4); `data/*.point.md` and the R13 row that mentions them (per D8) · S

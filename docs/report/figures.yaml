@@ -843,6 +843,122 @@ figures:
     group: d23
     appears_in: [executions/01-ingestion/index.md]
 
+  m9_gross_r050:
+    value: 0.0747
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 12:58-13:14 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r050.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r050:
+    value: 29938
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r050.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r050:
+    formula: m9_gross_r050 / queries_r050 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_r200:
+    value: 0.1686
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 13:21-13:39 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r200.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r200:
+    value: 119623
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r200.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r200:
+    formula: m9_gross_r200 / queries_r200 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_r300:
+    value: 0.1769
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 14:27-14:45 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r300.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r300:
+    value: 180001
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r300.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r300:
+    formula: m9_gross_r300 / queries_r300 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_r500:
+    value: 0.3133
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 13:53-14:14 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r500.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r500:
+    value: 267956
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r500.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r500:
+    formula: m9_gross_r500 / queries_r500 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_r1000:
+    value: 0.4992
+    unit: usd
+    display: 4
+    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 14:52-15:16 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r1000.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  queries_r1000:
+    value: 569016
+    unit: queries
+    display: 0
+    source: executions/02-inference/data/inference-r1000.cost-estimate.json, queries served in the window
+    group: inference_points
+
+  d16_gross_r1000:
+    formula: m9_gross_r1000 / queries_r1000 * 1000
+    unit: usd_per_1k_queries
+    display: 5
+    group: inference_points
+    appears_in: [executions/02-inference/index.md]
+
+  m9_gross_sum:
+    formula: m9_gross_r050 + m9_gross_r200 + m9_gross_r300 + m9_gross_r500 + m9_gross_r1000
+    unit: usd
+    display: 4
+    group: inference_points
+
 allow:
   - pattern: "24,750"
     file: executions/01-ingestion/index.md
@@ -911,3 +1027,33 @@ retired:
   - pattern: "0.02475"
     replaced_by: ingestion_per_doc
     why: per-document marginal before D23 was measured
+  - pattern: "0.0159"
+    replaced_by: m9_gross_r050
+    why: r050 serving cost netted per point against the 09-04 rate; per-point figures are gross since D2
+  - pattern: "0.1079"
+    replaced_by: m9_gross_r200
+    why: r200 serving cost netted per point
+  - pattern: "0.1148"
+    replaced_by: m9_gross_r300
+    why: r300 serving cost netted per point
+  - pattern: "0.2394"
+    replaced_by: m9_gross_r500
+    why: r500 serving cost netted per point
+  - pattern: "0.4151"
+    replaced_by: m9_gross_r1000
+    why: r1000 serving cost netted per point
+  - pattern: "0.00054"
+    replaced_by: d16_gross_r050
+    why: per-point D16 netted against the 09-04 rate
+  - pattern: "0.00090"
+    replaced_by: d16_gross_r200
+    why: per-point D16 netted against the 09-04 rate
+  - pattern: "0.00064"
+    replaced_by: d16_gross_r300
+    why: per-point D16 netted against the 09-04 rate
+  - pattern: "0.00089"
+    replaced_by: d16_gross_r500
+    why: per-point D16 netted against the 09-04 rate
+  - pattern: "0.00073"
+    replaced_by: d16_gross_r1000
+    why: per-point D16 netted against the 09-04 rate
