@@ -33,9 +33,9 @@ after sections 2 and 3:
 | D1 | Which Block B is the headline | as built $553.84 ᴿ · right-sized $483.59 ᴱ · both | **settled: right-sized is the headline**, as built is the reference value it is judged against (ᴱ needs one, `methodology.md` §2). Every downstream figure that adds floor to a marginal carries both columns: §4.3 crossovers, floor share, budget alarm ($677.03). The serving line *rises* under right-sizing (Spot → On-Demand for HA) and that must be said, or the one line that goes up discredits the table. Precondition: the right-sized serving line assumes TEI requests 3/4, so tech-debt #4 stops being optional debt and becomes a condition of the headline number | 4.3–4.7 |
 | D2 | How run costs net out the serving floor | (a) 09-04 rate $0.3833/h for every run: r050 net goes negative · (b) each run day's own resting serving inventory from CUR (09-05 serving ran on xlarge nodes, not 2xlarge) · (c) keep per-point figures gross for relative comparison, net only at campaign level | **settled: (b) + (c).** The marginal is measured and exists in one copy — floor does not enter it by definition (`methodology.md` §9), so subtracting a hypothetical right-sized floor from a real CUR bill would yield neither a measurement nor an estimate. (a) is out on its own: it subtracts a 2xlarge rate from a day that rested on xlarge. Per-point figures stay **gross** and are labelled gross; netting happens once, at campaign level, against 09-05's own inventory. No right-sized twin of the marginal: that configuration never ran. **Declared caveat:** the measured marginal also carries the as-built NodePool's instance selection — `apps-serving` admits xlarge/2xlarge/4xlarge, right-sizing pins `instance-size` to xlarge, so scale-out nodes under load would differ too; direction unknown, magnitude unmeasured | 2.1, 3.1, 3.2 |
 | D3 | Re-run a cluster for the contention pass, real Bedrock, `D29`, `M15`–`M17`? | re-run · ship v1.0 with the gaps declared | **settled: ship.** Contention pass is dropped outright, not deferred — tech-debt #8 goes away as debt and becomes a declared scope boundary in Coverage (`methodology.md` §11): every query-path finding assumes an idle ingestion path. §5 row "Backfill concurrency during query hours" is deleted, not left blank (§10). Real Bedrock (#9) and chunker concurrency (#10) stay open — #9 is a different class of gap: ~$0.51/1k queries ᴱ is the largest number in the report and was never measured | 2.6, 3.5, 5.2 |
-| D4 | `methodology.md` — **premise was wrong, it exists**: `report-kit@e0cd136`, `src/report_kit/templates/methodology.md`, 13 sections. All four citations resolve and are accurate (§7 "Sweep coarse to fine", §9 "Cost has exactly two terms") | vendor it to `docs/report/methodology.md` with a provenance header (source URL + commit + date) · link the citations to GitHub | **open.** Vendoring recommended: the citations must keep resolving to the text the report was written against, and an upstream edit would renumber the sections. Drop the `questionnaire.md` line calling it "a `methodology.md` that nobody wrote" | 2.4, 3.4, 4.8 |
-| D5 | `terraform/budgets.tf` (does not exist; no SNS or alerting exists in `terraform/` at all) | write it (~20 lines: `aws_sns_topic` + email subscription + `aws_budgets_budget`, 80% actual / 100% forecast) · delete the §5 row | **open.** "Keep the value, mark not enforced" is out: `methodology.md` §10 — a guardrail is a committable config value, and rows whose number cannot be committed are deleted, not left blank. Writing it is recommended: it is the only row in §5 not tied to one known lever, and `00-baseline` already found $175.82/month recurring plus $78.31 spent in exactly the class of drift a spend alarm catches. Threshold per D1: $677.03 | 4.7 |
-| D6 | `maxReplicaCount` drift: ingestion live 10 vs sweet spot 25; TEI 30/30 at r1000 under a Spot quota of 256 vCPU | change config (→ tech-debt) · record as is | record as is in §5 | 4.7 |
+| D4 | `methodology.md` — **premise was wrong, it exists**: `report-kit@e0cd136`, `src/report_kit/templates/methodology.md`, 13 sections. All four citations resolve and are accurate (§7 "Sweep coarse to fine", §9 "Cost has exactly two terms") | vendor it to `docs/report/methodology.md` with a provenance header (source URL + commit + date) · link the citations to GitHub | **open.** Vendoring recommended: the citations must keep resolving to the text the report was written against, and an upstream edit would renumber the sections. (the `questionnaire.md` line calling it "a `methodology.md` that nobody wrote" went with that file) | 2.4, 3.4, 4.8 |
+| D5 | `terraform/budgets.tf` (does not exist; no SNS or alerting exists in `terraform/` at all) | write it (~20 lines: `aws_sns_topic` + email subscription + `aws_budgets_budget`, 80% actual / 100% forecast) · delete the §5 row | **open.** "Keep the value, mark not enforced" is out: `methodology.md` §10 — a guardrail is a committable config value, and rows whose number cannot be committed are deleted, not left blank. Writing it is recommended: it is the only row in §5 not tied to one known lever, and `00-baseline` already found $175.82/month recurring plus $78.31 spent in exactly the class of drift a spend alarm catches. Threshold per D1: $677.03. **Settled: written up as `docs/tech-debt.md` #11**, given a fresh ID rather than renumbering the existing items. §5 now points there instead of at a file that does not exist | 4.7 |
+| D6 | `maxReplicaCount` drift: ingestion live 10; TEI 30/30 at r1000 under a Spot quota of 256 vCPU | change config · record as is | **ingestion settled: recommend 20 ᴱ**, written into §5, §3.3 and `01-ingestion` Guardrails (which had said 50, against §5's 25 — three numbers, now one). Rationale: N=25's cap bound only at the peak, the run held a time-weighted mean of 19.5; no measurement separates 20 from 25, and the chunker's ~20 ceiling is corpus-driven. Live value raised 10 → 20 on both ScaledJobs (2026-09-19). **TEI settled: keep 30** — it carried ≥1000 req/s at steady-state p95 and ~0% error, so no Spot quota increase is requested; §5 row says so | 4.7 |
 | D7 | Charts: `assets/*.svg` and `data/frontier.csv` do not exist, §3.2 and §3.6 point to them | build 2 charts from the Matrices (M) · remove the references (S) | remove for v1.0 | 2.5, 4.9 |
 | D8 | `02-inference/data/*.point.md` (4 unfilled templates) | delete · keep | delete | 3.4 |
 | D9 | §1 Verdict | ship · ship with guardrails · do not ship | business call, last | 4.11 |
@@ -56,7 +56,7 @@ after sections 2 and 3:
 - [ ] 1.6 Cost basis still describes the old method: "every other rate is in the CUR rows", "Spot priced at what was charged in each run hour", "Reader: `aws-cur-report-export.py`" (M1 says it was not used). Rewrite: inventory from CUR, rates per unit, Spot as paid at 18:00 · S
 - [ ] 1.7 `concepts.md` K3 "one measured day times a constant" → one resting hour, inventory × rate. Month-close re-read (Preflight line 52, Retro) now touches only Spot and variable lines: keep or close · S
 - [ ] 1.8 `deploy/k8s/apps-applicationset.yaml`: comment says the loop is "cosmetic, no cost"; it is $74.86/month. Fix or delete the comment (AGENTS.md: no comments in config) · S
-- [ ] 1.9 Final read of `index.md`; delete `00-baseline/questionnaire.md` · S
+- [ ] 1.9 Final read of `index.md` · S · (`00-baseline/questionnaire.md` deleted 2026-09-19; its six problems live on as 1.1–1.8 here and as sections 2–4)
 
 ## 2 · 01-ingestion
 
@@ -65,7 +65,7 @@ after sections 2 and 3:
 - [ ] 2.3 Close: 4 open items (TEI peak at every point, CUR D23, M18 vs D30, every §3 figure marked). Do each or declare it not made · S–M
 - [ ] 2.4 `methodology.md` citations: line 18, line 518, `metrics.md` D24 (per D4) · S
 - [ ] 2.5 Raw data line about `frontier.csv` (per D7) · S
-- [ ] 2.6 Resolve the questionnaire (per D3, D4), then delete it · S
+- [x] 2.6 Questionnaire deleted 2026-09-19. `D29` stays declared-not-made (§4.4, tech-debt #10), `methodology.md` is D4, and the "N=10 rests on one run" caveat is already in the Matrix · S
 
 ## 3 · 02-inference
 
@@ -73,7 +73,7 @@ after sections 2 and 3:
 - [ ] 3.2 Campaign cross-check: "Marginal total" $5.33 = serving **gross** for 4 hours + NAT, so $0.00457/1k includes the serving floor (and the NAT hourly fee, if the NAT line has it). Subtract 09-05 floor node-hours for hours 12–15. Feeds report §1, §3.6, §4.2, §4.3 · M
 - [ ] 3.3 r1000 ran with TEI 6/8 (`1ef1f0a`), the other points with 3/4: state it in Matrix and Saturation · S
 - [ ] 3.4 `methodology.md` citation, line 18 (per D4); `data/*.point.md` and the R13 row that mentions them (per D8) · S
-- [ ] 3.5 Resolve the questionnaire (per D3), then delete it · S
+- [x] 3.5 Questionnaire deleted 2026-09-19. Contention is a declared scope boundary (D3), the Bedrock calibration stays open in `report.md` §1 Verdict and tech-debt #9, the `point.md` files are D8 · S
 
 ## 4 · report.md (after 1–3)
 
@@ -83,7 +83,7 @@ after sections 2 and 3:
 - [ ] 4.4 §4.1: new table (A / B / C, fixed + variable, as built + right-sized); drop "⚠ provisional", "PVs still ᴰ", "2 lines still variable/unrated"; one errors line linking `00-baseline`; recount "3 of 17 Floor lines ~$0"; "Quantization … why the database line is as small as it is" contradicts the right-size (r7g.large → c7g.large); 14.3% per 1.5 · M
 - [ ] 4.5 §4.2: embedding row ($3,256 − $766) per 2.1; query marginal per 3.2; floor share · S
 - [ ] 4.6 §4.3: both tables and both crossovers, B per D1, marginals per 2 and 3 (script it) · S
-- [ ] 4.7 §5: consolidateAfter row → 5m; budget alarm **$677.03** (right-sized B × 1.4, per D1), as built $775.38 in the second column; TEI ceiling note assumes the 6-core request (tech-debt #4 reverts to 3); `budgets.tf` per D5; `maxReplicaCount` per D6 · S
+- [ ] 4.7 §5: consolidateAfter row → 5m; budget alarm **$677.03** (right-sized B × 1.4, per D1), as built $775.38 in the second column; TEI ceiling note assumes the 6-core request (tech-debt #4 reverts to 3); the `budgets.tf` row points at tech-debt #11 (per D5); both `maxReplicaCount` rows are already rewritten (per D6) · S
 - [ ] 4.8 §3.1 `TEI $`, §3.6 `$/1k queries`, §3.3 `methodology.md` line: carry from 2.1, 3.1, D4 · S
 - [ ] 4.9 §3.2 and §3.6 chart references (per D7) · S / L
 - [ ] 4.10 No old numbers left: `grep -rnE '426\.93|708\.72|281\.79|0\.20892|0\.2256|\$598|0\.000162|17,250|93,420|93M|provisional' docs/report` returns only intended hits · S
@@ -91,7 +91,7 @@ after sections 2 and 3:
 
 ## 5 · Close
 
-- [ ] 5.1 Humanizer pass on every rewritten section · M
-- [ ] 5.2 Delete `fill-status.md` (2026-09-09 snapshot, superseded by this file) and `questionnaire.md` once D3–D9 are written into the report · S
+- [ ] 5.1 Humanizer pass on every rewritten section, plus the sentence-level Register A rewrite (one idea per sentence, at most two nesting levels) of `01-ingestion` and `02-inference`, ~600 lines each, which no pass has done yet · M
+- [ ] 5.2 Confirm every gap that has no measurement is stated in the report itself: M3, Qdrant hnsw config and the EKS control-plane version → `00-baseline` Retro "Not observed" (whether the PVCs were attached is now answered by the Floor inventory, so it needs no row); M15–M17 → `01-ingestion` metrics; M11/M12 → `02-inference` Saturation; and add one line to `02-inference` §1 Unit and window: no pre-run wall-time or cost estimate survives the 2026-09-05 revision, and filling one now would pass hindsight off as foresight · S
 - [ ] 5.3 `docs/tech-debt.md` numbers match the final report · S
 - [ ] 5.4 Commit · S

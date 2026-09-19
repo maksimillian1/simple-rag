@@ -609,9 +609,14 @@ slot for what was found here (Retro, last line).
 
 ### Guardrails
 
-- **`maxReplicaCount` = 50** — from the knee next to the sweet spot in the Matrix. N=25 is
-  cheapest but untested below; N=50 is the last point with a real throughput gain and the more
-  defensible operating point until a lower-N point exists · `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` → report §5
+- **`maxReplicaCount` = 20 ᴱ** — the sweet spot (N=25, $24,750/1M docs ᴿ) ran at a time-weighted
+  mean of 19.5, so the cap bound only at the peak, and 20 is the concurrency the cheapest measured
+  run actually sustained. Not a claim that 20 beats 25: no point separates them, and the grid's
+  next step is 50. N=50 stays the knee, the documented ceiling for a hurry. Valid for this corpus
+  only: the chunker's ~20-concurrent ceiling is corpus-driven (Saturation), so a larger corpus
+  needs a re-check before this number transfers · live value raised 10 → 20 to match (2026-09-19,
+  both ScaledJobs; never run at this value, the cluster is gone) ·
+  `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` → report §5
 - **chunker `limits.memory`** — not revised. `00-baseline`'s `500m`/`1Gi` limits already carry a
   margin note (measured against a 78.8 MB sample; the corpus has untested files up to 124 MB), and
   nothing in this campaign changes that number, since the chunker was never the constraint at any N

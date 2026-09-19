@@ -60,7 +60,7 @@ published.
 * **Idle floor, Block B** — $426.93 / month ᴿ (Block C total: $708.72 ᴿ). This is what the feature costs with zero traffic on a platform that exists anyway
 * **Primary constraints** — ingestion: none by resource signature; the limit is architectural. The sequential loop in `apps/indexer/src/main.py` keeps one TEI call in flight per pod, so throughput scales 1:1 with replica count rather than with CPU or memory · query: none found up to 1000 req/s. TEI's scale-out lags a rate step and then catches up, which is not a ceiling. Neither path has a price for the next scaling step, because neither hit a limit to relieve
 
-**Verdict** — left to the business owner; the questionnaire (`docs/report/fill-status.md`) lists the decision it needs. Technical read: the system is cheap to run and has headroom on both paths at the volumes tested. Three gaps stand between this and a shippable verdict: no Fargate comparison (D29), no contention pass (§3.8, ingestion and query load together), and no query-cost estimate for when Bedrock is turned on for real
+**Verdict** — left to the business owner. Technical read: the system is cheap to run and has headroom on both paths at the volumes tested. Two gaps stand between this and a shippable verdict: no Fargate comparison for ingestion (D29, `docs/tech-debt.md` #10) and no measured cost for real Bedrock generation (E18, #9), which is the largest single number in the query-path cost and the one this report can least confirm. The contention pass is not a third gap but a declared scope boundary (Coverage): every query-path finding holds for an idle ingestion path only
 
 ---
 
@@ -143,7 +143,8 @@ again.
 
 Running at the knee (N=50) instead of the sweet spot (N=25) costs $19,450 extra per 1M docs
 (Gap cost, `01-ingestion` §3) to buy +40% docs/min (1.62→2.27). The guardrail in §5 is set at the
-sweet spot; the knee is the documented ceiling for a hurry.
+sweet spot's observed concurrency (20 ᴱ: N=25's cap bound only at the peak, and the run held a
+time-weighted mean of 19.5); the knee is the documented ceiling for a hurry.
 
 The sweet spot (N=25) sits at the edge of the clean-cost range: no N below 25 has a trustworthy
 cost read. N=10 exists but is off-plan and non-standard. Its real cost is higher than N=25's, so
@@ -454,14 +455,14 @@ persistent by design, and per-second billing buys nothing when the pod never sto
 
 | Guardrail | Value | Derived from | Enforced in |
 | :--- | :--- | :--- | :--- |
-| Ingestion concurrency ceiling | recommend `maxReplicaCount: 25` (sweet spot); **live value is 10**, below the recommendation | §3.3 sweet spot | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` |
+| Ingestion concurrency ceiling | recommend `maxReplicaCount: 20` ᴱ — the sweet-spot run (N=25) held a time-weighted mean of 19.5, so its cap bound only at the peak. No point separates 20 from 25, so this is not a claim that 20 is cheaper, and it holds for this corpus only (the chunker's ~20-concurrent ceiling is corpus-driven). **Live value raised 10 → 20** to match, 2026-09-19, on both ScaledJobs; it applies at the next cluster bootstrap | §3.3 sweet spot · `01-ingestion` Guardrails | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` |
 | Chunker memory limit | not revised. The live `limits.memory: 1Gi` already sits at ~2.3x the 433Mi peak observed (`n50-test` sample), well past the `peak+30%` (563Mi) this formula would suggest, and nothing argues for moving it either way | `01-ingestion/M7`, valid only where `M8` is zero | `deploy/k8s/apps/chunker` |
 | Indexer memory limit | not revised. `01-ingestion/M7`'s per-point peak memory isn't in this report at the precision needed, and `M8` (OOMKilled) never returned a confirmed zero (recurring GC-race gap), so ingestion data alone doesn't support a revision | `01-ingestion/M7`, valid only where `M8` is zero | `deploy/k8s/apps/indexer` |
 | Node consolidation delay | not revised; live `apps-compute: 30s` unchanged. §3.4's unoccupied-capacity number is fleet-wide and too coarse to argue for a different value | §3.4 unoccupied-capacity share | `apps-compute` NodePool |
 | Max input file size | `MAX_ALLOWED_SIZE_BYTES: 104857600` (100MB, code default, unchanged). The sample corpus's p95 (49.23MB) sits well under it, but the full corpus has an untested file of up to 124MB, above it | §3.5 · ADR-0001 | `apps/chunker` env |
 | Chunks per SQS message | `BATCH_SIZE: 30` (code default, unchanged) | §4.2 SQS line · ADR-0004 | `apps/chunker` env |
 | Go API replica ceiling | live `maxReplicaCount: 10`. 6 replicas were observed at r1000 (D15's lower bound), so some margin exists, but D15 is untested above 1000 req/s and the setting isn't confirmed sufficient at a higher rate | §3.7 replicas at the sustained rate, plus margin | `api-scaler` |
-| Embedding tier replica ceiling | live `maxReplicaCount: 30`, **fully used at r1000 with zero margin**. Raising it runs into this AWS account's Spot vCPU quota (`L-34B43A08`=256), which caps TEI at a realistic ~35-40 replicas at its 6-core request whatever this setting says | §3.7 replicas at the sustained rate, plus margin | `tei-embeddings-scaler` |
+| Embedding tier replica ceiling | keep live `maxReplicaCount: 30`. It was **fully used at r1000 with zero margin**, and it carried that rate: 30 replicas sustained ≥1000 req/s at the steady-state p95 and ~0% error (§3.7), which is the rate this deployment is sized for. No quota increase is requested. Above 1000 req/s the cap binds first, then this account's Spot vCPU quota (`L-34B43A08`=256), which allows a realistic ~35-40 replicas at the 6-core request | §3.7 replicas at the sustained rate | `tei-embeddings-scaler` |
 | Go API memory limit | not revised; no OOM or working-set warning surfaced in any point's Notes across the sweep | `02-inference/M6` | `deploy/k8s/apps/api` |
 | Embedding tier memory limit | not revised, for the same reason; CPU, not memory, was the driver at every rate | `02-inference/M6` | `deploy/k8s/apps/tei` |
 | Query rate alert | not set. `D15` is a lower bound (≥1000, untested above), so `D15 × 0.8` would alert on a number already known to be too low | §3.7 | `prometheus/rules.yaml` |

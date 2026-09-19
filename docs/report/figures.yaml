@@ -1,0 +1,483 @@
+meta:
+  updated: 2026-09-19
+  capture_hour: 2026-09-04T18:00Z
+  method: CUR inventory from one resting hour x unit rate x 730; EBS as size x $/GB-month; variable lines as rest-hour usage x rate x 730
+  cur: s3://simple-rag-cur-reports-883f615c/cur2/simple-rag BILLING_PERIOD=2026-09
+  rate_card: executions/00-baseline/data/price-2026-09-09.json
+  rule: every currency figure printed in the report exists here; totals are summed from exact values, never from rounded parts
+
+scan:
+  - report.md
+  - executions/00-baseline/index.md
+  - executions/00-baseline/concepts.md
+  - executions/01-ingestion/index.md
+  - executions/01-ingestion/metrics.md
+  - executions/02-inference/index.md
+
+figures:
+  hours_per_month:
+    value: 730
+    unit: hours
+    source: AWS monthly-hour convention
+
+  gp3_gb_month:
+    value: 0.0952
+    unit: usd_per_gb_month
+    source: CUR, current-generation gp3
+
+  cross_az_gb:
+    value: 0.01
+    unit: usd_per_gb
+    source: CUR, regional data transfer, billed both sides
+
+  nat_processed_gb:
+    value: 0.052
+    unit: usd_per_gb
+    source: CUR, NAT data processing
+
+  fargate_vcpu_hour:
+    value: 0.04656
+    unit: usd_per_vcpu_hour
+    source: Price List API 2026-09-09
+
+  fargate_gb_hour:
+    value: 0.00511
+    unit: usd_per_gb_hour
+    source: Price List API 2026-09-09
+
+  eks_cluster_hour:
+    value: 0.10
+    unit: usd_per_hour
+    source: CUR, EUC1-AmazonEKS-Hours:perCluster
+
+  t3_large_od_hour:
+    value: 0.0960
+    unit: usd_per_hour
+    source: CUR, on-demand
+
+  r7g_large_od_hour:
+    value: 0.1292
+    unit: usd_per_hour
+    source: CUR, on-demand
+
+  c7g_large_od_hour:
+    value: 0.0825
+    unit: usd_per_hour
+    source: Price List API 2026-09-11
+
+  c7i_flex_xlarge_od_hour:
+    value: 0.1935
+    unit: usd_per_hour
+    source: Price List API 2026-09-11
+
+  serving_spot_pair_hour:
+    value: 0.3794
+    unit: usd_per_hour
+    source: CUR, 2 x c7i-flex.2xlarge Spot as paid in the resting hour (0.1912 + 0.1882)
+
+  nat_gateway_hour:
+    value: 0.052
+    unit: usd_per_hour
+    source: CUR
+
+  public_ipv4_hour:
+    value: 0.005
+    unit: usd_per_hour
+    source: CUR
+
+  endpoint_eni_hour:
+    value: 0.012
+    unit: usd_per_hour
+    source: CUR, per ENI per AZ
+
+  nlb_hour:
+    value: 0.027
+    unit: usd_per_hour
+    source: CUR, LCU at zero when idle
+
+  kms_key_month:
+    value: 1.00
+    unit: usd_per_month
+    source: CUR
+
+  cloudwatch_vended_logs_gb:
+    value: 0.63
+    unit: usd_per_gb
+    source: CUR, vended logs
+
+  t3_credit_vcpu_hour:
+    value: 0.05
+    unit: usd_per_vcpu_hour
+    source: CUR, T3 Unlimited surplus credits
+
+  core_cross_az_gib_h:
+    value: 0.877
+    unit: gib_per_hour
+    source: resting hour, core flow of unknown origin (9.893 core - 9.016 ArgoCD)
+
+  nat_processing_gib_h:
+    value: 0.053
+    unit: gib_per_hour
+    source: resting hour
+
+  other_cross_az_gib_h:
+    value: 0.194
+    unit: gib_per_hour
+    source: resting hour, NAT + Fargate + EKS ENIs
+
+  db_serving_cross_az_gib_h:
+    value: 0.127
+    unit: gib_per_hour
+    source: resting hour
+
+  argocd_cross_az_gib_h:
+    value: 9.02
+    unit: gib_per_hour
+    source: probe 2026-09-04T18:30, 4.51 GiB/h billed both sides
+
+  argocd_credit_vcpu_h:
+    value: 0.248
+    unit: vcpu_hours_per_hour
+    source: core node at 42% CPU against a 30% baseline
+
+  eks_logs_gb_h:
+    value: 0.2195
+    unit: gb_per_hour
+    source: resting hour, /aws/eks/simple-rag-cluster/cluster
+
+  eks_control_plane:
+    formula: eks_cluster_hour * hours_per_month
+    unit: usd_per_month
+    group: a_fixed
+
+  core_nodes:
+    formula: 2 * t3_large_od_hour * hours_per_month
+    unit: usd_per_month
+    group: a_fixed
+
+  core_root_ebs:
+    formula: 2 * 20 * gp3_gb_month
+    unit: usd_per_month
+    group: a_fixed
+
+  karpenter_fargate:
+    formula: 2 * (0.5 * fargate_vcpu_hour + 1 * fargate_gb_hour) * hours_per_month
+    unit: usd_per_month
+    group: a_fixed
+
+  nat_gateway:
+    formula: nat_gateway_hour * hours_per_month
+    unit: usd_per_month
+    group: a_fixed
+
+  public_ipv4:
+    formula: 4 * public_ipv4_hour * hours_per_month
+    unit: usd_per_month
+    group: a_fixed
+
+  monitoring_pvs:
+    formula: 2 * 10 * gp3_gb_month
+    unit: usd_per_month
+    group: a_fixed
+
+  kms_key:
+    formula: kms_key_month
+    unit: usd_per_month
+    group: a_fixed
+
+  core_cross_az_unknown:
+    formula: core_cross_az_gib_h * cross_az_gb * hours_per_month
+    unit: usd_per_month
+    group: a_variable
+
+  nat_processing:
+    formula: nat_processing_gib_h * nat_processed_gb * hours_per_month
+    unit: usd_per_month
+    group: a_variable
+
+  other_cross_az:
+    formula: other_cross_az_gib_h * cross_az_gb * hours_per_month
+    unit: usd_per_month
+    group: a_variable
+
+  db_nodes:
+    formula: 2 * r7g_large_od_hour * hours_per_month
+    unit: usd_per_month
+    group: b_fixed
+
+  db_root_ebs:
+    formula: 2 * 14 * gp3_gb_month
+    unit: usd_per_month
+    group: b_fixed
+
+  qdrant_pvcs:
+    formula: 2 * 50 * gp3_gb_month
+    unit: usd_per_month
+    group: b_fixed
+
+  vpc_endpoints:
+    formula: 2 * 3 * endpoint_eni_hour * hours_per_month
+    unit: usd_per_month
+    group: b_fixed
+
+  serving_nodes:
+    formula: serving_spot_pair_hour * hours_per_month
+    unit: usd_per_month
+    group: b_fixed
+
+  serving_root_ebs:
+    formula: 2 * 15 * gp3_gb_month
+    unit: usd_per_month
+    group: b_fixed
+
+  nlb:
+    formula: nlb_hour * hours_per_month
+    unit: usd_per_month
+    group: b_fixed
+
+  db_serving_cross_az:
+    formula: db_serving_cross_az_gib_h * cross_az_gb * hours_per_month
+    unit: usd_per_month
+    group: b_variable
+
+  block_a_fixed:
+    formula: eks_control_plane + core_nodes + core_root_ebs + karpenter_fargate + nat_gateway + public_ipv4 + monitoring_pvs + kms_key
+    unit: usd_per_month
+    group: totals
+    appears_in: [executions/00-baseline/index.md]
+
+  block_a_variable:
+    formula: core_cross_az_unknown + nat_processing + other_cross_az
+    unit: usd_per_month
+    group: totals
+    appears_in: [executions/00-baseline/index.md]
+
+  block_b_fixed:
+    formula: db_nodes + db_root_ebs + qdrant_pvcs + vpc_endpoints + serving_nodes + serving_root_ebs + nlb
+    unit: usd_per_month
+    group: totals
+    appears_in: [executions/00-baseline/index.md]
+
+  block_b_variable:
+    formula: db_serving_cross_az
+    unit: usd_per_month
+    group: totals
+
+  block_a_total:
+    formula: block_a_fixed + block_a_variable
+    unit: usd_per_month
+    group: totals
+    appears_in: [report.md]
+
+  block_b_total:
+    formula: block_b_fixed + block_b_variable
+    unit: usd_per_month
+    group: totals
+    appears_in: [report.md]
+
+  c_fixed:
+    formula: block_a_fixed + block_b_fixed
+    unit: usd_per_month
+    group: totals
+    appears_in: [report.md, executions/00-baseline/index.md]
+
+  c_variable:
+    formula: block_a_variable + block_b_variable
+    unit: usd_per_month
+    group: totals
+
+  c_total:
+    formula: c_fixed + c_variable
+    unit: usd_per_month
+    group: totals
+    appears_in: [report.md, executions/00-baseline/index.md]
+
+  serving_idle_rate:
+    formula: (serving_nodes + serving_root_ebs) / hours_per_month
+    unit: usd_per_hour
+    display: 4
+    group: rates_derived
+    appears_in: [executions/00-baseline/index.md]
+
+  db_nodes_rs:
+    formula: 2 * c7g_large_od_hour * hours_per_month
+    unit: usd_per_month
+    group: right_sized
+
+  serving_nodes_rs:
+    formula: 2 * c7i_flex_xlarge_od_hour * hours_per_month
+    unit: usd_per_month
+    group: right_sized
+
+  qdrant_pvcs_rs:
+    formula: 2 * 10 * gp3_gb_month
+    unit: usd_per_month
+    group: right_sized
+
+  karpenter_fargate_rs:
+    formula: 2 * (0.25 * fargate_vcpu_hour + 1 * fargate_gb_hour) * hours_per_month
+    unit: usd_per_month
+    group: right_sized
+
+  block_a_fixed_rs:
+    formula: block_a_fixed - karpenter_fargate + karpenter_fargate_rs
+    unit: usd_per_month
+    group: right_sized
+
+  block_b_fixed_rs:
+    formula: block_b_fixed - db_nodes + db_nodes_rs - serving_nodes + serving_nodes_rs - qdrant_pvcs + qdrant_pvcs_rs
+    unit: usd_per_month
+    group: right_sized
+
+  block_b_total_rs:
+    formula: block_b_fixed_rs + block_b_variable
+    unit: usd_per_month
+    group: right_sized
+    appears_in: [report.md]
+
+  c_fixed_rs:
+    formula: block_a_fixed_rs + block_b_fixed_rs
+    unit: usd_per_month
+    group: right_sized
+    appears_in: [executions/00-baseline/index.md]
+
+  c_total_rs:
+    formula: c_fixed_rs + c_variable
+    unit: usd_per_month
+    group: right_sized
+    appears_in: [report.md, executions/00-baseline/index.md]
+
+  argocd_loop_cross_az:
+    formula: argocd_cross_az_gib_h * cross_az_gb * hours_per_month
+    unit: usd_per_month
+    group: errors
+    appears_in: [executions/00-baseline/index.md]
+
+  argocd_loop_credits:
+    formula: argocd_credit_vcpu_h * t3_credit_vcpu_hour * hours_per_month
+    unit: usd_per_month
+    group: errors
+    appears_in: [executions/00-baseline/index.md]
+
+  eks_control_plane_logs:
+    formula: eks_logs_gb_h * cloudwatch_vended_logs_gb * hours_per_month
+    unit: usd_per_month
+    group: errors
+    appears_in: [executions/00-baseline/index.md]
+
+  errors_recurring:
+    formula: argocd_loop_cross_az + argocd_loop_credits + eks_control_plane_logs
+    unit: usd_per_month
+    group: errors
+
+  orphaned_pvcs_spent:
+    value: 75.35
+    unit: usd
+    source: CUR 08-01 to 09-11 02:00 ($74.88) plus 9.84 h x 360 GB tail
+    group: errors
+
+  standalone_ebs_spent:
+    value: 0.70
+    unit: usd
+    source: CUR, 5 volumes, 38 volume-hours
+    group: errors
+
+  eks_logs_spent:
+    value: 2.26
+    unit: usd
+    source: CUR, 09-04 and 09-05
+    group: errors
+
+  errors_spent:
+    formula: orphaned_pvcs_spent + standalone_ebs_spent + eks_logs_spent
+    unit: usd
+    group: errors
+
+  cluster_startup:
+    value: 0.61
+    unit: usd_per_launch
+    source: NAT 8.86 GiB + cross-AZ 14.88 GiB, 09-04 12:00-14:00
+    group: errors
+    appears_in: [executions/00-baseline/index.md]
+
+  ingestion_per_1m_docs:
+    value: 24750
+    unit: usd_per_1m_docs
+    display: 0
+    source: CUR actual at N=25, the sweet spot
+    group: marginal
+    appears_in: [report.md, executions/01-ingestion/index.md]
+
+  ingestion_per_doc:
+    formula: ingestion_per_1m_docs / 1000000
+    unit: usd_per_doc
+    display: 5
+    group: marginal
+
+  query_per_1k_gross:
+    value: 0.00457
+    unit: usd_per_1k_queries
+    source: CUR campaign 09-05 hours 12-15; gross, still carries the serving floor and the NAT hourly fee (tasks 3.2 and 0.5.2)
+    display: 5
+    group: marginal
+
+  docs_at_half_floor:
+    formula: block_b_total / ingestion_per_doc
+    unit: docs_per_month
+    display: 0
+    group: amortization
+
+  queries_at_half_floor:
+    formula: block_b_total / (query_per_1k_gross / 1000)
+    unit: queries_per_month
+    display: 0
+    group: amortization
+
+  floor_share_per_1k_queries:
+    formula: block_b_total / (1000 * 3600 * hours_per_month) * 1000
+    unit: usd_per_1k_queries
+    display: 6
+    group: amortization
+
+  budget_alarm:
+    formula: block_b_total_rs * 1.4
+    unit: usd_per_month
+    group: guardrails
+    appears_in: [report.md]
+
+  budget_alarm_as_built:
+    formula: block_b_total * 1.4
+    unit: usd_per_month
+    group: guardrails
+
+retired:
+  - pattern: "426.93"
+    replaced_by: block_b_total
+    why: Block B before the Floor was re-based on the resting hour
+  - pattern: "708.72"
+    replaced_by: c_total
+    why: Block C before the re-base
+  - pattern: "281.79"
+    replaced_by: block_a_total
+    why: Block A before the re-base
+  - pattern: "0.20892"
+    replaced_by: serving_idle_rate
+    why: serving idle rate from the bootstrap capture hour
+  - pattern: "0.2256"
+    replaced_by: serving_idle_rate
+    why: first serving idle rate, extrapolated a per-GB charge as an hourly rate
+  - pattern: "$598"
+    replaced_by: budget_alarm
+    why: budget alarm computed from the old Block B
+  - pattern: "0.000162"
+    replaced_by: floor_share_per_1k_queries
+    why: floor share computed from the old Block B
+  - pattern: "17,250"
+    replaced_by: docs_at_half_floor
+    why: ingestion crossover computed from the old Block B
+  - pattern: "93,420"
+    replaced_by: queries_at_half_floor
+    why: query crossover computed from the old Block B
+  - pattern: "$24.91"
+    replaced_by: karpenter_fargate
+    why: Karpenter Fargate line before the vCPU and GB dimensions were both counted
