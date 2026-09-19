@@ -24,6 +24,7 @@ Usage:
 """
 
 import argparse
+import os
 import pathlib
 import re
 import sys
@@ -37,10 +38,21 @@ MONEY = re.compile(r"\$\s?-?\d[\d,]*(?:\.\d+)?")
 def scan_paths(doc):
     paths = []
     for entry in doc.get("scan", []):
+        direct = (ROOT / entry).resolve()
+        if direct.is_file():
+            paths.append(direct)
+            continue
         for path in sorted(ROOT.glob(entry)):
             if path.is_file():
                 paths.append(path)
     return paths
+
+
+def relative(path):
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return os.path.relpath(path, ROOT)
 
 
 def allowed(doc, pattern, rel, line):
@@ -60,7 +72,7 @@ def check_retired(doc, paths):
     for item in doc.get("retired", []):
         pattern = str(item["pattern"])
         for path in paths:
-            rel = str(path.relative_to(ROOT))
+            rel = relative(path)
             for number, line in enumerate(path.read_text().splitlines(), 1):
                 if pattern in line and not allowed(doc, pattern, rel, line):
                     hits.append((path, number, pattern, item.get("replaced_by", ""), line.strip()))
@@ -88,8 +100,9 @@ def check_orphans(doc, values, rel):
         return None
     numeric = [v for v in values.values() if v is not figures_model.PENDING]
     known = {figures_model.display(n, v, doc) for n, v in values.items()}
-    known |= {f"{v:,.0f}" for v in numeric}
-    known |= {f"{v:,.2f}" for v in numeric}
+    for decimals in range(0, 7):
+        known |= {f"{v:,.{decimals}f}" for v in numeric}
+        known |= {f"{v:.{decimals}f}" for v in numeric}
     orphans = {}
     for number, line in enumerate(path.read_text().splitlines(), 1):
         for token in MONEY.findall(line):

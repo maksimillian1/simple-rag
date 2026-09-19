@@ -131,8 +131,8 @@ Resting hour 2026-09-04 18:00–19:00 UTC: `n25` drained at ~17:50, teardown beg
 | **A fixed** | | | | **313.88** |
 | `core-on-demand` cross-AZ, source unknown | A | 0.877 GiB/h (9.893 core − 9.016 ArgoCD) | $0.01/GB | 6.40 |
 | NAT processing | A | 0.053 GiB/h | $0.052/GB | 2.01 |
-| Other cross-AZ (NAT, Fargate, EKS ENIs) | A | 0.194 GiB/h | $0.01/GB | 1.41 |
-| **A variable at rest** | | | | **9.82** |
+| Other cross-AZ (NAT, Fargate, EKS ENIs) | A | 0.194 GiB/h | $0.01/GB | 1.42 |
+| **A variable at rest** | | | | **9.83** |
 | `database-on-demand` nodes | B | 2 × r7g.large On-Demand, arm64 | $0.1292/h | 188.63 |
 | `database-on-demand` root EBS | B | 2 × 14 GB gp3 | $0.0952/GB-mo | 2.67 |
 | Qdrant PVCs | B | 2 × 50 GB gp3 (`qdrant-storage-qdrant-{0,1}`; current generation) | $0.0952/GB-mo | 9.52 |
@@ -144,17 +144,19 @@ Resting hour 2026-09-04 18:00–19:00 UTC: `n25` drained at ~17:50, teardown beg
 | **B fixed** | | | | **552.91** |
 | Database + serving cross-AZ | B | 0.127 GiB/h | $0.01/GB | 0.93 |
 | **B variable at rest** | | | | **0.93** |
-| **C = A + B** | | fixed 866.79 + variable 10.75 | | **877.54** |
+| **C = A + B** | | fixed 866.79 + variable 10.76 | | **877.54** |
 
-Left out of every total:
+Left out of every total, except the `bedrock` endpoint: that one was really provisioned and really
+billed, so it stays inside the as-built floor and comes out only in figure 2.
 
 | Line | Kind | Resource | Math | $ |
 | :--- | :--- | :--- | :--- | ---: |
-| ArgoCD self-heal loop, cross-AZ | error | `argocd-repo-server` + `argocd-redis` (1a) → `argocd-application-controller-0` (1b), 1.35 MB/s (`./data/argocd-loop-probe-2026-09-04T1830.txt`) | 4.51 GiB/h, billed both sides = 9.02 GiB/h × $0.01 × 730 | 65.81/month |
+| ArgoCD self-heal loop, cross-AZ | error | `argocd-repo-server` + `argocd-redis` (1a) → `argocd-application-controller-0` (1b), 1.35 MB/s (`./data/argocd-loop-probe-2026-09-04T1830.txt`) | 4.51 GiB/h, billed both sides = 9.02 GiB/h × $0.01 × 730 | 65.85/month |
 | ArgoCD self-heal loop, T3 CPU credits | error | core node at 42% CPU against a 30% baseline; the controller alone uses 0.6 cores | 0.248 vCPU-h/h × $0.05 × 730 | 9.05/month |
-| EKS control-plane logs | error | CloudWatch vended logs of `/aws/eks/simple-rag-cluster/cluster`: module default `audit, api, authenticator`, never chosen; switched off in Terraform (`enabled_log_types = []`) | 0.2195 GB/h at rest × $0.63 × 730 | 100.96/month; 2.26 spent (09-04, 09-05) |
+| EKS control-plane logs | error | CloudWatch vended logs of `/aws/eks/simple-rag-cluster/cluster`: module default `audit, api, authenticator`, never chosen; switched off in Terraform (`enabled_log_types = []`) | 0.2195 GB/h at rest × $0.63 × 730 | 100.95/month; 2.26 spent (09-04, 09-05) |
 | Orphaned PVCs | error | every launch left 2 × 50 GB Qdrant + 2 × 10 GB monitoring volumes (teardown never deleted PVCs); 35 volumes, 1,270 GB, all deleted by 2026-09-11 12:50Z | $74.88 billed (CUR, 08-01 → 09-11 02:00) + 9.84 h × 360 GB × $0.0952 / 720 | 75.35 spent; 0 now |
 | Standalone EBS `simple-rag-qdrant-data` | error | 150 GB gp3 per launch, never attached; removed from Terraform 2026-09-09 | 5 volumes, 38 volume-hours billed | 0.70 spent |
+| `bedrock` interface endpoint | error, inside the floor | the control-plane endpoint of the two in `vpc.tf`, reachable by nothing: the API imports only `bedrockruntime`, IAM grants only `InvokeModel*`, and the Cilium policy allows only `bedrock-runtime.*.amazonaws.com` | 1 endpoint × 3 AZ × $0.012/h × 730 | 26.28/month; figure 2 removes it (`docs/tech-debt.md` #12) |
 | Cluster startup | one-time | NAT 8.86 GiB + cross-AZ 14.88 GiB, 09-04 12:00–14:00 | 8.86 × $0.052 + 14.88 × $0.01 | 0.61 per launch |
 
 - **Serving pool idle rate** — $0.3833/h ($279.82/month ÷ 730), 09-04. The pool did not rest on the same nodes every day: 09-05 rested on c5.xlarge + c6a.xlarge at $0.18754/h (`docs/report/figures.yaml`, `serving_idle_rate_0905`), so each execution nets against its own day. `01-ingestion` does this as of 2026-09-19; `02-inference`'s Matrix still carries a retired rate
@@ -165,7 +167,7 @@ Left out of every total:
 
 ### Right-sized floor (figure 2) → report §4.1
 
-Same HA topology (2 core, 2 database, 2 serving nodes, 3 AZs, 2 Karpenter replicas); only sizes change, and the 2 serving nodes are On-Demand, as HA requires (`docs/tech-debt.md` #6). ᴱ: priced, not run. On-Demand rates from the AWS Price List API (2026-09-11).
+Same HA topology (2 core, 2 database, 2 serving nodes, 3 AZs, 2 Karpenter replicas). Sizes change, the 2 serving nodes are On-Demand as HA requires (`docs/tech-debt.md` #6), and the one line that is a defect rather than a size — the unreachable `bedrock` endpoint (errors table, `docs/tech-debt.md` #12) — is gone. ᴱ: priced, not run. On-Demand rates from the AWS Price List API (2026-09-11).
 
 | Line | As built | Right-sized ᴱ | Evidence | $/month as built | $/month right-sized |
 | :--- | :--- | :--- | :--- | ---: | ---: |
@@ -173,11 +175,12 @@ Same HA topology (2 core, 2 database, 2 serving nodes, 3 AZs, 2 Karpenter replic
 | Serving nodes | 2 × c7i-flex.2xlarge Spot | 2 × c7i-flex.xlarge On-Demand, $0.1935/h; 1 API + 1 TEI on each | TEI + API ran on xlarge nodes the full hour 09-05 11:00; needs TEI requests 3/4 (HEAD has 6/8) | 276.96 | 282.51 |
 | Qdrant PVCs | 2 × 50 GB gp3 | 2 × 10 GB gp3 | collection snapshot 496 MB | 9.52 | 1.90 |
 | Karpenter on Fargate | 2 × 0.5 vCPU / 1 GB (request 300m) | 2 × 0.25 vCPU / 1 GB (request 250m) | controller CPU ≈ 0 at rest (probe) | 41.45 | 24.46 |
+| Interface VPC endpoints | 2 × 3 AZ (`bedrock`, `bedrock-runtime`) | 1 × 3 AZ: the `bedrock` control-plane endpoint is a defect, not a size | nothing reaches it; the API imports only `bedrockruntime` (errors table) | 52.56 | 26.28 |
 | Core nodes | 2 × t3.large On-Demand | unchanged | memory never measured; CPU alone would fit t3.medium | 140.16 | 140.16 |
-| Everything else fixed | | unchanged | | 210.07 | 210.07 |
-| **C fixed** | | | | **866.79** | **779.55** |
-| Variable at rest | | unchanged | | 10.75 | 10.75 |
-| **C total** | | | | **877.54** | **790.30** |
+| Everything else fixed | | unchanged | | 157.50 | 157.50 |
+| **C fixed** | | | | **866.79** | **753.26** |
+| Variable at rest | | unchanged | | 10.76 | 10.76 |
+| **C total** | | | | **877.54** | **764.02** |
 
 ### Retro
 

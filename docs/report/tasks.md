@@ -8,33 +8,35 @@ min, M ≤ 2 h, L ≥ half a day. Work that needs a live cluster is in `docs/tec
 
 | Figure | As built | Right-sized ᴱ |
 | :--- | ---: | ---: |
-| Block A (fixed + variable) | 323.70 (313.88 + 9.82) | 306.71 (296.89 + 9.82) |
-| Block B (fixed + variable) | 553.84 (552.91 + 0.93) | 483.59 (482.66 + 0.93) |
-| Block C | 877.54 | 790.30 |
-| Serving pool idle rate, 09-04 18:00 | $0.3833/h | — |
-| Errors, recurring at rest (ArgoCD 65.81 + 9.05, EKS logs 100.96) | 175.82/month | — |
+| Block A (fixed + variable) | 323.71 (313.88 + 9.83) | 306.72 (296.89 + 9.83) |
+| Block B (fixed + variable) | 553.83 (552.91 + 0.93) | 457.30 (456.38 + 0.93) |
+| Block C | 877.54 | 764.02 |
+| Serving pool idle rate | $0.3833/h on 09-04, $0.18754/h on 09-05 | — |
+| Errors, recurring at rest (ArgoCD 65.85 + 9.05, EKS logs 100.95) | 175.85/month | — |
 | Errors, already spent (PVCs 75.35, logs 2.26, standalone EBS 0.70) | 78.31 | — |
+| `bedrock` endpoint, a defect inside the as-built floor | 26.28/month | removed |
 | Cluster startup | 0.61 per launch | — |
 
-Valid only while the §4.2 marginals stay as they are ($0.02475/doc, $0.00457/1k queries); redo
-after sections 2 and 3:
+Marginals are measured as of 2026-09-19: $0.024875/doc (D23 included) and $0.00375/1k queries
+(campaign netted). Everything below is resolved by `figures.yaml`, so read it from the script
+rather than from here:
 
 | Derived | B as built | B right-sized |
 | :--- | ---: | ---: |
-| Docs/month where floor share = 50% | 22,377 | 19,539 |
-| Queries/month where floor share = 50% | 121.2M | 105.8M |
-| Floor share per 1k queries at 1000 req/s | $0.000211 | $0.000184 |
-| Budget alarm, B × 1.4 | $775.38 | $677.03 |
+| Docs/month where floor share = 50% | 22,265 | 18,384 |
+| Queries/month where floor share = 50% | 147.8M | 122.1M |
+| Floor share per 1k queries at 1000 req/s | $0.000211 | $0.000174 |
+| Budget alarm, B × 1.4 | $775.37 | $640.22 |
 
 ## 0 · Decisions (they block the numbers)
 
 | # | Decision | Options | Recommendation | Blocks |
 | :--- | :--- | :--- | :--- | :--- |
-| D1 | Which Block B is the headline | as built $553.84 ᴿ · right-sized $483.59 ᴱ · both | **settled: right-sized is the headline**, as built is the reference value it is judged against (ᴱ needs one, `methodology.md` §2). Every downstream figure that adds floor to a marginal carries both columns: §4.3 crossovers, floor share, budget alarm ($677.03). The serving line *rises* under right-sizing (Spot → On-Demand for HA) and that must be said, or the one line that goes up discredits the table. Precondition: the right-sized serving line assumes TEI requests 3/4, so tech-debt #4 stops being optional debt and becomes a condition of the headline number | 4.3–4.7 |
+| D1 | Which Block B is the headline | as built $553.83 ᴿ · right-sized $457.30 ᴱ · both | **settled: right-sized is the headline**, as built is the reference value it is judged against (ᴱ needs one, `methodology.md` §2). Every downstream figure that adds floor to a marginal carries both columns: §4.3 crossovers, floor share, budget alarm ($640.22). The serving line *rises* under right-sizing (Spot → On-Demand for HA) and that must be said, or the one line that goes up discredits the table. Precondition: the right-sized serving line assumes TEI requests 3/4, so tech-debt #4 stops being optional debt and becomes a condition of the headline number | 4.3–4.7 |
 | D2 | How run costs net out the serving floor | (a) 09-04 rate $0.3833/h for every run: r050 net goes negative · (b) each run day's own resting serving inventory from CUR (09-05 serving ran on xlarge nodes, not 2xlarge) · (c) keep per-point figures gross for relative comparison, net only at campaign level | **settled: (b) + (c).** The marginal is measured and exists in one copy — floor does not enter it by definition (`methodology.md` §9), so subtracting a hypothetical right-sized floor from a real CUR bill would yield neither a measurement nor an estimate. (a) is out on its own: it subtracts a 2xlarge rate from a day that rested on xlarge. Per-point figures stay **gross** and are labelled gross; netting happens once, at campaign level, against 09-05's own inventory. No right-sized twin of the marginal: that configuration never ran. **Declared caveat:** the measured marginal also carries the as-built NodePool's instance selection — `apps-serving` admits xlarge/2xlarge/4xlarge, right-sizing pins `instance-size` to xlarge, so scale-out nodes under load would differ too; direction unknown, magnitude unmeasured | 2.1, 3.1, 3.2 |
 | D3 | Re-run a cluster for the contention pass, real Bedrock, `D29`, `M15`–`M17`? | re-run · ship v1.0 with the gaps declared | **settled: ship.** Contention pass is dropped outright, not deferred — tech-debt #8 goes away as debt and becomes a declared scope boundary in Coverage (`methodology.md` §11): every query-path finding assumes an idle ingestion path. §5 row "Backfill concurrency during query hours" is deleted, not left blank (§10). Real Bedrock (#9) and chunker concurrency (#10) stay open — #9 is a different class of gap: ~$0.51/1k queries ᴱ is the largest number in the report and was never measured | 2.6, 3.5, 5.2 |
 | D4 | `methodology.md` — **premise was wrong, it exists**: `report-kit@e0cd136`, `src/report_kit/templates/methodology.md`, 13 sections. All four citations resolve and are accurate (§7 "Sweep coarse to fine", §9 "Cost has exactly two terms") | vendor it to `docs/report/methodology.md` with a provenance header (source URL + commit + date) · link the citations to GitHub | **open.** Vendoring recommended: the citations must keep resolving to the text the report was written against, and an upstream edit would renumber the sections. (the `questionnaire.md` line calling it "a `methodology.md` that nobody wrote" went with that file) | 2.4, 3.4, 4.8 |
-| D5 | `terraform/budgets.tf` (does not exist; no SNS or alerting exists in `terraform/` at all) | write it (~20 lines: `aws_sns_topic` + email subscription + `aws_budgets_budget`, 80% actual / 100% forecast) · delete the §5 row | **open.** "Keep the value, mark not enforced" is out: `methodology.md` §10 — a guardrail is a committable config value, and rows whose number cannot be committed are deleted, not left blank. Writing it is recommended: it is the only row in §5 not tied to one known lever, and `00-baseline` already found $175.82/month recurring plus $78.31 spent in exactly the class of drift a spend alarm catches. Threshold per D1: $677.03. **Settled: written up as `docs/tech-debt.md` #11**, given a fresh ID rather than renumbering the existing items. §5 now points there instead of at a file that does not exist | 4.7 |
+| D5 | `terraform/budgets.tf` (does not exist; no SNS or alerting exists in `terraform/` at all) | write it (~20 lines: `aws_sns_topic` + email subscription + `aws_budgets_budget`, 80% actual / 100% forecast) · delete the §5 row | **open.** "Keep the value, mark not enforced" is out: `methodology.md` §10 — a guardrail is a committable config value, and rows whose number cannot be committed are deleted, not left blank. Writing it is recommended: it is the only row in §5 not tied to one known lever, and `00-baseline` already found $175.82/month recurring plus $78.31 spent in exactly the class of drift a spend alarm catches. Threshold per D1: $640.22. **Settled: written up as `docs/tech-debt.md` #11**, given a fresh ID rather than renumbering the existing items. §5 now points there instead of at a file that does not exist | 4.7 |
 | D6 | `maxReplicaCount` drift: ingestion live 10; TEI 30/30 at r1000 under a Spot quota of 256 vCPU | change config · record as is | **ingestion settled: recommend 20 ᴱ**, written into §5, §3.3 and `01-ingestion` Guardrails (which had said 50, against §5's 25 — three numbers, now one). Rationale: N=25's cap bound only at the peak, the run held a time-weighted mean of 19.5; no measurement separates 20 from 25, and the chunker's ~20 ceiling is corpus-driven. Live value raised 10 → 20 on both ScaledJobs (2026-09-19). **TEI settled: keep 30** — it carried ≥1000 req/s at steady-state p95 and ~0% error, so no Spot quota increase is requested; §5 row says so | 4.7 |
 | D7 | Charts: `assets/*.svg` and `data/frontier.csv` do not exist, §3.2 and §3.6 point to them | build 2 charts from the Matrices (M) · remove the references (S) | remove for v1.0 | 2.5, 4.9 |
 | D8 | `02-inference/data/*.point.md` (4 unfilled templates) | delete · keep | delete | 3.4 |
@@ -44,7 +46,8 @@ after sections 2 and 3:
 
 - **Query marginal: the broad definition.** Every row tagged to the serving pool and every NAT row counts; only what is floor by definition is subtracted (the 09-05 resting pair × 4 h + the NAT hourly fee = $0.9582). Campaign marginal $4.3706 → **$0.00375/1k queries**, against the published $0.00457. Cross-AZ transfer on serving nodes stays in: query traffic causes it. The narrow variant ($0.00331) stays in `figures.yaml` as the alternative, unused.
 - **Arithmetic at full precision, rounded once at print.** This is what AWS does: 69% of this month's CUR rows carry 10 decimals, and rounding per row before summing would have overstated 2026-09 by $2.06 (1.4%).
-- **Prose prints whole dollars** ($554, $484, $790). Cents stay in the §4.1 Floor table, where lines have to add up, and in rates and per-unit figures.
+- **Prose prints whole dollars** ($554, $457, $764). Cents stay in the §4.1 Floor table, where lines have to add up, and in rates and per-unit figures.
+- **The `bedrock` control-plane endpoint is an error, not a size.** It was provisioned and billed, so it stays inside the as-built floor and is listed in the `00-baseline` errors table; figure 2 removes it. That is the one line where the two figures differ for a reason other than sizing, and it widens the gap by $26.28/month (`docs/tech-debt.md` #12).
 
 ## 0.5 · Precondition for D2 (blocks 2.1, 3.1, 3.2)
 
@@ -93,7 +96,7 @@ after sections 2 and 3:
 - [ ] 4.4 §4.1: new table (A / B / C, fixed + variable, as built + right-sized); drop "⚠ provisional", "PVs still ᴰ", "2 lines still variable/unrated"; one errors line linking `00-baseline`; recount "3 of 17 Floor lines ~$0"; "Quantization … why the database line is as small as it is" contradicts the right-size (r7g.large → c7g.large); 14.3% per 1.5 · M
 - [ ] 4.5 §4.2: embedding row ($3,256 − $766) per 2.1; query marginal per 3.2; floor share · S
 - [ ] 4.6 §4.3: both tables and both crossovers, B per D1, marginals per 2 and 3 (script it) · S
-- [ ] 4.7 §5: consolidateAfter row → 5m; budget alarm **$677.03** (right-sized B × 1.4, per D1), as built $775.38 in the second column; TEI ceiling note assumes the 6-core request (tech-debt #4 reverts to 3); the `budgets.tf` row points at tech-debt #11 (per D5); both `maxReplicaCount` rows are already rewritten (per D6) · S
+- [ ] 4.7 §5: consolidateAfter row → 5m; budget alarm **$640.22** (right-sized B × 1.4, per D1), as built $775.37 in the second column; TEI ceiling note assumes the 6-core request (tech-debt #4 reverts to 3); the `budgets.tf` row points at tech-debt #11 (per D5); both `maxReplicaCount` rows are already rewritten (per D6) · S
 - [ ] 4.8 §3.1 `TEI $`, §3.6 `$/1k queries`, §3.3 `methodology.md` line: carry from 2.1, 3.1, D4 · S
 - [ ] 4.9 §3.2 and §3.6 chart references (per D7) · S / L
 - [ ] 4.10 No old numbers left: `grep -rnE '426\.93|708\.72|281\.79|0\.20892|0\.2256|\$598|0\.000162|17,250|93,420|93M|provisional' docs/report` returns only intended hits · S
