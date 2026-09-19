@@ -451,31 +451,23 @@ persistent by design, and per-second billing buys nothing when the pod never sto
 
 ---
 
-### 4.5 Break-even for the Bedrock VPC endpoint, query path only
+### 4.5 Bedrock VPC endpoint, query path
 
-The alternative to a PrivateLink endpoint is the NAT gateway §4.1 already pays for, so this is a
-fixed monthly cost against a per-GB premium. At a reference 1,000,000 queries per month — round,
-not measured — `02-inference/E18`'s 2,312 tokens per query weigh 8.6 GB:
+The alternative to PrivateLink is the NAT gateway §4.1 already pays for. At a reference 1,000,000
+queries per month, `02-inference/E18`'s 2,312 tokens per query weigh 8.6 GB:
 
 | | Via NAT | Via the endpoint |
 | :--- | ---: | ---: |
-| Fixed per month | none beyond §4.1 | $26.28 ᴰ, 3 ENIs across 3 AZs |
-| Per GB | $0.052 ᴿ | pending ᴱ, never pulled from the Price List API |
-| Network at the reference volume | $0.45 ᴰ | $26.28 + pending |
-| Generation at the same volume | $508.64 ᴱ | $508.64 ᴱ |
-| Network as a share of generation | **0.09%** ᴰ | above the endpoint's fixed cost either way |
+| Network | $0.45 ᴰ | $26.28 ᴰ + pending ᴱ |
+| Generation | $508.64 ᴱ | $508.64 ᴱ |
+| Network as a share of generation | **0.09%** ᴰ | — |
 
-**Crossover — `02-inference/D22`, and it resolves to `pending`.** Across the values its inputs
-allow it lands between 31.5M and 72.6M queries per month. The spread stays: the PrivateLink rate
-is unpulled, bytes-per-token was never measured, and whether cross-region transfer applies is
-unsettled (`AWS_BEDROCK_REGION` is `us-east-1` while the endpoints are in `eu-central-1`).
+Transport is not a cost argument on this path (`02-inference/K4`). `ADR-0007` rests the endpoint
+on a privacy boundary and on "slashes NAT Gateway data processing charges": the first holds, the
+second does not. The crossover (`02-inference/D22`) reads `pending` until the PrivateLink rate is
+pulled; across the values its inputs allow it falls between 31.5M and 72.6M queries per month.
 
-**It decides nothing.** At any volume the network line is ~0.09% of generation, so transport is
-not a cost argument on this path (`02-inference/K4`). `ADR-0007` rests the endpoint on a privacy
-boundary and on "slashes NAT Gateway data processing charges": the first holds, the second does
-not survive this table.
-
-Reading the deployment settles two defects without a run, both in `docs/tech-debt.md` #12: the
+Reading the deployment settles two defects without a run, both `docs/tech-debt.md` #12: the
 `bedrock` control-plane endpoint, $26.28/month of `block_b_fixed`, is reachable by nothing, and
 the runtime endpoint's private DNS never matches the hostname the client resolves.
 
