@@ -130,9 +130,17 @@ figures:
   endpoint_processed_gb:
     ref: FR15
     kind: R
-    pending: true
+    value: 0.01
     unit: usd_per_gb
-    source: AWS Price List API, PrivateLink data processing, eu-central-1 - NOT YET PULLED. Every figure below that depends on it resolves to "pending" until it is.
+    display: 3
+    source: >-
+      AWS Price List API, pulled 2026-09-22 (later than the rest of the rate card, which is
+      2026-09-09 - see data/price-2026-09-09.json, section privatelink). AmazonVPC,
+      productFamily VpcEndpoint, usagetype EUC1-VpcEndpoint-Bytes, endpointType PrivateLink,
+      first tier - 0.01 per GB up to 1 PB per month. The two cheaper tiers (0.006 above 1 PB,
+      0.004 above 5 PB) are unreachable at this workload, which moves 8.6 GB per month.
+      Cross-check - the same product family prices EUC1-VpcEndpoint-Hours at 0.012 per hour,
+      which is endpoint_eni_hour (FR14) read independently from CUR
 
   bedrock_token_1k:
     ref: FR16
@@ -654,7 +662,7 @@ figures:
   query_wire_bytes:
     ref: FD40
     kind: D
-    formula: (bedrock_input_tokens + bedrock_output_tokens) * bytes_per_token
+    formula: (bedrock_input_tokens + bedrock_output_tokens) * bytes_per_token + request_overhead_bytes
     unit: bytes
     display: 0
     group: marginal
@@ -722,7 +730,7 @@ figures:
     kind: D
     formula: 1 * 3 * endpoint_eni_hour * hours_per_month
     unit: usd_per_month
-    source: the "bedrock-runtime" service. Required by ADR-0007's privacy boundary, not by cost - see report 4.5
+    source: the "bedrock-runtime" service. Required by ADR-0007's privacy boundary, not by cost - see report 4.4
     group: architecture
 
   endpoint_breakeven_gb:
@@ -745,7 +753,7 @@ figures:
     kind: E
     value: 1000000
     unit: queries_per_month
-    source: reference volume for report 4.5; chosen round, not measured
+    source: reference volume for report 4.4; chosen round, not measured
     display: 0
     group: amortization
 
@@ -1615,6 +1623,169 @@ figures:
     source: the per-query form of E18, quoted in 02-inference/K4 against the bytes that carry the same answer
     group: marginal
     appears_in: [executions/02-inference/concepts.md]
+
+  request_overhead_bytes:
+    ref: FE15
+    kind: E
+    value: 3000
+    unit: bytes
+    display: 0
+    source: >-
+      What a request carries besides its tokens, added per request rather than per token
+      because none of it scales with prompt length. Components - SigV4 Authorization about
+      300 B; X-Amz-Security-Token about 1,500 B, which IRSA sends on every call and which
+      STS caps at 4,096 B; the remaining request headers about 300 B; response headers
+      about 400 B; TCP/IP framing over roughly nine packets both ways about 500 B. NOT
+      included - the TLS handshake, several KB per connection, which keep-alive amortises
+      by an amount this deployment never measured. Estimated from component sizes, not
+      measured - the measurement is EUC1-NatGateway-Bytes over a run that actually calls
+      Bedrock, which tech-debt 9 owes and which would replace this figure outright
+    group: marginal
+
+  chunker_pod_hours_n25:
+    ref: FM46
+    kind: M
+    value: 1.0417
+    unit: pod_hours
+    display: 4
+    source: >-
+      M5 integrated over the n25 window - kube_job_status_active summed across chunker Jobs at
+      each 15 s tick, times the step. This is the time-weighted concurrency the report previously
+      recorded as never captured; the series was exported all along, it had simply never been
+      integrated. Peak was 20, but the chunker finishes in about 4.5 minutes of a 61.7-minute
+      window, so the mean over the window is near 1
+    group: fargate
+  indexer_pod_hours_n25:
+    ref: FM47
+    kind: M
+    value: 19.1333
+    unit: pod_hours
+    display: 4
+    source: M5 integrated over the n25 window, indexer Jobs. Active 49 of 61.7 minutes
+    group: fargate
+  m12_chunker_n25:
+    ref: FM48
+    kind: M
+    value: 0.0020810023
+    unit: usd
+    display: 4
+    source: data/m12-eks-split.json points.n25.by_app.chunker, CUR split cost allocation pulled 2026-09-09
+    group: fargate
+  m12_indexer_n25:
+    ref: FM49
+    kind: M
+    value: 0.2574251493
+    unit: usd
+    display: 4
+    source: data/m12-eks-split.json points.n25.by_app.indexer
+    group: fargate
+  unused_ekslevel_n25:
+    ref: FM50
+    kind: M
+    value: 1.4787112439
+    unit: usd
+    display: 4
+    source: >-
+      data/m12-eks-split.json points.n25.unused_ekslevel - provisioned instance capacity no pod's
+      request share claimed that hour. Fleet-wide across every EKS node, so it covers the core and
+      database pools that exist regardless of ingestion; the ingestion share of it is not separable
+      and report 3.4 declines to guess one
+    group: fargate
+  fargate_chunker_vcpu:
+    ref: FR23
+    kind: R
+    value: 0.25
+    unit: vcpu
+    display: 2
+    source: >-
+      EKS Fargate compute configuration for the chunker pod. Its request is 100m CPU and 512Mi;
+      Fargate adds 256 MB for kubelet, kube-proxy and containerd, giving 768Mi, and rounds up to
+      the smallest cell that fits - 0.25 vCPU with 1 GB
+    group: fargate
+  fargate_chunker_gb:
+    ref: FR24
+    kind: R
+    value: 1
+    unit: gb
+    display: 0
+    source: the memory half of the same cell, after the 256 MB Kubernetes-component addition
+    group: fargate
+  fargate_indexer_vcpu:
+    ref: FR25
+    kind: R
+    value: 0.5
+    unit: vcpu
+    display: 2
+    source: >-
+      EKS Fargate cell for the indexer pod - request 500m CPU and 2Gi, plus 256 MB, is 2304Mi,
+      which rounds past the 2 GB cell to the 3 GB one at 0.5 vCPU
+    group: fargate
+  fargate_indexer_gb:
+    ref: FR26
+    kind: R
+    value: 3
+    unit: gb
+    display: 0
+    source: >-
+      the memory half of the same cell. The 256 MB addition is what pushes it from 2 GB to 3 GB,
+      a 50 percent step that no reading of the manifest alone would predict
+    group: fargate
+  fargate_chunker_n25:
+    ref: FD119
+    kind: D
+    formula: chunker_pod_hours_n25 * (fargate_chunker_vcpu * fargate_vcpu_hour + fargate_chunker_gb * fargate_gb_hour)
+    unit: usd
+    display: 4
+    group: fargate
+  fargate_indexer_n25:
+    ref: FD120
+    kind: D
+    formula: indexer_pod_hours_n25 * (fargate_indexer_vcpu * fargate_vcpu_hour + fargate_indexer_gb * fargate_gb_hour)
+    unit: usd
+    display: 4
+    group: fargate
+  fargate_workers_n25:
+    ref: FD121
+    kind: D
+    formula: fargate_chunker_n25 + fargate_indexer_n25
+    unit: usd
+    display: 4
+    source: >-
+      what the two ingestion workers would have cost on Fargate for the n25 run. Excludes image
+      pull, which Fargate meters from the start of the docker pull and charges per task rather
+      than once per node - unmeasured here, and it moves this figure up only
+    group: fargate
+    appears_in: [report.md]
+  spot_workers_n25:
+    ref: FD122
+    kind: D
+    formula: m12_chunker_n25 + m12_indexer_n25
+    unit: usd
+    display: 4
+    source: the same two workers as actually billed on Karpenter Spot, EKS instance-hour slice only
+    group: fargate
+    appears_in: [report.md]
+  fargate_vs_spot_n25:
+    ref: FD123
+    kind: D
+    formula: fargate_workers_n25 / spot_workers_n25
+    unit: ratio
+    display: 2
+    source: the price of the operating model, expressed as a multiple rather than a verdict
+    group: fargate
+    appears_in: [report.md]
+  unused_share_flip_n25:
+    ref: FD124
+    kind: D
+    formula: (fargate_workers_n25 - spot_workers_n25) / unused_ekslevel_n25 * 100
+    unit: percent
+    display: 0
+    source: >-
+      the share of fleet-wide unused capacity that would have to belong to ingestion before the
+      Spot side costs what Fargate does. Above it the comparison inverts. Nothing here measures
+      that share - it is the condition the choice rests on, not a result
+    group: fargate
+    appears_in: [report.md]
 
 allow:
   - pattern: "24,750"

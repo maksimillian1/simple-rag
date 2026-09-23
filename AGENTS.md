@@ -1,6 +1,10 @@
-# ==============================================================================
-# Gemini Code Assist Context: simple-rag (Strict Guardrails & Architecture V2.3)
-# ==============================================================================
+# simple-rag — agent instructions
+
+Strict guardrails and architecture, V2.3. Written for any coding agent that reads
+`AGENTS.md`; nothing here is specific to one vendor.
+
+`docs/architecture.md` is the single source of truth for lifecycle, data routing and
+component boundaries. This file defers to it.
 
 ## 0. Communication Principles
 1. Zero politeness rituals, zero fluff, no synthetic praise ("Great question",
@@ -91,3 +95,19 @@ When generating or interacting with infrastructure configuration or deployment m
 * **Spot Instance Graceful Termination:**
   Always explicitly set `terminationGracePeriodSeconds: 120` in the pod spec for asynchronous batch workloads (`chunker` and `indexer`). 
   Because these workloads run on AWS Spot Instances governed by Karpenter, setting the grace period to 120 seconds perfectly aligns Kubernetes with the 2-minute Spot Instance Interruption Notice window. This overrides the default 30-second Kubernetes SIGTERM window, giving the processes maximum possible time to checkpoint or complete their current batch before forceful termination.
+
+## 7. The report
+`docs/report/` is an engineering report with a number contract, and it is the one place
+in this repository where prose is load-bearing.
+* **`figures.yaml` is the registry:** every number the report prints resolves from it.
+  Nothing is computed in prose.
+* **`formats.md`** is the contract for how a number is written and marked.
+* **`methodology.md`** is why the structure is shaped this way. Both are vendored from
+  report-kit and carry a provenance header — edit upstream, not here.
+* **Verify before calling a change done:** `report-kit figures check`, run from
+  `docs/report/`. The command ships with report-kit, pinned to a tag in
+  `docs/report/requirements.txt` — install it with
+  `pip install -r docs/report/requirements.txt`.
+* A hook in `.claude/settings.json` states the contract before an edit under
+  `docs/report/` and runs the checker after one. It informs rather than blocks, so a
+  failing check is a message, not a wall — see `.claude/hooks/report-guard.py`.

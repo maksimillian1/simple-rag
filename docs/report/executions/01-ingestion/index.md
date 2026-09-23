@@ -443,7 +443,7 @@ points). It is the first snapshot this project has taken; the CronJob in
 
 - [x] Saturation identified, or headroom confirmed at the top of the grid: none found by resource signature (§3 Saturation). The constraint is architectural (the indexer's sequential one-in-flight TEI design), and N reached tracked N set exactly through N=125 with no sign of flattening.
 - [x] Cost pass run at least 48 h after the last point (2026-09-07): unchanged for N=25/50/75/125, first real read for N=10. The re-run after month close is still open.
-- [x] M12 decomposition present (2026-09-09, §3 M12 table): split-cost data for every point's hour bucket, pulled directly from the CUR parquet. It covers the EKS instance-hour slice only, not the full `$/run`. D28/D29 are still declared not made, each for its own reason (§3).
+- [x] M12 decomposition present (2026-09-09, §3 M12 table): split-cost data for every point's hour bucket, pulled directly from the CUR parquet. It covers the EKS instance-hour slice only, not the full `$/run`. `D29` is computed at N=25 from `M12` plus the `M5` pod-hours (§3 D29); `D28` is still declared not made, for its own reason (§3).
 - [x] TEI peak replicas recorded at every point, and D23 computed: measured from CUR on 2026-09-19 for all five points (Matrix, `figures.yaml` group `d23`). No point declares zero any more; `n25` is $0.0075<!--FM24-->, the smallest.
 - [x] `M14` re-pulled with both `AWS/NATGateway` byte-direction legs, then superseded entirely by CUR actuals (2026-09-05); Notes under #08.
 - [x] CUR-based `D23` (TEI above floor, net): closed 2026-09-19. The missing piece was the floor rate itself, not the gross. Each run day's own resting hour supplies it ($0.37940<!--FM1-->/h on 09-04, $0.18480<!--FM13-->/h on 09-05), so the two-replica floor now nets out per point.
@@ -530,7 +530,7 @@ cluster is gone) would turn this into a confirmed reading.
   clearest case in this campaign of the cost curve decoupling from throughput
 - **Gap cost** — $19,460<!--FD77--> extra per 1M docs paid running at the knee (N=50, $44,335<!--FD74-->) instead of
   the sweet spot (N=25, $24,875<!--FD75-->) → report §3.3
-- **Reference value** — no pre-sweep default `maxReplicaCount` was frozen for this parameter. This is its first exploration, so there is nothing to compare against. Fargate equivalent (D29): not computed; the rate card exists and the pod-hours don't (§3 D29)
+- **Reference value** — no pre-sweep default `maxReplicaCount` was frozen for this parameter. This is its first exploration, so there is nothing to compare against. Fargate equivalent (D29): computed at N=25 — $0.7562<!--FD121--> against $0.2595<!--FD122--> on Spot for the two workers (§3 D29, report §4.4)
 - **Condition boundary** — `00-baseline` §2 Envelope, plus packing density, bulk-drop arrival and the TEI trigger
 - **Raw data** — no `./data/frontier.csv` was written and no `plot-frontier.py` exists. The Matrix is built directly from each point's `.jsonl`/`.cost-estimate.json`; chart it by hand from those files or from the Matrix before this execution closes
 
@@ -578,13 +578,25 @@ and the other non-instance-hour lines, the majority of `$/run` at every N, are o
 **D28 — amortization**: still declared not made. `M12` alone doesn't resolve it; it needs a
 stated amortization horizon, which this doc never fixed.
 
-**D29 — Fargate equivalent**: still declared not made. The rate is no longer missing:
-`00-baseline`'s `./data/price-2026-09-09.json` has a real `eu-central-1` Fargate rate
-($0.04656/vCPU-hour, $0.00511/GB-hour). The pod-hours are. `M12` gives dollars per workload
-rather than raw CPU and memory pod-hours, and the Matrix's `N reached` column is the indexer's
-time-weighted concurrency only. The chunker's concurrency (described as "headroom", never
-measured as a time-weighted mean) appears nowhere in this doc. Computing D29 now would mean
-guessing the chunker's average concurrency, so it isn't computed.
+**D29 — Fargate equivalent**: computed 2026-09-23, at N=25 only. This entry previously said the
+pod-hours did not exist and that the chunker's concurrency "appears nowhere". Both were wrong,
+and the correction is worth recording: `M5` exports `kube_job_status_active` for both ScaledJobs
+as a range query at 15 s over the whole window, exactly as `metrics.md` promises ("peak and
+time-weighted mean, both recorded"). Summing the active Jobs at each tick and multiplying by the
+step gives the pod-hours directly — 1.0417<!--FM46--> for the chunker, 19.1333<!--FM47--> for the
+indexer. Nothing new was measured; a series that had been exported at every point was simply
+never integrated. The reading that the chunker was unmeasurable came from the Matrix's
+`N reached` column, which is the indexer's mean, and from prose calling the chunker "headroom".
+
+Against the frozen requests plus the 256 MB EKS adds per pod, the Fargate cells are
+0.25<!--FR23--> vCPU / 1<!--FR24--> GB for the chunker and 0.5<!--FR25--> vCPU / 3<!--FR26--> GB
+for the indexer. That gives $0.7562<!--FD121--> against $0.2595<!--FD122--> actually billed on
+Spot for the same two workers, a factor of 2.91<!--FD123-->. Report §4.4 carries the comparison
+and the condition it rests on; the figures live in `figures.yaml` group `fargate`.
+
+Still outside it: image pull, metered per task from the docker pull rather than once per node,
+which raises the Fargate side by an amount no point here measured. The other four points are not
+computed — the same integration would do it, and only N=25 was asked for.
 
 **Sizing check** — D30 against M18: not made. `D30` was never defined in `00-baseline` or
 `report.md`, so there is nothing to compare `M18` against. `M18` was captured 2026-09-05, just

@@ -41,5 +41,26 @@ endpoint — bills about a tenth of a percent of what generating them bills. The
 inverts it: documents are carried, nothing is generated, and NAT is 62.8% of the marginal total
 in the one run with a CUR actual.
 
-**Consequence** — that no network-topology choice on the query path is settled on cost, and that
-`D22`'s crossover is reported as a range rather than a value.
+**Consequence** — that no network-topology choice on the query path is settled on cost. `D22`'s
+crossover sits at 54,854,311<!--FD50--> ᴱ queries per month, past any volume this sweep reached.
+
+**What the byte figures rest on.** Three estimates, and their biases do not point the same way,
+which is why the crossover is an order of magnitude rather than a threshold:
+
+| Assumption | Value | Bias |
+| :--- | ---: | :--- |
+| Input tokens per query | 1,800<!--FE1--> | **upper bound** — chunks rarely all hit the 300-token max |
+| Output tokens per query | 512<!--FR17--> | **cap**, not an observed length (`MaxGenLen`) |
+| Bytes per token | 4<!--FE2--> | **floor** — the payload is JSON over TLS |
+| Per-request overhead | 3,000<!--FE15--> bytes | estimated from component sizes, never measured |
+
+Fewer tokens make a query lighter and push the crossover up; heavier bytes push it down. The
+overhead figure is added per request rather than per token because none of it scales with prompt
+length: it is the SigV4 signature, the IRSA session token, the request and response headers, and
+TCP/IP framing. It excludes the TLS handshake, which keep-alive amortises by an amount nobody
+here measured.
+
+None of this is recoverable by arithmetic. `EUC1-NatGateway-Bytes` already bills the real figure —
+every byte the gateway forwards, headers and ACKs included — but the campaign ran with generation
+stubbed, so those bytes are not Bedrock's. One run that actually calls Bedrock replaces all four
+rows above with a measurement (`docs/tech-debt.md` #9).

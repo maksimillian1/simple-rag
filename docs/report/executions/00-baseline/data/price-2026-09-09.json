@@ -2,7 +2,7 @@
   "pulled": "2026-09-09",
   "source": "aws pricing get-products (Price List API, us-east-1 endpoint -- the only region this API is served from)",
   "region": "eu-central-1",
-  "note": "Only the two rates report.md's Cost basis section actually asks for: Fargate vCPU/GB-hour (never bought by any run -- Karpenter's own Fargate use is priced from real CUR rows instead, see 00-baseline Floor) and Bedrock per-1K-token (no run in either execution called Bedrock -- both are stubbed/mocked). Real, dated AWS list prices, not derived from any run's own usage.",
+  "note": "The rates report.md's Cost basis section actually asks for: Fargate vCPU/GB-hour (never bought by any run -- Karpenter's own Fargate use is priced from real CUR rows instead, see 00-baseline Floor) and Bedrock per-1K-token (no run in either execution called Bedrock -- both are stubbed/mocked). Real, dated AWS list prices, not derived from any run's own usage. The 'privatelink' section was added later and carries its own pulled date: the top-level 'pulled' above covers fargate and bedrock only.",
   "fargate": {
     "region": "eu-central-1",
     "vcpu_hour_usd": 0.04656,
@@ -26,5 +26,19 @@
       "input_usd_per_1k_tokens": 0.00011,
       "output_usd_per_1k_tokens": 0.00011
     }
+  },
+  "privatelink": {
+    "pulled": "2026-09-22",
+    "region": "eu-central-1",
+    "usage_type": "EUC1-VpcEndpoint-Bytes",
+    "endpoint_type": "PrivateLink",
+    "product_family": "VpcEndpoint",
+    "processed_gb_usd": 0.01,
+    "tiers_usd_per_gb": {
+      "up_to_1_pb_monthly": 0.01,
+      "above_1_pb_to_5_pb_monthly": 0.006,
+      "above_5_pb_monthly": 0.004
+    },
+    "note": "Pulled 2026-09-22, thirteen days after the rest of this file, which is why it carries its own date -- the top-level 'pulled' does not describe this section. Only the first tier is reachable at this workload: report 4.5's reference month moves 8.6 GB, five orders of magnitude below the 1 PB boundary, so the cheaper tiers are recorded for completeness and never apply. Cross-check: the same product family prices EUC1-VpcEndpoint-Hours at $0.012/h, which is endpoint_eni_hour (FR14) as read independently from CUR -- two sources agreeing on the neighbouring rate."
   }
 }
