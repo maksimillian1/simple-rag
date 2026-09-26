@@ -405,7 +405,12 @@ queried; `series.txt` has no `Q` ref for it.
 **#06 is not the same configuration as the other five.** `r1000` ran with `tei-embeddings` at
 `cpu 6 / 8` (commit `1ef1f0a`, applied just before it); #01-#05 ran the frozen `3 / 4`
 (`00-baseline` §2 Configuration freeze). Saturation below reports what that changed, which is
-nothing about the shape: the scaler's target sits far below either limit.
+nothing about the shape: the scaler's target sits far below either limit. That bound covers the latency and
+scaling columns only. What a doubled per-pod request does to the two cost columns is unmeasured:
+a 6-core request fits fewer pods per node, and #06 is the one point whose node mix is dominated by
+`4xlarge` (5 of 11 seen, against 12 of 17 at `xlarge` for #04), but `karpenter-cost-estimate.py`
+reconstructs node lifecycles over the window rather than concurrency, so neither direction nor
+magnitude can be read off it. Declared the same way as D2's instance-selection caveat.
 
 `Replicas` is M7 peak, an outcome rather than a setting → K2. `Serving $` is M9 gross ᴰ from
 `karpenter-cost-estimate.py --nodepool apps-serving` over each point's window (node-lifecycle

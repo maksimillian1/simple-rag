@@ -216,7 +216,7 @@ r005 was never run. r300 was an off-plan point added after r500 to test whether 
 trying with more TEI headroom, not one of the two planned refinement points. p99 was never
 queried: no guard references it, and `series.txt` has no `Q` ref for it.
 
-| Offered req/s | Served req/s | api / tei replicas | Converge | p50 ms | p95 ms | p99 ms | Error % | $/1k queries ᴿ | Saturation signal |
+| Offered req/s | Served req/s | api / tei replicas | Converge | p50 ms | p95 ms | p99 ms | Error % | $/1k queries (gross) ᴰ | Saturation signal |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 50 | 45.5 (91%) | 2 / 3 | not timed, window avg already clean | 1672 | 2418 | — | 0% | $0.00250<!--FD78--> | none |
 | 200 | 192.5 (96%) | 2 / 7 | not timed, window avg already clean | 1750 | 2425 | — | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> | none |
@@ -224,10 +224,17 @@ queried: no guard references it, and `series.txt` has no `Q` ref for it.
 | 500 | 398.7 (80%, window avg) | 3 / 16 | ~7 min to 13 replicas, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / **~0% once converged** | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
 | 1000 | 828.3 (83%, window avg) | 6 / 30 | ~4 min to 30 replicas, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / **~0% once converged** | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
 
+`$/1k queries` is gross: it is each point's own serving cost over its own queries, floor included,
+so it falls with rate mostly because the always-on pair is spread over more traffic. It is not what
+a query costs. That number is the campaign marginal in §4.2, $0.00375<!--FD65--> ᴰ/1k, netted once
+against the day's resting inventory (D2) and 1.5<!--FD90-->–4.3<!--FD91-->× larger than any row here.
+
 The 1000 row ran on a different configuration: `tei-embeddings` at `cpu 6 / 8` against the frozen
 `3 / 4` every other row used (`02-inference` Matrix · `00-baseline` §2). It changed nothing about
 the shape — the scaler's target is far below either limit — but the row is not a sixth point of
-one series.
+one series. Its `$/1k queries` carries the same divergence and is not bounded the same way: a
+doubled per-pod request fits fewer pods per node, and this is the only point whose node mix is
+dominated by `4xlarge`. Direction and magnitude are unmeasured.
 
 Offered rate and served rate are reported separately. Where they diverge the generator, not the
 system, was the limit, and the row is excluded from the capacity claim. r500's and r1000's window
@@ -319,6 +326,14 @@ Block B right-sized, $437.59<!--FE9--> ᴱ, is the number §5's budget alarm is 
 system is not running at today, chosen deliberately so the alarm tracks the target rather than
 the defect.
 
+The bill agrees that the headroom is there. In the resting hour the six nodes cost
+$0.8298<!--FD129--> ᴰ, and CUR's split cost allocation assigns only part of that to pods: the rest,
+$0.4938<!--FM58-->, is **59.5<!--FD130-->%** of node spend that no pod requested. Read it as a lower
+bound, not as measured idleness — AWS apportions an instance across its pods by resource
+*request*, so a pod asking for three cores and using a fifth of one counts as requested in full.
+The right-sized column above was built the other way round, from observed working sets, and the
+two readings point the same way from opposite directions.
+
 Block B is what leaves the bill if the feature is deleted. It is not divided across an assumed
 number of co-tenant features, because that divisor would be arbitrary and blocks B and C already
 answer both questions a reader can ask. That criterion is what puts the Gateway's load balancer in
@@ -328,12 +343,12 @@ it standing. Block C is unaffected, and the same NLB's three public addresses we
 allocated to a block: each is mapped by hand to the Floor row that already prices it, and takes
 that row's block (`R5`, marked ᴿ). Untagged money here is not separate money — it is the same
 money the Floor prices by resource, seen through the tag column — so the mapping moves no total.
-They are 14.3% of everything billed in the hour
-(`R5`/`M2`, `00-baseline`), and that share is a reading rather than a threshold: everything in this
-deployment that can carry a `feature` tag carries one, so what arrives untagged is AWS-managed flat
-charges rather than a gap in this project's tagging (`00-baseline` §2). The share was read over the
-13:00 bootstrap hour, whose denominator is inflated by bootstrap traffic; the Floor above is the
-18:00 resting hour.
+They are 25.6<!--FD126-->% of everything billed in the resting
+hour above (`R5`/`M2`, `00-baseline`), and that share is a reading rather than a threshold:
+everything in this deployment that can carry a `feature` tag carries one, so what arrives untagged
+is AWS-managed flat charges rather than a gap in this project's tagging (`00-baseline` §2). Most of
+the share is one defect, not sizing — the CloudWatch vended-log line, which §4.2 excludes from every
+Floor figure; net of it the untagged share is 17.9<!--FD127-->%.
 
 *The NAT gateway* is the hidden line of this architecture class and is missing from almost every
 published version of it. It is billed hourly regardless of traffic, and again per gigabyte
@@ -483,7 +498,8 @@ wire:
 | Network as a share of generation | 0.12<!--FD55-->% ᴱ | — |
 
 Transport is not a cost argument on this path. `ADR-0007` rests on a privacy boundary, which
-holds, and on "slashes NAT Gateway data processing charges", which does not. Every byte figure is
+holds, and on "slashes NAT Gateway data processing charges", which does not; `ADR-0017` supersedes
+that clause and carries this calculation. Every byte figure is
 estimated; `02-inference/K4` carries the assumptions and their biases.
 
 **Condition:** the endpoint's three ENIs cost $26.28<!--FD48-->/month whatever the traffic, and
@@ -506,7 +522,7 @@ the runtime endpoint's private DNS never matches the hostname the client resolve
 | Ingestion concurrency ceiling | recommend `maxReplicaCount: 20` ᴱ. The sweet-spot run (N=25) held a time-weighted mean of 19.5, so its cap bound only at the peak. No point separates 20 from 25, so this is not a claim that 20 is cheaper, and it holds for this corpus only (the chunker's ~20-concurrent ceiling is corpus-driven). The live value was raised from 10 to 20 to match, 2026-09-19, on both ScaledJobs; it applies at the next cluster bootstrap | §3.3 sweet spot · `01-ingestion` Guardrails | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` |
 | Chunker memory limit | not revised. The live `limits.memory: 1Gi` already sits at ~2.3x the 433Mi peak observed (`n50-test` sample), well past the `peak+30%` (563Mi) this formula would suggest, and nothing argues for moving it either way | `01-ingestion/M7`, valid only where `M8` is zero | `deploy/k8s/apps/chunker` |
 | Indexer memory limit | not revised. `01-ingestion/M7`'s per-point peak memory isn't in this report at the precision needed, and `M8` (OOMKilled) never returned a confirmed zero (recurring GC-race gap), so ingestion data alone doesn't support a revision | `01-ingestion/M7`, valid only where `M8` is zero | `deploy/k8s/apps/indexer` |
-| Node consolidation delay | not revised; live `apps-compute: 30s` unchanged. §3.4's unoccupied-capacity number is fleet-wide and too coarse to argue for a different value | §3.4 unoccupied-capacity share | `apps-compute` NodePool |
+| Node consolidation delay | not revised; live `apps-compute: 5m` unchanged, `WhenEmpty`. §3.4's unoccupied-capacity number is fleet-wide and too coarse to argue for a different value | §3.4 unoccupied-capacity share | `apps-compute` NodePool |
 | Max input file size | `MAX_ALLOWED_SIZE_BYTES: 104857600` (100MB, code default, unchanged). The sample corpus's p95 (49.23MB) sits well under it, but the full corpus has an untested file of up to 124MB, above it | §3.5 · ADR-0001 | `apps/chunker` env |
 | Chunks per SQS message | `BATCH_SIZE: 30` (code default, unchanged) | §4.2 SQS line · ADR-0004 | `apps/chunker` env |
 | Go API replica ceiling | live `maxReplicaCount: 10`. 6 replicas were observed at r1000 (D15's lower bound), so some margin exists, but D15 is untested above 1000 req/s and the setting isn't confirmed sufficient at a higher rate | §3.7 replicas at the sustained rate, plus margin | `api-scaler` |
@@ -518,4 +534,4 @@ the runtime endpoint's private DNS never matches the hostname the client resolve
 | Backfill concurrency during query hours | not set; the contention pass never ran (§3.8), so there is nothing to base it on | §3.8 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` |
 | Ingestion backlog alert | not set; `01-ingestion` never defined a drain-rate alert formula distinct from the point-close criterion already in use | §3.1 | `prometheus/rules.yaml` |
 | Do not move the query path to a VPC endpoint on a cost argument | crossover 54,854,311<!--FD50--> ᴱ queries/month, against a reference volume of 1,000,000<!--FE14-->. Below it the endpoint costs more than the NAT it replaces, so the decision rests on the privacy boundary in `ADR-0007` alone. The figure is estimated, not measured (`02-inference/K4`), so treat it as an order of magnitude | §4.4 | `terraform/` VPC endpoints, `ADR-0007` |
-| Budget alarm | recommend $612.63<!--FD56--> ᴱ/month (right-sized Block B × 1.4 = $437.59<!--FE9--> × 1.4). Set against the right-sized floor rather than the as-built one, so the alarm tracks the target the tech-debt items move toward instead of pinning today's defects in place. `terraform/budgets.tf` does not exist, so nothing enforces this today (`docs/tech-debt.md` #11) | §4.1 | `terraform/budgets.tf` (not yet created) |
+| Budget alarm | recommend $612.63<!--FD56--> ᴱ/month (right-sized Block B × 1.4 = $437.59<!--FE9--> × 1.4). Set against the right-sized floor rather than the as-built one, so the alarm tracks the target the tech-debt items move toward instead of pinning today's defects in place; the as-built floor would put it at $747.77<!--FD57--> ᴰ (per D1, both columns are carried). `terraform/budgets.tf` does not exist, so nothing enforces this today (`docs/tech-debt.md` #11) | §4.1 | `terraform/budgets.tf` (not yet created) |

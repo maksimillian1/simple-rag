@@ -198,8 +198,8 @@ the fixed image.
 ran, all 6 retained Job objects (`successfulJobsHistoryLimit`/`failedJobsHistoryLimit` = 3+3) had
 no pods left. `kube_pod_container_status_last_terminated_reason` lives on the Pod object, and
 orphaned-pod GC removes the Pod once its node is gone, regardless of the Job's history limit.
-`apps-compute`'s `consolidateAfter` (5m rather than the 30s frozen in `00-baseline`, a divergence
-flagged there too) meant nodes began tearing down well before export ran. Exported anyway with
+`apps-compute`'s `consolidateAfter` is 5m, which is short against the time this export takes, so
+nodes began tearing down well before it ran. Exported anyway with
 `export-metrics.py --force`, which writes the file despite the gap (`--force` means "overwrite",
 not "ignore the gap"). 8/9 refs are good. M8 is a documented instrumentation gap for this run,
 not a claimed zero, and worth revisiting before a point where an OOM signal matters. The same gap
@@ -658,10 +658,11 @@ slot for what was found here (Retro, last line).
   limit already has a documented margin in `00-baseline`, and M8 (OOMKilled) was an
   instrumentation gap at every point rather than a confirmed zero, so ingestion data alone doesn't
   support raising or lowering it
-- **`consolidateAfter`** — not revised. It already moved from `00-baseline`'s frozen `30s` to `5m`
-  mid-campaign to fix a scheduling deadlock (postmortem, 2026-09-02). This campaign's D26, which
-  would show whether the 5m tail costs material unused capacity, was never computed, so there is
-  no basis to move it again
+- **`consolidateAfter`** — not revised. It was last moved for a reason that has nothing to do with
+  cost: `30s` to `5m` on 2026-09-03 (`cfa0ab7`), to fix a scheduling deadlock (postmortem,
+  2026-09-02), a day before this campaign began, so every point here ran on `5m`. This campaign's
+  D26, which would show whether the 5m tail costs material unused capacity, was never computed, so
+  there is no basis to move it again
 
 Rows whose source number does not survive the runs are deleted, not left blank.
 

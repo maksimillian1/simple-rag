@@ -1,56 +1,93 @@
-R5 — lines with no `feature` tag over the 00-baseline idle window (2026-09-04 13:00-14:00Z)
-Pulled 2026-09-09 directly from the CUR parquet (728 rows in the window; 21 distinct
-product_code/usage_type combos carry no `resource_tags['user_feature']`, 13 of them at $0.00000
-and excluded below as not a real attribution question — see note at the end).
+R5 — lines with no `feature` tag over the 00-baseline resting hour (2026-09-04 18:00-19:00Z)
+Re-pulled 2026-09-26 from the CUR parquet, the same hour the Floor is built on. Rows in the hour:
+252, of which 118 are ordinary rows and 134 are split-cost children, excluded here as they are in
+the Floor (methodology.md §9). Of the 118, 21 distinct product_code/usage_type combos carry no
+`resource_tags['user_feature']` — 11 with a non-zero cost, listed below, and 10 at $0.00000.
+Raw rows: ./data/idle-2026-09-04T1800.csv.
 
-WHAT THIS FILE IS (rewritten 2026-09-26)
-It used to allocate each untagged line to block A or B by hand. It does not any more, because
-there was never anything to allocate: every dollar here is already inside a Floor row, priced
-there by resource rather than by tag. Adding it to a block would double-count it. So each line
-below names the Floor row that already contains it, and the block is simply that row's block.
-Nothing in this file is a figure and nothing sums into any total.
+Supersedes the 13:00-14:00Z reading this file used to hold (share 14.3%, $0.21163). That hour was
+the node-bootstrap hour and no longer feeds anything; its rows stay in ./data/idle-2026-09-04.csv.
 
-product_code       usage_type                              cost      floor row                              block   why
-AmazonEKS          EUC1-AmazonEKS-Hours:perCluster         $0.10000  FD1  EKS control plane                 A       Flat per-cluster hourly fee. The cluster IS tagged (Preflight K1); CUR just doesn't carry resource_tags on this line. Same money as the $73.00/mo Floor row.
-AmazonEC2          EUC1-EBS:VolumeUsage.gp3 (4 x 50 GB)    $0.02644  FD14 Qdrant PVCs / orphaned PVCs       B + error  Four identical rows at $0.0066111. The Floor's inventory is two (`qdrant-storage-qdrant-{0,1}`, FD14, block B); the other two are the previous launch's leftovers, already priced in the errors table as orphaned PVCs. So two rows are B and two are outside every block. See the caveat below.
-AmazonEC2          EUC1-EBS:VolumeUsage.gp3 (4 x 10 GB)    $0.00529  FD7  Monitoring PVs / orphaned PVCs    A + error  Four identical rows at $0.0013222, same split: two are the Floor's Prometheus/Loki PVs (FD7, block A), two are leftovers in the errors table. CSI-provisioned volumes don't inherit the launch template's default_tags the way node root volumes do — worth fixing at the source (tag the PVC/StorageClass).
-AmazonEKS          EUC1-Fargate-vCPU-Hours:perCPU          $0.02799  FD4  Karpenter on Fargate              A       Karpenter's own controller on Fargate. Platform overhead, not attributable to one feature by design.
-AmazonEKS          EUC1-Fargate-GB-Hours                   $0.00614  FD4  Karpenter on Fargate              A       Same resource, memory dimension of the same charge.
-AWSELB             EUC1-LoadBalancerUsage                  $0.02700  FD19 Load balancer                     A       The Gateway's NLB. Tagged (K1), tag doesn't reach this flat hourly line. Was the one genuinely open "A or B?" in this file; settled A on 2026-09-26 and the Floor row moved with it — the Gateway is in namespace rag-platform, admits routes from every namespace and already parents /monitor to Grafana besides / to the api, so it outlives the feature.
-AmazonVPC          EUC1-PublicIPv4:InUseAddress            $0.01384  FD6  Public IPv4                       A       Address-hour charges, structurally hard to tag per line item. The category M2's notes predicted.
-AmazonEKS          EUC1-DataTransfer-Regional-Bytes        $0.00354  FD11 Other cross-AZ                    A       EKS control-plane API regional transfer.
-awskms             eu-central-1-KMS-Keys                   $0.00139  FD8  KMS key                           A       Shared encryption overhead (EBS, S3, SQS all use the account's default key). The other category M2's notes predicted.
+WHAT THIS FILE IS
+It used to allocate each untagged line to block A or B by hand. It does not, because there was
+never anything to allocate: every dollar here is already inside a Floor row or an errors-table row,
+priced there by resource rather than by tag. Adding it to a block would double-count it. So each
+line names the row that already contains it, and the block is simply that row's block. Nothing
+here is a figure and nothing sums into a total.
 
-Enumerated: $0.21163, which is M2's untagged total for this window to the cent. Every line resolves
-to a Floor row, so attribution coverage is complete in the sense that matters: no untagged dollar
-is unaccounted for.
+product_code       usage_type                           cost       already priced as                        block
+AmazonCloudWatch   EUC1-VendedLog-Bytes                 $0.1382863 FD34 EKS control-plane logs (errors)     none — a defect, outside every block
+AmazonEKS          EUC1-AmazonEKS-Hours:perCluster      $0.1000000 FD1  EKS control plane                   A
+AmazonEKS          EUC1-Fargate-vCPU-Hours:perCPU       $0.0465600 FD4  Karpenter on Fargate                A
+AmazonEC2          EUC1-EBS:VolumeUsage.gp3, 4 x 50 GB  $0.0264444 FD14 Qdrant PVCs (2) + orphaned PVCs (2) B + error
+AWSELB             EUC1-LoadBalancerUsage               $0.0270000 FD19 Load balancer                       A
+AmazonVPC          EUC1-PublicIPv4:InUseAddress, 4 rows $0.0200000 FD6  Public IPv4                         A
+AmazonEKS          EUC1-Fargate-GB-Hours                $0.0102200 FD4  Karpenter on Fargate                A
+AmazonEC2          EUC1-EBS:VolumeUsage.gp3, 4 x 10 GB  $0.0052889 FD7  Monitoring PVs (2) + orphaned (2)   A + error
+awskms             eu-central-1-KMS-Keys                $0.0013889 FD8  KMS key                             A
+AmazonEKS          EUC1-DataTransfer-Regional-Bytes     $0.0006756 FD11 Other cross-AZ                      A
+AWSELB             EUC1-LCUUsage                        $0.0000001 FD19 Load balancer (LCU ~0 at rest)      A
 
-CAVEAT on the eight gp3 rows. They are identified by size and count — four at 50 GB and four at
-10 GB against the Floor's inventory of two and two, plus the errors table's "every launch left
-2 x 50 GB Qdrant + 2 x 10 GB monitoring volumes". The volume-to-PVC mapping was never exported and
-the cluster is gone, so which two of each four are the live pair cannot be recovered. It makes no
-dollar difference: the rows within each group are identical in price. This does contradict
-Preflight's reading that Qdrant's gp3 volumes arrive tagged — in this hour they do not.
+Enumerated: $0.3758642, which is M2's untagged total for this hour to the cent. Every line resolves
+to a row that already prices it, so no untagged dollar is unaccounted for.
 
-WHAT CHANGED, AND WHY IT MATTERS. This file used to conclude "Block A: $0.21163, Block B: $0.00 —
-there's no Block B money hiding in the untagged set". That was wrong twice over: the Qdrant PVC
-rows are Block B, and the leftover volumes are neither A nor B. The worry in M2's notes — folding
-untagged money into A by default understates B, which is the headline — was therefore real, not
-theoretical. Under the mapping it cannot bite again: the block is read off the Floor row rather
-than chosen here, so this file and the Floor table cannot drift apart.
+WHY THE SHARE IS 25.6% AND NOT 14.3%. Both the numerator and the denominator changed, but the
+numerator changed more: the largest untagged line at rest is the CloudWatch vended-log charge,
+$0.1382863, which read $0.00000 in the bootstrap hour. That is the EKS control-plane logging defect
+(FM8 0.2195 GB/h, FD34 $100.95/month) — a defect, not a tagging problem, and it is outside every
+Floor figure. Without it the share is 17.9%. So the
+project's own tagging did not get worse between the two readings; a defect entered the numerator.
 
-Rows at exactly $0.00000 (not enumerated above -- no dollar to assign):
-AmazonS3 Requests-Tier2, AWSELB EUC1-LCUUsage, AmazonCloudWatch EUC1-VendedLog-Bytes,
-awskms eu-central-1-KMS-Requests, AWSGlue USE1-Catalog-Request, AmazonS3 DataTransfer-Out-Bytes,
-AWSELB (4 regional AWS-In/Out-Bytes usage types), AmazonEKS EUC1-EKS-EC2-GB-Hours (250 rows),
-AmazonEKS EUC1-EKS-EC2-vCPU-Hours (250 rows).
-The last two (500 rows total) are NOT an attribution gap: these are the split-cost PARENT rows --
-AWS zeroes out line_item_unblended_cost on them and moves the real dollar amount into
-split_line_item_split_cost instead, which DOES carry per-pod resource_tags (see ./m12-eks-split-2026-09-04.json).
-They show up here only because the parent row's own tag field is empty, not because any money is
-unattributed.
+THE EIGHT gp3 ROWS. Four at $0.0066111 (50 GB) and four at $0.0013222 (10 GB), the same eight
+volume ids as in the bootstrap hour. The Floor's inventory is two of each, so two of each are the
+previous launch's leftovers, already priced in the errors table as orphaned PVCs. One of the 10 GB
+volumes is identified directly rather than by size: vol-08044db097d9917e2 is the Prometheus TSDB
+the ArgoCD probe was read from (./data/argocd-loop-probe-2026-09-04T1830.txt header), which fixes
+that group as the monitoring PVs. Which two of each four are the live pair is not recoverable —
+the volume-to-PVC mapping was never exported and the cluster is gone — and it makes no dollar
+difference, the rows within each group being identical in price. Note that Qdrant's PVCs arriving
+untagged contradicts Preflight's reading that they carry a tag: the Floor's FD14 rests on the
+volume inventory, not on a tag (→ K1).
 
-HOUR. This is the 13:00-14:00Z bootstrap hour, not the 18:00-19:00Z resting hour the Floor is built
-on (index.md, Capture window). Six of the eight non-zero lines are flat hourly charges and read the
-same in either hour; the regional-transfer line is traffic-dependent and the gp3 rows depend on how
-many leftover volumes existed. Re-reading it for hour 18 is open work.
+WHAT THIS CORRECTS. The file used to conclude "Block A: $0.21163, Block B: $0.00 — there's no
+Block B money hiding in the untagged set". Wrong twice over: the Qdrant PVC rows are Block B, and
+the leftover volumes are neither A nor B. The worry in M2's own notes — folding untagged money into
+A by default understates B, which is the headline — was real, not theoretical. Under the mapping it
+cannot bite again: the block is read off the Floor row rather than chosen here.
+
+Rows at exactly $0.00000 (no dollar to assign): AWSELB EUC1-DataTransfer-In-Bytes,
+EUC1-DataTransfer-Out-Bytes and six regional AWS-In-Bytes usage types (APS1, EUN1, EUW2, USE1,
+USE2, USW2), AWSELB EUC1-EUN1-AWS-Out-Bytes, AmazonCloudWatch EUC1-CW:Requests,
+awskms eu-central-1-KMS-Requests.
+The bootstrap-hour file also listed AmazonEKS EUC1-EKS-EC2-{GB,vCPU}-Hours here. They are not in
+this reading because they are split-cost child rows and the guard excludes them, which is the same
+convention the Floor uses; their money is in the parent instance rows, tagged.
+
+WHAT THIS PULL CONFIRMED, the hour being the Floor's own. Read it as a cross-check, not as a method:
+these rows supply the inventory, the rate comes from the rate card, and the month is inventory x rate
+x 730 (methodology.md §9). Nothing below re-derives a monthly figure from a CUR row.
+
+  Inventory, confirmed present for the whole hour
+    6 nodes, and every On-Demand one billed exactly 1.000 h: 2 x t3.large, 2 x r7g.large
+    2 x c7i-flex.2xlarge Spot, as paid: $0.1912 + $0.1882 = $0.3794 = FM1 (the named-hour exception)
+    no `apps-compute` row exists at all, which is the idleness M3 was meant to show
+    2 Karpenter pods on Fargate; 4 public IPv4 addresses; 1 NAT; 1 NLB; 1 KMS key
+
+  Hour reading against hour rate, no projection involved
+    EKS control plane  $0.1000000  = FR7    NAT hours  $0.0520000  = FR12
+    load balancer      $0.0270000  = FR18   public IPv4  4 x $0.005 = $0.0200000 = FD6's inventory
+
+  Variable lines, where §9 does project the resting hour, recovered as usage
+    vended logs      $0.1382863 / $0.63  = 0.2195 GB/h  = FM8
+    core cross-AZ    $0.0989290 / $0.01  = 9.893 GiB/h  = FM2's CUR input, before the probe's 9.016
+    NAT processing   $0.0027565 / $0.052 = 0.053 GiB/h  = FM3
+
+  Two lines where the hour's cost and the rate card do not say the same thing
+    Karpenter on Fargate. The hour bills $0.0465600 vCPU + $0.0102200 GB. FD4 is not derived from
+    that: it is 2 pods x (0.5 vCPU x $0.04656 + 1 GB x $0.00511) x 730 from the Price List API, and
+    the hour agrees with it to the cent. Quoting the hour x 730 would reach the same $41.45 here by
+    coincidence of a flat rate, and would still be the wrong method.
+    KMS key. Here the two paths part, which is why the rule exists. The hour bills $0.0013889, and
+    $1.00 / 720 = $0.00138888..., so this is a monthly fee AWS prorated across September's actual
+    720 hours. Multiplying the hour by the 730-hour convention would give $1.0139 and invent a cent
+    and a half. FD8 is $1.00 from FR19, the published $1.00/key-month, and stays that way.

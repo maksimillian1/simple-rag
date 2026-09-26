@@ -5,6 +5,12 @@ Date: 2026-05-31
 ## Status
 Accepted (Supersedes previous generic serverless definition)
 
+Clause 2 of the Decision below ("Zero-Internet Network Egress") is superseded in its cost reasoning
+by [ADR-0017](0017-bedrock-egress-transport.md), 2026-09-26: "slashes NAT Gateway data processing
+charges" was never measured and is wrong by ~45x at this workload's reference volume. The text
+below is left as written on 2026-05-31. The decision itself — Bedrock, IRSA, PrivateLink transport —
+stands, on the privacy boundary alone.
+
 ## Context
 After retrieving and reranking the top-$K$ document chunks via dual-stage hybrid retrieval and Reciprocal Rank Fusion ($k=60$), the system must synthesize a final response. This requires an LLM capable of long-context comprehension, high system prompt adherence to block hallucinations, and minimal operational cost.
 

@@ -48,6 +48,8 @@ TYPE_COL = "line_item_line_item_type"
 SPLIT_PARENT_COL = "split_line_item_parent_resource_id"
 SPLIT_COST_COL = "split_line_item_split_cost"
 SPLIT_UNUSED_COL = "split_line_item_unused_cost"
+RESOURCE_COL = "line_item_resource_id"
+FAMILY_COL = "product_product_family"
 
 # Frozen in 00-baseline §2 Cost basis. Tax, credits, refunds and monthly fees are
 # excluded: they land in an arbitrary hour and corrupt a window.
@@ -113,6 +115,25 @@ def key_array(table, name):
 
 
 # ------------------------------------------------------------------ aggregation
+
+def split_parent_ids(children):
+    """Instance ids the split child rows name as their parent."""
+    return {value for value in children.column(SPLIT_PARENT_COL).to_pylist() if value}
+
+
+def split_parent_cost(parents, children):
+    """Cost of the compute rows of the instances the split was taken from.
+
+    Those instances also carry data-transfer rows, which the split never touches,
+    so the comparison is restricted to `Compute Instance` rows.
+    """
+    ids = split_parent_ids(children)
+    if not ids or not {RESOURCE_COL, FAMILY_COL}.issubset(parents.column_names):
+        return None
+    rows = parents.select([RESOURCE_COL, FAMILY_COL, "line_item_unblended_cost"]).to_pylist()
+    return sum(row["line_item_unblended_cost"] or 0.0 for row in rows
+               if row[RESOURCE_COL] in ids and row[FAMILY_COL] == "Compute Instance")
+
 
 def to_strings(array):
     return [("" if v is None else str(v)) for v in array.to_pylist()]
@@ -279,8 +300,8 @@ def main():
     parents = table
     if split_rows_present and not args.include_split_rows:
         parent_column = table.column(SPLIT_PARENT_COL)
-        is_parent = pc.or_(pc.is_null(parent_column),
-                           pc.equal(parent_column, pa.scalar("")))
+        is_parent = pc.or_kleene(pc.is_null(parent_column),
+                                 pc.equal(parent_column, pa.scalar("")))
         parents = table.filter(is_parent)
 
     window_label = (f"{start:%Y-%m-%dT%H:%M}Z → {end:%Y-%m-%dT%H:%M}Z "
@@ -299,8 +320,8 @@ def main():
 
     if split_rows_present:
         children = table.filter(pc.invert(
-            pc.or_(pc.is_null(table.column(SPLIT_PARENT_COL)),
-                   pc.equal(table.column(SPLIT_PARENT_COL), pa.scalar("")))))
+            pc.or_kleene(pc.is_null(table.column(SPLIT_PARENT_COL)),
+                         pc.equal(table.column(SPLIT_PARENT_COL), pa.scalar("")))))
         child_cost = column_sum(children, SPLIT_COST_COL)
         if child_cost is not None:
             print(f"split    {child_cost} over {children.num_rows} child rows "
@@ -309,10 +330,19 @@ def main():
             unused = column_sum(children, SPLIT_UNUSED_COL)
             if unused is not None:
                 print(f"unused   {unused}")
-            if child_cost and total:
-                drift = 100.0 * (child_cost - total) / total
-                print(f"reconcile  split vs total: {drift:+.1f} %  "
-                      f"(a large gap means the guard is wrong for this export)")
+            # Reconcile against the instances the split was taken from, not against
+            # the window total: split cost only re-expresses compute rows, while the
+            # total also carries NAT, storage, endpoints and every other line, so
+            # comparing the two reports a gap that is structural and means nothing.
+            parent_cost = split_parent_cost(parents, children)
+            if unused is not None and parent_cost:
+                whole = round(child_cost + unused, 6)
+                drift = 100.0 * (whole - parent_cost) / parent_cost
+                print(f"reconcile  split + unused {whole} vs the compute rows of the "
+                      f"{len(split_parent_ids(children))} instances it came from "
+                      f"{round(parent_cost, 6)}: {drift:+.1f} %")
+                if abs(drift) > 1.0:
+                    print("           these should agree; a gap here is worth chasing")
         if args.split and children.num_rows:
             print()
             split_rows = group_sum(children, [args.split_key], SPLIT_COST_COL)

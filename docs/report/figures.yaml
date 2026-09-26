@@ -835,6 +835,7 @@ figures:
     formula: block_b_total * 1.4
     unit: usd_per_month
     group: guardrails
+    appears_in: [report.md]
 
   serving_rest_pair_0905_hour:
     ref: FM13
@@ -1923,6 +1924,132 @@ figures:
       point's $/run (see the caveat in that file and above the table)
     group: m12_split
     appears_in: [executions/01-ingestion/index.md]
+
+  idle_hour_total:
+    ref: FM56
+    kind: M
+    value: 1.4659729591
+    unit: usd
+    display: 6
+    source: >-
+      every ordinary row billed in the Floor's resting hour, 2026-09-04 18:00-19:00Z, summed from
+      data/idle-2026-09-04T1800.csv (118 rows; the 134 split-cost children are excluded as they are
+      in the Floor, methodology.md §9). M2's denominator. Re-pulled 2026-09-26; the first reading was
+      over the 13:00 bootstrap hour, which no figure rests on
+    group: attribution
+    appears_in: [executions/00-baseline/index.md]
+
+  idle_hour_untagged:
+    ref: FM57
+    kind: M
+    value: 0.3758641769
+    unit: usd
+    display: 7
+    source: >-
+      the rows of idle_hour_total carrying no resource_tags['user_feature'], 51 of the 118 across 11
+      non-zero product/usage-type combos. M2's numerator; R5 maps each combo to the row that already
+      prices it
+    group: attribution
+    appears_in: [executions/00-baseline/index.md]
+
+  eks_logs_hour:
+    ref: FD125
+    kind: D
+    formula: eks_logs_gb_h * cloudwatch_vended_logs_gb
+    unit: usd
+    display: 7
+    source: >-
+      the single vended-log row in the resting hour, and the largest untagged line in it. A defect
+      (FD34, the errors table), outside every Floor figure - which is why M2's share is read both
+      with and without it
+    group: attribution
+    appears_in: [executions/00-baseline/index.md]
+
+  untagged_share:
+    ref: FD126
+    kind: D
+    formula: idle_hour_untagged / idle_hour_total * 100
+    unit: percent
+    display: 1
+    source: M2 itself - a reading, not a gate; the < 5% threshold it used to carry was removed 2026-09-26
+    group: attribution
+    appears_in: [report.md, executions/00-baseline/index.md]
+
+  untagged_share_ex_logs:
+    ref: FD127
+    kind: D
+    formula: (idle_hour_untagged - eks_logs_hour) / (idle_hour_total - eks_logs_hour) * 100
+    unit: percent
+    display: 1
+    source: >-
+      M2 net of the vended-log defect, which is what says the rise from the bootstrap hour's 14.3%
+      is a defect entering the numerator rather than a tagging regression
+    group: attribution
+    appears_in: [report.md, executions/00-baseline/index.md]
+
+  feature_fill_rate:
+    ref: FD128
+    kind: D
+    formula: 100 - untagged_share
+    unit: percent
+    display: 1
+    source: the share of the resting hour's dollars that do arrive with a `feature` tag - M2's complement
+    group: attribution
+    appears_in: [executions/00-baseline/index.md]
+
+  node_cost_hour:
+    ref: FD129
+    kind: D
+    formula: (core_nodes + db_nodes + serving_nodes) / hours_per_month
+    unit: usd_per_hour
+    display: 4
+    source: >-
+      the six nodes' instance cost in the resting hour. Equal to the CUR compute rows for that hour
+      to the seventh decimal, which is the check that the Floor's node lines and the split
+      allocation below describe the same money
+    group: utilisation
+    appears_in: [executions/00-baseline/index.md]
+
+  node_cost_unrequested:
+    ref: FM58
+    kind: M
+    value: 0.4937681521
+    unit: usd_per_hour
+    display: 4
+    source: >-
+      CUR `split_line_item_unused_cost` summed over the resting hour's 134 split-cost child rows,
+      2026-09-04 18:00-19:00Z. EKS splits each instance across the pods that ran on it by
+      resource-request ratio and emits the remainder as `unused`, so this is capacity no pod asked
+      for. It is not measured idleness: a pod requesting 3 cores and using 0.2 counts as requested
+      in full, which makes this a lower bound on what the right-size can recover. Its complement,
+      `split_line_item_split_cost` 0.3360318816, completes the node cost exactly
+    group: utilisation
+    appears_in: [executions/00-baseline/index.md]
+
+  node_cost_requested:
+    ref: FD131
+    kind: D
+    formula: node_cost_hour - node_cost_unrequested
+    unit: usd_per_hour
+    display: 4
+    source: >-
+      the complement of node_cost_unrequested - CUR `split_line_item_split_cost` over the same
+      rows, the part of node spend apportioned to pods by resource request
+    group: utilisation
+    appears_in: [executions/00-baseline/index.md]
+
+  unrequested_share:
+    ref: FD130
+    kind: D
+    formula: node_cost_unrequested / node_cost_hour * 100
+    unit: percent
+    display: 1
+    source: >-
+      the share of node spend at rest that no pod requested - an independent reading on the same
+      over-provisioning the right-sized floor removes, measured from the billing side rather than
+      from observed working sets
+    group: utilisation
+    appears_in: [report.md, executions/00-baseline/index.md]
 
 allow:
   - pattern: "24,750"
