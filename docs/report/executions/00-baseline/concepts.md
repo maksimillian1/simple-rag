@@ -25,11 +25,17 @@ data, re-run everything.*
 **Consequence** — the earliest moment any window may open, and which preparation a re-run cannot
 repair.
 
-## K3 · The monthly floor is one measured day times a constant
+## K3 · The monthly floor is one resting hour projected
 
-The 730-hour multiplier is a rate convention and is exact; the assumption that the captured day
-is typical is not. A daily cycle catches daily jobs and nothing weekly, and line items keep
-moving until the billing period closes.
+The floor is not a bill for a month, or for a day. CUR gives the inventory of one resting hour
+and what it was billed for; the month is that inventory times a published unit rate times 730
+(`methodology.md` §9). The multiplier is a rate convention and is exact. What is assumed is that
+the hour is typical, and one hour catches neither a daily nor a weekly cycle.
 
-**Consequence** — how much of the headline floor is measurement and how much is arithmetic, and
-why it is read twice.
+Spot is where the assumption bites hardest: a spot line carries that hour's price into all 730,
+and the two resting hours this report captured differ by half. The month-close re-read therefore
+touches only the lines that can still move — Spot and the variable ones; the inventory and the
+published rates will not change once the period is closed.
+
+**Consequence** — how much of the headline floor is measurement and how much is arithmetic, which
+hour each projected line rests on, and why the floor is read twice.

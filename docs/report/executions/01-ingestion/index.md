@@ -376,11 +376,12 @@ for compute and serving, and by the NAT gateway's `line_item_resource_id`
 | 75  | $1.56  | $1.5446 | $4.0939 | **$5.64<!--FM27-->** | ×3.6 | $56,396 |
 | 50  | $1.275 | $1.2613 | $2.8776 | **$4.14<!--FM28-->** | ×3.2 | $41,400 |
 | 25  | $0.886 | $1.0916 | $1.3823 | **$2.48<!--FM29-->** | ×2.8 | $24,750 |
+| 10  | — | $1.5475 | $2.6122 | **$4.16<!--FM30-->** | — | $41,624 |
 
 `CUR marginal` = tagged `apps-compute` cost + the NAT gateway's full line-item set for that hour +
 SQS + S3 (both ~$0, covered by the free tier at this volume). It excludes `apps-serving` on
-purpose: the underlying query shows it gross next to compute ($1.20/$0.90/$0.68/$0.39 for
-125/75/50/25). `D23` (TEI above floor, net) is measured separately as of 2026-09-19 and added in
+purpose: the underlying query shows it gross next to compute ($1.20/$0.90/$0.68/$0.39/$0.87 for
+125/75/50/25/10). `D23` (TEI above floor, net) is measured separately as of 2026-09-19 and added in
 the Matrix, so this table's last column sits below the Matrix's `$/1M docs` by exactly
 D23 × 10,000 at every point. It also excludes ~$0.9–1.15/hour of `baseline_other` (EKS control
 plane, two core nodes (`r7g.large`, `t3.large`), ELB, CloudWatch, KMS), which appears in every
@@ -428,8 +429,15 @@ past EC2's ~1h post-termination `describe-instances` visibility by the time pric
 unresolved. A CUR read on 2026-09-07 replaced the estimate with $41,624/1M docs, and measuring
 `D23` on 2026-09-19 brought it to **$44,707<!--FD76-->/1M docs**. The §3 Matrix
 gives the number and explains why it breaks the otherwise clean N-vs-cost trend.
-`./data/ingestion-n10.cost-estimate.json` has the provisional breakdown,
-`./data/ingestion-n10.cur-actual.json` the CUR one.
+The CUR read was checked against `./data/nat-by-window.json` on 2026-09-09, by actual duration
+and by CUR's own hour buckets: n10's and n25's NAT rates land in the same 0.7–1.4 range whichever
+denominator is used, nothing like n125's bootstrap-churn 5.99–9.36. The higher NAT total, $2.6122
+against n25's $1.3823, tracks n10's ~2.1× longer wall time (2.207 h against 1.029 h) at a
+comparable-or-lower rate, so the break in the trend is duration and not an elevated rate. CUR's
+hourly granularity cannot resolve the fine n10-vs-n25 ordering beyond that. With one N=10 run
+ever taken this is the best available reading rather than a confirmed one; a second run would
+settle it. Its per-service split is the n10 row of the CUR-actuals table above;
+`./data/ingestion-n10.cost-estimate.json` has the node-level rebuild.
 
 **Fix landed alongside this point**: `02-inference`'s Qdrant-restore precondition had no
 implementation; no snapshot/restore script existed anywhere in the repo. A live snapshot of this
@@ -448,9 +456,9 @@ points). It is the first snapshot this project has taken; the CronJob in
 - [x] `M14` re-pulled with both `AWS/NATGateway` byte-direction legs, then superseded entirely by CUR actuals (2026-09-05); Notes under #08.
 - [x] CUR-based `D23` (TEI above floor, net): closed 2026-09-19. The missing piece was the floor rate itself, not the gross. Each run day's own resting hour supplies it ($0.37940<!--FM1-->/h on 09-04, $0.18480<!--FM13-->/h on 09-05), so the two-replica floor now nets out per point.
 - [x] Re-checked the CUR pull after 48h (2026-09-07): N=25/50/75/125 unchanged from the ~24h read, no credits or true-ups.
-- [ ] M18 read at the highest-N point and compared against D30, or the comparison declared not made.
+- [x] Declared not made: `D30` was never defined in `00-baseline` or `report.md`, so `M18` has nothing to compare against (§3 Sizing check). `M18` itself was captured 2026-09-05 against the live collection and is kept in `./data/m18-qdrant-working-set.json` for whenever `D30` exists.
 - [x] Collection point count written back into `00-baseline` §2 Envelope: 84,018, done 2026-09-09.
-- [ ] Every figure in §3 marked: unmarked · ᴰ · ᴿ · ᴱ.
+- [x] Every figure in §3 marked, per `formats.md` Scope — what the registry claims through `appears_in`. The M12 decomposition table is the one deliberate exception: its cells are a CUR dump whose read is described in `data/m12-eks-split.json`, and only the **workload total** column is registered (`FM51`-`FM55`). Registering the other 35 would buy nothing while no section quotes them; the three §4.4 does quote are registered.
 - [x] Outcome compared against Expected in Retro, inversion included (Retro, first bullet).
 
 ---
@@ -549,13 +557,19 @@ rows do not sum to the Matrix's `$/run` and aren't meant to. `unused` is fleet-w
 (every node in the cluster, not just this project's pods): provisioned instance capacity that no
 pod's request share claimed that hour.
 
+The per-app and `unused` cells below are CUR fields read straight out of the parquet, not figures:
+`split_line_item_split_cost` and `split_line_item_unused_cost`, whose read is described in
+`data/m12-eks-split.json` (`source`, `pulled`, `method`, `caveat`) at full precision. Only the
+**workload total** column is registered, because a total in prose is arithmetic; the three cells
+report §4.4 quotes — n25's chunker, indexer and `unused` — are registered under group `fargate`.
+
 | N | tei-embeddings | indexer | qdrant | api | chunker | **workload total** | unused (fleet-wide) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 10  | $0.4841 | $0.3405 | $0.3031 | $0.0317 | $0.0034 | **$1.1628** | $1.8478 |
-| 25  | $0.3256 | $0.2574 | $0.2021 | $0.0217 | $0.0021 | **$0.8090** | $1.4787 |
-| 50  | $0.2734 | $0.2660 | $0.1010 | $0.0108 | $0.0017 | **$0.6529** | $1.1984 |
-| 75  | $0.3524 | $0.3018 | $0.1010 | $0.0116 | $0.0020 | **$0.7688** | $1.4556 |
-| 125 | $0.4438 | $0.3971 | $0.1010 | $0.0109 | $0.0018 | **$0.9547** | $1.8123 |
+| 10  | $0.4841 | $0.3405 | $0.3031 | $0.0317 | $0.0034 | **$1.1628<!--FM51-->** | $1.8478 |
+| 25  | $0.3256 | $0.2574 | $0.2021 | $0.0217 | $0.0021 | **$0.8090<!--FM52-->** | $1.4787 |
+| 50  | $0.2734 | $0.2660 | $0.1010 | $0.0108 | $0.0017 | **$0.6529<!--FM53-->** | $1.1984 |
+| 75  | $0.3524 | $0.3018 | $0.1010 | $0.0116 | $0.0020 | **$0.7688<!--FM54-->** | $1.4556 |
+| 125 | $0.4438 | $0.3971 | $0.1010 | $0.0109 | $0.0018 | **$0.9547<!--FM55-->** | $1.8123 |
 
 The table agrees with the rest of this doc. `tei-embeddings` and `indexer` are always the two
 real costs. The chunker's share stays near zero at every N, the same signature that put it

@@ -1,8 +1,13 @@
 meta:
   updated: 2026-09-19
   capture_hour: 2026-09-04T18:00Z
-  method: CUR inventory from one resting hour x unit rate x 730; EBS as size x $/GB-month; variable lines as rest-hour usage x rate x 730
-  cur: s3://simple-rag-cur-reports-883f615c/cur2/simple-rag BILLING_PERIOD=2026-09
+  method: >-
+    methodology.md §9, "Cost calculation approach (AWS)". Spot: the Floor's resting hour
+    is 09-04, the campaign's is 09-05
+  cur: >-
+    s3://simple-rag-cur-reports-883f615c/cur2/simple-rag/simple-rag-cur/data/BILLING_PERIOD=2026-09/
+    - the prefix aws-cur-report-export.py --data takes. A shorter prefix reaches the export's
+    metadata/ manifests, which are JSON, and pyarrow stops at the first one
   rate_card: executions/00-baseline/data/price-2026-09-09.json
   rule: every currency figure printed in the report exists here; totals are summed from exact values, never from rounded parts
   rounding: AWS itself stores CUR costs unrounded (69% of this month's rows carry 10 decimals) and rounds once at the end; rounding per row and summing would have overstated 2026-09 by $2.06
@@ -19,6 +24,7 @@ scan:
   - executions/02-inference/index.md
   - executions/02-inference/concepts.md
   - ../tech-debt.md
+  - executions/*/data/*.json
 
 figures:
   hours_per_month:
@@ -519,6 +525,17 @@ figures:
     kind: E
     formula: block_b_fixed_rs + block_b_variable
     unit: usd_per_month
+    group: right_sized
+    appears_in: [report.md]
+
+  block_a_total_rs:
+    ref: FE16
+    kind: E
+    formula: block_a_fixed_rs + block_a_variable
+    unit: usd_per_month
+    source: >-
+      the right-sized Block A, variable part carried over unchanged - nothing in the right-size
+      touches what NAT and cross-AZ transfer move at rest
     group: right_sized
     appears_in: [report.md]
 
@@ -1137,7 +1154,11 @@ figures:
     value: 0.0747
     unit: usd
     display: 4
-    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 12:58-13:14 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r050.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    source: >-
+      node-lifecycle reconstruction over the point window (2026-09-05 12:58-13:14 UTC), not CUR;
+      executions/02-inference/data/inference-r050.cost-estimate.json, whose per-node rows were
+      rebuilt 2026-09-24 from the point's own Q9 export and re-priced from spot history: the
+      total reproduces the live run to the cent. Gross per D2 - no floor subtracted per point
     group: inference_points
     appears_in: [executions/02-inference/index.md]
 
@@ -1147,7 +1168,11 @@ figures:
     value: 29938
     unit: queries
     display: 0
-    source: executions/02-inference/data/inference-r050.cost-estimate.json, queries served in the window
+    source: >-
+      ./inference-r050.generator.log: http_reqs = 29938, which the same summary reports as
+      29938 complete iterations (7 interrupted, excluded - see index.md, Campaign
+      CUR). One request per iteration, so this is requests the system answered, the same
+      denominator the point's error rate is reported against
     group: inference_points
 
   d16_gross_r050:
@@ -1165,7 +1190,11 @@ figures:
     value: 0.1686
     unit: usd
     display: 4
-    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 13:21-13:39 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r200.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    source: >-
+      node-lifecycle reconstruction over the point window (2026-09-05 13:21-13:39 UTC), not CUR;
+      executions/02-inference/data/inference-r200.cost-estimate.json, whose per-node rows were
+      rebuilt 2026-09-24 from the point's own Q9 export and re-priced from spot history: the
+      total reproduces the live run to the cent. Gross per D2 - no floor subtracted per point
     group: inference_points
     appears_in: [executions/02-inference/index.md]
 
@@ -1175,7 +1204,11 @@ figures:
     value: 119623
     unit: queries
     display: 0
-    source: executions/02-inference/data/inference-r200.cost-estimate.json, queries served in the window
+    source: >-
+      ./inference-r200.generator.log: http_reqs = 119623, which the same summary reports as
+      119623 complete iterations (0 interrupted, excluded - see index.md, Campaign
+      CUR). One request per iteration, so this is requests the system answered, the same
+      denominator the point's error rate is reported against
     group: inference_points
 
   d16_gross_r200:
@@ -1193,7 +1226,11 @@ figures:
     value: 0.1769
     unit: usd
     display: 4
-    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 14:27-14:45 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r300.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    source: >-
+      node-lifecycle reconstruction over the point window (2026-09-05 14:27-14:45 UTC), not CUR;
+      executions/02-inference/data/inference-r300.cost-estimate.json, whose per-node rows were
+      rebuilt 2026-09-24 from the point's own Q9 export and re-priced from spot history: the
+      total reproduces the live run to the cent. Gross per D2 - no floor subtracted per point
     group: inference_points
     appears_in: [executions/02-inference/index.md]
 
@@ -1203,7 +1240,11 @@ figures:
     value: 180001
     unit: queries
     display: 0
-    source: executions/02-inference/data/inference-r300.cost-estimate.json, queries served in the window
+    source: >-
+      ./inference-r300.generator.log: http_reqs = 180001, which the same summary reports as
+      180001 complete iterations (0 interrupted, excluded - see index.md, Campaign
+      CUR). One request per iteration, so this is requests the system answered, the same
+      denominator the point's error rate is reported against
     group: inference_points
 
   d16_gross_r300:
@@ -1218,10 +1259,17 @@ figures:
   m9_gross_r500:
     ref: FM37
     kind: M
-    value: 0.3133
+    value: 0.3255
     unit: usd
     display: 4
-    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 13:53-14:14 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r500.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    source: >-
+      node-lifecycle reconstruction over the point window (2026-09-05 13:53-14:14 UTC), not CUR;
+      executions/02-inference/data/inference-r500.cost-estimate.json, rebuilt 2026-09-24 from the
+      point's own Q9 export and re-priced from spot history. Gross per D2 - no floor subtracted per
+      point. Was 0.3133 from the live run, which undercounted node ip-10-0-11-199 by $0.0122:
+      kube-state-metrics emitted it as two series, one before its labels were populated, and the
+      script's timing dict kept whichever came last - 0.0042 h instead of the 0.1292 h the union of
+      both series shows. The other four points reproduce their live totals to the cent
     group: inference_points
     appears_in: [executions/02-inference/index.md]
 
@@ -1231,7 +1279,11 @@ figures:
     value: 267956
     unit: queries
     display: 0
-    source: executions/02-inference/data/inference-r500.cost-estimate.json, queries served in the window
+    source: >-
+      ./inference-r500.generator.log: http_reqs = 267956, which the same summary reports as
+      267956 complete iterations (0 interrupted, excluded - see index.md, Campaign
+      CUR). One request per iteration, so this is requests the system answered, the same
+      denominator the point's error rate is reported against
     group: inference_points
 
   d16_gross_r500:
@@ -1249,17 +1301,25 @@ figures:
     value: 0.4992
     unit: usd
     display: 4
-    source: karpenter-cost-estimate.py --nodepool apps-serving over the point window (2026-09-05 14:52-15:16 UTC), node-lifecycle reconstruction, not CUR; executions/02-inference/data/inference-r1000.cost-estimate.json. Gross per D2 - no floor subtracted per point
+    source: >-
+      node-lifecycle reconstruction over the point window (2026-09-05 14:52-15:16 UTC), not CUR;
+      executions/02-inference/data/inference-r1000.cost-estimate.json, whose per-node rows were
+      rebuilt 2026-09-24 from the point's own Q9 export and re-priced from spot history: the
+      total reproduces the live run to the cent. Gross per D2 - no floor subtracted per point
     group: inference_points
     appears_in: [executions/02-inference/index.md]
 
   queries_r1000:
     ref: FM40
     kind: M
-    value: 569016
+    value: 568923
     unit: queries
     display: 0
-    source: executions/02-inference/data/inference-r1000.cost-estimate.json, queries served in the window
+    source: >-
+      ./inference-r1000.generator.log: http_reqs = 568923, which the same summary reports as
+      568923 complete iterations (93 interrupted, excluded - see index.md, Campaign
+      CUR). One request per iteration, so this is requests the system answered, the same
+      denominator the point's error rate is reported against
     group: inference_points
 
   d16_gross_r1000:
@@ -1354,7 +1414,9 @@ figures:
     value: 0.2127
     unit: usd
     display: 4
-    source: CUR 2026-09-05 hour 12, an accidental ingestion run killed before r050 started; identified and excluded from the campaign totals (data/campaign.cur-actual.json)
+    source: >-
+      CUR 2026-09-05 hour 12, an accidental ingestion run killed before r050 started;
+      identified and excluded from the campaign totals, which are this group's own figures
     group: campaign_0905
 
   eff_per_doc_1k:
@@ -1787,6 +1849,71 @@ figures:
     group: fargate
     appears_in: [report.md]
 
+  m12_workload_total_n10:
+    ref: FM51
+    kind: M
+    value: 1.1628068755021579
+    unit: usd
+    display: 4
+    source: >-
+      the five app shares of CUR split cost allocation in n10's hour bucket, from
+      data/m12-eks-split.json points.n10.by_app - EKS instance-hours only, so it is not this
+      point's $/run (see the caveat in that file and above the table)
+    group: m12_split
+    appears_in: [executions/01-ingestion/index.md]
+
+  m12_workload_total_n25:
+    ref: FM52
+    kind: M
+    value: 0.8089518817739951
+    unit: usd
+    display: 4
+    source: >-
+      the five app shares of CUR split cost allocation in n25's hour bucket, from
+      data/m12-eks-split.json points.n25.by_app - EKS instance-hours only, so it is not this
+      point's $/run (see the caveat in that file and above the table)
+    group: m12_split
+    appears_in: [executions/01-ingestion/index.md]
+
+  m12_workload_total_n50:
+    ref: FM53
+    kind: M
+    value: 0.6529057417670708
+    unit: usd
+    display: 4
+    source: >-
+      the five app shares of CUR split cost allocation in n50's hour bucket, from
+      data/m12-eks-split.json points.n50.by_app - EKS instance-hours only, so it is not this
+      point's $/run (see the caveat in that file and above the table)
+    group: m12_split
+    appears_in: [executions/01-ingestion/index.md]
+
+  m12_workload_total_n75:
+    ref: FM54
+    kind: M
+    value: 0.7687579608473911
+    unit: usd
+    display: 4
+    source: >-
+      the five app shares of CUR split cost allocation in n75's hour bucket, from
+      data/m12-eks-split.json points.n75.by_app - EKS instance-hours only, so it is not this
+      point's $/run (see the caveat in that file and above the table)
+    group: m12_split
+    appears_in: [executions/01-ingestion/index.md]
+
+  m12_workload_total_n125:
+    ref: FM55
+    kind: M
+    value: 0.9546555700536123
+    unit: usd
+    display: 4
+    source: >-
+      the five app shares of CUR split cost allocation in n125's hour bucket, from
+      data/m12-eks-split.json points.n125.by_app - EKS instance-hours only, so it is not this
+      point's $/run (see the caveat in that file and above the table)
+    group: m12_split
+    appears_in: [executions/01-ingestion/index.md]
+
 allow:
   - pattern: "24,750"
     file: executions/01-ingestion/index.md
@@ -1796,8 +1923,31 @@ allow:
     file: executions/01-ingestion/index.md
     must_contain: replaced the estimate
     why: a deliberate was-then-now sentence, the superseded figure is the point of it
+  - pattern: "41,624"
+    file: executions/01-ingestion/index.md
+    must_contain: "$2.6122"
+    why: the CUR-actuals table's n10 row, which by that table's own definition prices compute and NAT only and carries no D23
+  - pattern: "0.2256"
+    file: executions/02-inference/data/inference-r050.cost-estimate.json
+    must_contain: 00-baseline serving-pool-idle-rate
+    why: the point's own note, kept as the netted generation it was written in (revision_note)
 
 retired:
+  - pattern: "147,819,238"
+    replaced_by: queries_at_half_floor
+    why: query crossover before the campaign query count settled on http_reqs
+  - pattern: "569,016"
+    replaced_by: queries_r1000
+    why: r1000 counted complete plus interrupted iterations, before one convention was fixed
+  - pattern: "1,166,534"
+    replaced_by: campaign_queries
+    why: campaign query total under the mixed convention
+  - pattern: "0.3133"
+    replaced_by: m9_gross_r500
+    why: r500 serving cost before the double-emitted node series was unioned
+  - pattern: "0.00117"
+    replaced_by: d16_gross_r500
+    why: r500 D16 from the undercounted serving cost
   - pattern: "426.93"
     replaced_by: block_b_total
     why: Block B before the Floor was re-based on the resting hour

@@ -4,7 +4,96 @@
     "start": "2026-09-05T10:27:09Z",
     "end": "2026-09-05T12:39:36Z"
   },
-  "M10_compute_usd": 0.8032,
-  "M11_serving_gross_usd": 0.5711,
-  "note": "Non-standard point: did not converge within run-ingestion-point.py's own 1h30m max_wait (script exited 4, nothing exported/wiped by it), closed by hand after manual polling confirmed convergence + 300s buffer. 5 of 11 nodes in this window unpriced (instance_type unresolved -- describe-instances' ~1h post-termination visibility window had already passed by the time this was priced, several hours after point close): both figures above are a floor, not the real total. Node churn also visible on apps-serving (5 distinct node IDs across the window against a floor of 2) -- likely from repacking, not a clean single floor-to-burst transition like other points -- D23 (TEI above floor) not computed cleanly here, left out rather than guessed. M5: chunker 10/10 and indexer 10/10 (both at N ceiling -- first point where N=10 is stricter than chunker's own ~20 corpus-driven cap). M9 TEI peak: 3 replicas."
+  "generated_at": "2026-09-24T00:00:00Z",
+  "method": "Node rows rebuilt 2026-09-24 from this point's own Prometheus export (./ingestion-n10.jsonl, ref M2 = kube_node_labels{label_karpenter_sh_nodepool=\"apps-compute\"}, range query at 15 s), priced the way karpenter-cost-estimate.py prices: the spot quote in force at each node's first_seen, per instance type and AZ. apps-compute only - series.txt never exported an apps-serving series for ingestion points, so the serving half of this window is not in the record and cannot be rebuilt from it. hours and cost are the tool's arithmetic over the readings in the same run, not authored numbers.",
+  "sources": {
+    "nodes": "./ingestion-n10.jsonl, ref M2, exported at point close",
+    "rates": "aws ec2 describe-spot-price-history (Linux/UNIX, per instance type and AZ, newest quote at or before each node's first_seen), pulled 2026-09-24; each row carries the quote's own timestamp"
+  },
+  "nodes": [
+    {
+      "node": "ip-10-0-11-192.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.2xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T10:29:54Z",
+      "last_seen": "2026-09-05T10:36:39Z",
+      "hours": 0.1125,
+      "rate": 0.1835,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T09:00:00+00:00",
+      "cost": 0.020644
+    },
+    {
+      "node": "ip-10-0-11-241.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.2xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T10:29:54Z",
+      "last_seen": "2026-09-05T10:40:09Z",
+      "hours": 0.1708,
+      "rate": 0.1835,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T09:00:00+00:00",
+      "cost": 0.031342
+    },
+    {
+      "node": "ip-10-0-11-87.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.2xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T10:29:24Z",
+      "last_seen": "2026-09-05T12:34:09Z",
+      "hours": 2.0792,
+      "rate": 0.1835,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T09:00:00+00:00",
+      "cost": 0.381533
+    },
+    {
+      "node": "ip-10-0-11-225.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T10:27:54Z",
+      "last_seen": "2026-09-05T10:40:39Z",
+      "hours": 0.2125,
+      "rate": 0.1014,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T05:00:00+00:00",
+      "cost": 0.021548
+    },
+    {
+      "node": "ip-10-0-11-51.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T10:28:24Z",
+      "last_seen": "2026-09-05T12:32:39Z",
+      "hours": 2.0708,
+      "rate": 0.1014,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T05:00:00+00:00",
+      "cost": 0.209979
+    },
+    {
+      "node": "ip-10-0-11-67.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T10:28:24Z",
+      "last_seen": "2026-09-05T12:33:39Z",
+      "hours": 2.0875,
+      "rate": 0.1014,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T05:00:00+00:00",
+      "cost": 0.211672
+    }
+  ],
+  "totals_by_nodepool": {
+    "apps-compute": 0.8767
+  },
+  "unpriced_nodes": [],
+  "note": "Non-standard point: did not converge within run-ingestion-point.py's own 1h30m max_wait (script exited 4, nothing exported/wiped by it), closed by hand after manual polling confirmed convergence + 300s buffer. 5 of 11 nodes in this window unpriced (instance_type unresolved -- describe-instances' ~1h post-termination visibility window had already passed by the time this was priced, several hours after point close): both figures above are a floor, not the real total. Node churn also visible on apps-serving (5 distinct node IDs across the window against a floor of 2) -- likely from repacking, not a clean single floor-to-burst transition like other points -- D23 (TEI above floor) not computed cleanly here, left out rather than guessed. M5: chunker 10/10 and indexer 10/10 (both at N ceiling -- first point where N=10 is stricter than chunker's own ~20 corpus-driven cap). M9 TEI peak: 3 replicas.",
+  "revision_note": "Revised 2026-09-24 under the data-file rule (figures.yaml meta.data_files): a data file holds readings, not results. The per-node rows behind M10 were never saved, so they are rebuilt here from the export. Removed, all typed by hand: M10_compute_usd (now the totals_by_nodepool sum over rows anyone can re-add), M11_serving_gross_usd (apps-serving was never exported for ingestion points - not recoverable from the record, and the cluster is gone), this file carried no derived fields of its own. The CUR figures for this point live in figures.yaml (cur_marginal_n10, d23_n10, per_1m_n10) and the report prints them from there. The removed M10 ($0.8032) was explicitly a floor: 5 of that window's nodes went unpriced because EC2's terminated-instance visibility had passed by the time the point was priced. The export carries instance type, AZ and capacity type as node labels, so every node prices now and the floor caveat is settled for apps-compute: $0.8767 over 6 nodes, none unpriced."
 }

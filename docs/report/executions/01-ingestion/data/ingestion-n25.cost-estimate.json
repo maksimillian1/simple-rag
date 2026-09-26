@@ -4,22 +4,148 @@
     "start": "2026-09-04T17:00:55Z",
     "end": "2026-09-04T18:02:39Z"
   },
-  "M10_compute_usd": 0.875,
-  "M11_serving_gross_usd": 0.389,
-  "D23_tei_above_floor_usd": 0.0,
-  "M14_nat_usd": 1.1989,
-  "M13_sqs_s3_usd": 0.0,
-  "D24_dollar_per_run_usd": 2.0739,
-  "D25_dollar_per_1M_docs_usd": 20739.0,
+  "generated_at": "2026-09-24T00:00:00Z",
+  "method": "Node rows rebuilt 2026-09-24 from this point's own Prometheus export (./ingestion-n25.jsonl, ref M2 = kube_node_labels{label_karpenter_sh_nodepool=\"apps-compute\"}, range query at 15 s), priced the way karpenter-cost-estimate.py prices: the spot quote in force at each node's first_seen, per instance type and AZ. apps-compute only - series.txt never exported an apps-serving series for ingestion points, so the serving half of this window is not in the record and cannot be rebuilt from it. hours and cost are the tool's arithmetic over the readings in the same run, not authored numbers.",
+  "sources": {
+    "nodes": "./ingestion-n25.jsonl, ref M2, exported at point close",
+    "rates": "aws ec2 describe-spot-price-history (Linux/UNIX, per instance type and AZ, newest quote at or before each node's first_seen), pulled 2026-09-24; each row carries the quote's own timestamp"
+  },
+  "nodes": [
+    {
+      "node": "ip-10-0-11-71.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.4xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:04:55Z",
+      "last_seen": "2026-09-04T17:12:10Z",
+      "hours": 0.1208,
+      "rate": 0.2715,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T17:00:00+00:00",
+      "cost": 0.032797
+    },
+    {
+      "node": "ip-10-0-12-242.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.4xlarge",
+      "az": "eu-central-1c",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:04:55Z",
+      "last_seen": "2026-09-04T17:11:40Z",
+      "hours": 0.1125,
+      "rate": 0.2757,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T14:00:00+00:00",
+      "cost": 0.031016
+    },
+    {
+      "node": "ip-10-0-12-54.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.4xlarge",
+      "az": "eu-central-1c",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:04:25Z",
+      "last_seen": "2026-09-04T17:58:10Z",
+      "hours": 0.8958,
+      "rate": 0.2757,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T14:00:00+00:00",
+      "cost": 0.246972
+    },
+    {
+      "node": "ip-10-0-11-16.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:04:25Z",
+      "last_seen": "2026-09-04T17:55:10Z",
+      "hours": 0.8458,
+      "rate": 0.1011,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T15:00:00+00:00",
+      "cost": 0.08551
+    },
+    {
+      "node": "ip-10-0-11-23.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:02:55Z",
+      "last_seen": "2026-09-04T17:59:10Z",
+      "hours": 0.9375,
+      "rate": 0.1011,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T15:00:00+00:00",
+      "cost": 0.094781
+    },
+    {
+      "node": "ip-10-0-11-65.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:03:25Z",
+      "last_seen": "2026-09-04T17:56:40Z",
+      "hours": 0.8875,
+      "rate": 0.1011,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T15:00:00+00:00",
+      "cost": 0.089726
+    },
+    {
+      "node": "ip-10-0-11-81.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:04:55Z",
+      "last_seen": "2026-09-04T17:11:40Z",
+      "hours": 0.1125,
+      "rate": 0.1011,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T15:00:00+00:00",
+      "cost": 0.011374
+    },
+    {
+      "node": "ip-10-0-12-148.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1c",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:02:55Z",
+      "last_seen": "2026-09-04T17:56:10Z",
+      "hours": 0.8875,
+      "rate": 0.1033,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T16:00:00+00:00",
+      "cost": 0.091679
+    },
+    {
+      "node": "ip-10-0-12-46.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1c",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:03:25Z",
+      "last_seen": "2026-09-04T17:59:40Z",
+      "hours": 0.9375,
+      "rate": 0.1033,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T16:00:00+00:00",
+      "cost": 0.096844
+    },
+    {
+      "node": "ip-10-0-12-81.eu-central-1.compute.internal",
+      "nodepool": "apps-compute",
+      "instance_type": "c7g.xlarge",
+      "az": "eu-central-1c",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-04T17:02:55Z",
+      "last_seen": "2026-09-04T17:57:40Z",
+      "hours": 0.9125,
+      "rate": 0.1033,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-04T16:00:00+00:00",
+      "cost": 0.094261
+    }
+  ],
+  "totals_by_nodepool": {
+    "apps-compute": 0.875
+  },
+  "unpriced_nodes": [],
   "note": "M14 corrected for a methodology bug found here: prior points (n50/n75/n100/n125) summed only BytesInFromSource (outbound-leg NAT traffic), missing BytesInFromDestination (inbound-leg, dominated by container image pulls from ghcr.io on fresh apps-compute node bootstrap). Both legs are billable per AWS NAT Gateway data-processing pricing. n25's own bootstrap spike (17:00:55-17:11Z, >99% of window bytes) confirmed via 5-min CloudWatch profile. Recomputing this same way for n50 (raw bytes pulled) gives M14=$2.61 vs the $0.0163 recorded there -- the whole 01-ingestion cost table needs a NAT re-pass before D24/D25 are trusted.",
-  "cur_actual": {
-    "compute": 1.0916,
-    "serving_gross": 0.3903,
-    "nat": 1.3823,
-    "sqs": 0.0,
-    "s3": 0.0012,
-    "marginal_total": 2.475,
-    "dollar_per_1M_docs": 24750.0,
-    "note": "CUR actuals pulled 2026-09-05 (00-baseline sec2 source of record). marginal_total = compute + nat + sqs + s3, tagged by resource_tags[user_karpenter_sh_nodepool] for compute/serving and by the NAT gateway line_item_resource_id for nat (bills under product code AmazonEC2, includes EUC1-NatGateway-Bytes + EUC1-NatGateway-Hours + EUC1-DataTransfer-Regional-Bytes). serving_gross excludes the two-replica floor netting (D23 net-of-floor still open). Excludes baseline_other (EKS control plane, core nodes, ELB, CloudWatch, KMS, ~$0.9-1.15/hour regardless of N). Pulled ~24h after this point, short of the 48h guard -- re-check advised."
-  }
+  "revision_note": "Revised 2026-09-24 under the data-file rule (figures.yaml meta.data_files): a data file holds readings, not results. The per-node rows behind M10 were never saved, so they are rebuilt here from the export. Removed, all typed by hand: M10_compute_usd (now the totals_by_nodepool sum over rows anyone can re-add), M11_serving_gross_usd (apps-serving was never exported for ingestion points - not recoverable from the record, and the cluster is gone), and every derived field - D23_tei_above_floor_usd, M14_nat_usd, M13_sqs_s3_usd, D24_dollar_per_run_usd, D25_dollar_per_1M_docs_usd, cur_actual. Those are results: the CUR figures live in figures.yaml (cur_marginal_n25, d23_n25, per_1m_n25) and the report prints them from there. The removed cur_actual block carried this note, kept for the record: \"CUR actuals pulled 2026-09-05 (00-baseline sec2 source of record). marginal_total = compute + nat + sqs + s3, tagged by resource_tags[user_karpenter_sh_nodepool] for compute/serving and by the NAT gateway line_item_resource_id for nat (bills under product code AmazonEC2, includes EUC1-NatGateway-Bytes + EUC1-NatGateway-Hours + EUC1-DataTransfer-Regional-Bytes). serving_gross excludes the two-replica floor netting (D23 net-of-floor still open). Excludes baseline_other (EKS control plane, core nodes, ELB, CloudWatch, KMS, ~$0.9-1.15/hour regardless of N). Pulled ~24h after this point, short of the 48h guard -- re-check advised.\""
 }

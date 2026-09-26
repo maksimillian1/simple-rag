@@ -524,10 +524,6 @@
       }
     ]
   },
-  "D23_tei_above_floor_usd": {
-    "value": 0.5,
-    "confidence": "rough, same caveat as prior estimates"
-  },
   "M13_sqs_s3_usd": {
     "value": 0.0
   },
@@ -535,8 +531,6 @@
     "value": 0.0269,
     "gb_out_to_destination": 0.5175
   },
-  "D24_dollar_per_run_usd": 1.9657,
-  "D25_dollar_per_1M_docs_usd": 19657.0,
   "comparison_to_ingestion_n100": {
     "M10_compute_usd": {
       "n100": 1.2877,
@@ -551,14 +545,5 @@
       "n125": 26
     }
   },
-  "cur_actual": {
-    "compute": 2.0069,
-    "serving_gross": 1.1994,
-    "nat": 5.9919,
-    "sqs": 0.0,
-    "s3": 0.0012,
-    "marginal_total": 7.9999,
-    "dollar_per_1M_docs": 79999.0,
-    "note": "CUR actuals pulled 2026-09-05 (00-baseline sec2 source of record). marginal_total = compute + nat + sqs + s3, tagged by resource_tags[user_karpenter_sh_nodepool] for compute/serving and by the NAT gateway line_item_resource_id for nat (bills under product code AmazonEC2, includes EUC1-NatGateway-Bytes + EUC1-NatGateway-Hours + EUC1-DataTransfer-Regional-Bytes). serving_gross excludes the two-replica floor netting (D23 net-of-floor still open). Excludes baseline_other (EKS control plane, core nodes, ELB, CloudWatch, KMS, ~$0.9-1.15/hour regardless of N). Pulled ~24h after this point, short of the 48h guard -- re-check advised."
-  }
+  "revision_note": "Revised 2026-09-26 under the data-file rule (methodology.md \u00a72): a data file holds readings, not results. Kept exactly as karpenter-cost-estimate.py and the CloudWatch/SQS reads wrote them: M10_compute_usd and M11_serving_gross_usd with their per-node rows, M13_sqs_s3_usd with its request counts, M14_nat_usd with its byte counts. Those are tool output with their own provenance in `status`, and the totals in them are the tool's arithmetic over its own readings in the same run. Removed, because they are results and belong in figures.yaml: D23_tei_above_floor_usd, D24_dollar_per_run_usd, D25_dollar_per_1M_docs_usd, cur_actual. The CUR figures for this point live there (cur_marginal_n125, d23_*, per_1m_*) and are printed in 01-ingestion \u00a73, per-service columns included. M14 here is also superseded on its own terms: it was re-pulled with both NAT byte-direction legs and then replaced entirely by CUR actuals (\u00a73, Notes under #08), so read it as what CloudWatch showed that day, not as this point's NAT cost."
 }

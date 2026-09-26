@@ -175,9 +175,9 @@ group of points sharing each hourly bucket, not to a single point inside it:
 | 01 | inference-r005 | 5 | not run: bottom of the original grid; the swept grid started at r050 | | | | | | | |
 | 02 | inference-r050 | 50 | 2026-09-05T12:58:01Z → 13:14:54Z | `4e15a2c` (dirty) | ~2min | 2 / 2→3 | ok; served-rate caveat in Notes | TEI dominant (~57% of limit), api/qdrant idle · M1-M3 unblocked here (Notes) | ✓ (10/10, re-exported) | ᴰ M9=$0.0747<!--FM31--> gross, D16 $0.00250<!--FD78-->/1k queries gross; `./data/inference-r050.cost-estimate.json` |
 | 03 | inference-r200 | 200 | 2026-09-05T13:21:58Z → 13:39:24Z | `4e15a2c` (dirty) | ~2min | 2 / 2→7 | real guard breach on error rate (Notes) | served ~192/200 rps (96%), p95≈2425ms, error 0.24% avg / ~4% peak | ✓ (10/10) | ᴰ M9=$0.1686<!--FM33--> gross, D16 $0.00141<!--FD79-->/1k queries gross; `./data/inference-r200.cost-estimate.json` |
-| 04 | inference-r500 | 500 | 2026-09-05T13:53:36Z → 14:14:49Z | `4e15a2c` (dirty) | ~7min to 13 replicas | 2→3 / 2→16 | window average looked like a collapse; **clean once TEI reached ~13 replicas**, so convergence lag rather than a ceiling (Notes) | ramp: p95 to 25.2s, 0-6.5% error · **steady (once tei≈13): p95 flat ~2425ms, error ~0%** | ✓ (10/10) | ᴰ M9=$0.3133<!--FM37--> gross, D16 $0.00117<!--FD81-->/1k queries gross |
+| 04 | inference-r500 | 500 | 2026-09-05T13:53:36Z → 14:14:49Z | `4e15a2c` (dirty) | ~7min to 13 replicas | 2→3 / 2→16 | window average looked like a collapse; **clean once TEI reached ~13 replicas**, so convergence lag rather than a ceiling (Notes) | ramp: p95 to 25.2s, 0-6.5% error · **steady (once tei≈13): p95 flat ~2425ms, error ~0%** | ✓ (10/10) | ᴰ M9=$0.3255<!--FM37--> gross, D16 $0.00121<!--FD81-->/1k queries gross |
 | 05 | inference-r300 | 300 | 2026-09-05T14:27:50Z → 14:45:40Z | `4e15a2c` (dirty) | ~2min | 2→3 / 2→11 | real, minor guard breach on error rate | served 296/300 (98.8%), **p95 still flat (2425ms)**, error 0.20% avg / 2.75% peak | ✓ (10/10) | ᴰ M9=$0.1769<!--FM35--> gross, D16 $0.00098<!--FD80-->/1k queries gross |
-| 06 | inference-r1000 | 1000 | 2026-09-05T14:52:16Z → 15:16:25Z | `1ef1f0a` (dirty) | ~4min | 2→6 / 2→30 | guard breach on the window average, **clean at steady state**: a convergence problem, not a ceiling (Notes) | ramp (0-4min): p95 to 24.6s, error to 35% · **steady (5min once at 30 replicas): p95 flat ~2425ms, error ~0%, rate on target** | ✓ (10/10) | ᴰ M9=$0.4992<!--FM39--> gross, D16 $0.00088<!--FD82-->/1k queries gross |
+| 06 | inference-r1000 | 1000 | 2026-09-05T14:52:16Z → 15:16:25Z | `1ef1f0a` (dirty; **TEI 6/8**) | ~4min | 2→6 / 2→30 | guard breach on the window average, **clean at steady state**: a convergence problem, not a ceiling (Notes) | ramp (0-4min): p95 to 24.6s, error to 35% · **steady (5min once at 30 replicas): p95 flat ~2425ms, error ~0%, rate on target** | ✓ (10/10) | ᴰ M9=$0.4992<!--FM39--> gross, D16 $0.00088<!--FD82-->/1k queries gross |
 
 ### Notes
 
@@ -399,8 +399,13 @@ queried; `series.txt` has no `Q` ref for it.
 | #02 | 50 | 45.5 (91%) | 2 / 3 | not timed ᴱ, window avg already clean | 1672 | 2418 | — | 0% | 29,938<!--FM32--> | $0.0747<!--FM31--> | $0.00250<!--FD78--> | none |
 | #03 | 200 | 192.5 (96%) | 2 / 7 | not timed ᴱ, window avg already clean | 1750 | 2425 | — | 0.24% avg / 4.0% peak | 119,623<!--FM34--> | $0.1686<!--FM33--> | $0.00141<!--FD79--> | none |
 | #05 | 300 | 296.4 (99%) | 3 / 11 | not timed ᴱ, window avg already clean | 1749 | 2425 | — | 0.20% avg / 2.75% peak | 180,001<!--FM36--> | $0.1769<!--FM35--> | $0.00098<!--FD80--> | none |
-| #04 | 500 | 398.7 (80%, window avg) | 3 / 16 | **~7 min to 13 replicas** ᴿ, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / **~0% once converged** | 267,956<!--FM38--> | $0.3133<!--FM37--> | $0.00117<!--FD81--> | scale-out lag, not a ceiling |
-| #06 | 1000 | 828.3 (83%, window avg) | 6 / 30 | **~4 min to 30 replicas** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / **~0% once converged** | 569,016<!--FM40--> | $0.4992<!--FM39--> | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
+| #04 | 500 | 398.7 (80%, window avg) | 3 / 16 | **~7 min to 13 replicas** ᴿ, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / **~0% once converged** | 267,956<!--FM38--> | $0.3255<!--FM37--> | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
+| #06 | 1000 | 828.3 (83%, window avg) | 6 / 30 | **~4 min to 30 replicas** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / **~0% once converged** | 568,923<!--FM40--> | $0.4992<!--FM39--> | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
+
+**#06 is not the same configuration as the other five.** `r1000` ran with `tei-embeddings` at
+`cpu 6 / 8` (commit `1ef1f0a`, applied just before it); #01-#05 ran the frozen `3 / 4`
+(`00-baseline` §2 Configuration freeze). Saturation below reports what that changed, which is
+nothing about the shape: the scaler's target sits far below either limit.
 
 `Replicas` is M7 peak, an outcome rather than a setting → K2. `Serving $` is M9 gross ᴰ from
 `karpenter-cost-estimate.py --nodepool apps-serving` over each point's window (node-lifecycle
@@ -459,8 +464,22 @@ per-point one, the trade-off the revised Plan accepted:
 | **Gross total** | **$5.3288<!--FD89--> ᴰ** |
 | less the floor, netted once here: the 09-05 resting pair across the 4<!--FR22--> campaign hours at $0.18754<!--FD58-->/h ᴰ, plus the NAT hourly fee | −$0.9582<!--FD62--> ᴰ |
 | **Marginal total** | **$4.3706<!--FD63--> ᴰ** |
-| Total queries served, all 5 points | 1,166,534<!--FD59--> ᴰ |
+| Total queries served, all 5 points | 1,166,441<!--FD59--> ᴰ |
 | **Real campaign `$/1k queries`** | **$0.00375<!--FD65--> ᴰ** |
+
+**What a query is counted as.** Every point's count is `http_reqs` from its own k6 summary —
+requests the system answered, error responses included, one request per iteration. k6 also
+reports *interrupted* iterations: ones still running when the test ended and its graceful-stop
+window expired, 7 at r050 and 93 at r1000, none anywhere else. They are excluded, and they are
+not in `http_reqs` either: k6 recorded no response for them, and whether the request had already
+left the client is not in the log. The server side cannot settle it — integrating Envoy's own
+rate over each window lands 5–6% away from the client's count, hundreds to tens of thousands of
+requests, so it has no resolution for 7. Either way the choice moves nothing the report prints:
+at 0.02% of a point it is below every rounding here. It is fixed one way so the five points
+count the same thing, and so that a row's queries, error rate and `$/1k` share one denominator
+and can be reconciled by arithmetic. Not counted at all: *dropped* iterations, which the
+scheduler never started for want of a free VU — 56 at r050 and 30,985 at r1000, the generator's
+own ceiling rather than the system's, and no request ever left for them.
 
 The floor comes out once, here, against the inventory that day actually rested on (D2). Netting
 it per point is impossible in this campaign: the points share clock hours, so no point has a
@@ -473,8 +492,9 @@ any single point's window captured two things. One is NAT, the blind spot `01-in
 and fixed for itself but never ported here. The other is the floor and settle cost *between*
 points: the five narrow point windows add up to far less wall-clock time than the four hours CUR
 bills. A small unrelated contamination ($0.2127<!--FM41-->, hour 12), from an accidental
-ingestion run killed before `r050` started, was identified and excluded;
-`./data/campaign.cur-actual.json` has the full breakdown. Per-point `D16` in the Matrix still
+ingestion run killed before `r050` started, was identified and excluded. The breakdown is the
+Campaign CUR table above, component by component, and `figures.yaml` group `campaign_0905`, where
+each component's own CUR slice is named. Per-point `D16` in the Matrix still
 works for *relative* comparison between rates, since the ratios between points probably survive
 even though the absolute numbers don't. Neither the individual figures nor their sum is the real
 cost of running this campaign.

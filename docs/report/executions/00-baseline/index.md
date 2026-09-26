@@ -84,7 +84,7 @@ System configuration params under test.
 | TEI `minReplicaCount` | 2                                                                                                       | `tei-embeddings-scaler` ScaledObject                | the other always-on half of the serving Floor line |
 | TEI `maxReplicaCount` | 30                                                                                                      | `tei-embeddings-scaler` ScaledObject                | as above |
 | TEI trigger | prometheus · `sum(rate(container_cpu_usage_seconds_total{...}[2m]))`, `metricType: AverageValue` · threshold `1.5` · `pollingInterval: 15` | `tei-embeddings-scaler` ScaledObject                | TEI is shared: the indexer drives it during ingestion and the API during queries, so this row moves figures in both executions. `sum()` rather than `avg()`, because `avg()` pinned desiredReplicas at ~1 regardless of load (2026-09-01 fix) |
-| TEI requests / limits | `cpu 3 / 4` · `mem 768Mi / 1Gi`                                                                         | `deploy/k8s/platform/tei-embeddings/deployment.yaml`| per-replica capacity. CPU request raised from `2/4` on 2026-09-01 after node-level overcommit at the old 2-core request (limits measured at 171% of node allocatable under load) |
+| TEI requests / limits | `cpu 3 / 4` · `mem 768Mi / 1Gi` (the code carries this value; `1ef1f0a` raised it to `cpu 6 / 8` for `inference-r1000` alone and it was put back on 2026-09-26) | `deploy/k8s/platform/tei-embeddings/deployment.yaml`| per-replica capacity. CPU request raised from `2/4` on 2026-09-01 after node-level overcommit at the old 2-core request (limits measured at 171% of node allocatable under load). Every figure in this report rests on `3 / 4` except `02-inference`'s `r1000` point |
 | Qdrant nodes | 2 × `r7g.large` On-Demand, `desired_size` 2 (`max_size` 3)                                              | `eks_database_nodes` (`terraform/modules/01-rag-core/eks.tf`) | the database does not autoscale on either path, so this is the one ceiling a replica change cannot relieve. Memory-optimized and not burstable: a `t` class would make each point's capacity depend on how long the cluster idled before it |
 | Qdrant sharding | `shard_number` 1 (default, not set) · `replication_factor` 2                                            | `apps/indexer/src/haystack_pipeline.py` (`QdrantDocumentStore(...)`) | decides whether the second node holds data or is paid for and idle. One shard, replicated, so both nodes hold the full collection |
 | Qdrant collection config | INT8 SQ on (quantile 0.99, `always_ram`) · 384 dims · sparse on · `hnsw_m`/`hnsw_ef` not set (Qdrant client default) | `apps/indexer/src/haystack_pipeline.py` (`QdrantDocumentStore(...)`), not Helm values | changes write cost, read latency and RAM together |
@@ -95,13 +95,13 @@ System configuration params under test.
 
 ### Cost basis → report §4
 
-- **Source of record** — CUR 2.0, hourly, resource IDs and split cost allocation on, at `s3://simple-rag-cur-reports-883f615c/cur2/simple-rag`. Every measured cost figure in this report is a sum over its rows
-- **Cost column** — `line_item_unblended_cost`, used everywhere in this report. Differs from `line_item_amortized_cost` for the same node under a Savings Plan; not chosen here since none is active on this account
-- **Line-item types summed** — `Usage`, `DiscountedUsage`, `SavingsPlanCoveredUsage`. Tax, credits, refunds and monthly fees are excluded: they land in an arbitrary hour and corrupt a window
+- **Source of record** — CUR 2.0, hourly, resource IDs and split cost allocation on, at `s3://simple-rag-cur-reports-883f615c/cur2/simple-rag`
+- **Method** — `methodology.md` §9, "Cost calculation approach (AWS)". Nothing here departs from it
+- **Cost column** — `line_item_unblended_cost` (§9). `line_item_amortized_cost` differs for the same node under a Savings Plan; none is active on this account
 - **Region and currency** — `eu-central-1` (`terraform/variables.tf`, not overridden in `terraform.tfvars`) · USD
-- **Rate card** — `./data/price-2026-09-09.json`, carried only for what no run buys: Fargate vCPU-hour and GB-hour, and Bedrock per 1K input and output tokens, all read from the AWS Price List API. The Bedrock rates are consumed by `02-inference` (`E18`) and no figure in this execution uses them. Every other rate is in the CUR rows themselves, already dated
-- **Spot** — priced at what was actually charged in each run hour. No historical average is frozen and none is needed
-- **Reader** — `./scripts/aws-cur-report-export.py`, one window per invocation
+- **Rate card** — `./data/price-2026-09-09.json` plus every `R` figure in `figures.yaml`. Some are read off CUR rows, some from the AWS Price List API — the PrivateLink per-GB rate was pulled 2026-09-22, later than the rest. Fargate and Bedrock are carried because no run buys them
+- **Spot, which hour** — the Floor rests on 09-04's resting hour, `02-inference` nets its campaign against 09-05's, and the two differ by half
+- **Reader** — the CUR parquet, read directly with `pyarrow` (M1). `./scripts/aws-cur-report-export.py` does the same job for a named window; the prefix it needs is `figures.yaml meta.cur`
 
 ### Envelope → report §2
 

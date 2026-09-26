@@ -484,10 +484,6 @@
       }
     ]
   },
-  "D23_tei_above_floor_usd": {
-    "value": 0.45,
-    "confidence": "rough, same caveat as ingestion-n100-sticky's estimate \u2014 no finalized 00-baseline idle rate yet"
-  },
   "M13_sqs_s3_usd": {
     "value": 0.0,
     "sqs_requests": {
@@ -512,8 +508,6 @@
     "bytes_out_to_destination": 454203307,
     "gb_out_to_destination": 0.4542
   },
-  "D24_dollar_per_run_usd": 1.7613,
-  "D25_dollar_per_1M_docs_usd": 17613.0,
   "comparison_to_ingestion_n100_sticky": {
     "window_seconds": {
       "sticky": 2298,
@@ -531,5 +525,6 @@
       "delta_pct": 53.0
     },
     "note": "Compute cost dropped ~7% (nodes needed slightly less wall-clock time for the same 84,018-point corpus), consistent with indexer pods computing rather than waiting. But total window duration and serving-pool gross cost both went UP, not down, versus the sticky run \u2014 TEI scaled to more replicas (peaked ~23 vs ~19) under the fixed run, most likely because indexer could now drive genuine concurrent demand across TEI backends instead of a few being saturated while others sat idle, so aggregate demand on TEI (and its scale-out) went up, not down. Net effect on this run's total $/run is NOT a clean win \u2014 the fix solved the fairness/attribution problem (confirmed live via per-pod te_queue_size and CPU), not necessarily the aggregate cost or wall-clock time. Flagged for Retro, not resolved here."
-  }
+  },
+  "revision_note": "Revised 2026-09-26 under the data-file rule (methodology.md \u00a72): a data file holds readings, not results. Kept exactly as karpenter-cost-estimate.py and the CloudWatch/SQS reads wrote them: M10_compute_usd and M11_serving_gross_usd with their per-node rows, M13_sqs_s3_usd with its request counts, M14_nat_usd with its byte counts. Those are tool output with their own provenance in `status`, and the totals in them are the tool's arithmetic over its own readings in the same run. Removed, because they are results and belong in figures.yaml: D23_tei_above_floor_usd, D24_dollar_per_run_usd, D25_dollar_per_1M_docs_usd. The CUR figures for this point live there (cur_marginal_n100, d23_*, per_1m_*) and are printed in 01-ingestion \u00a73, per-service columns included. M14 here is also superseded on its own terms: it was re-pulled with both NAT byte-direction legs and then replaced entirely by CUR actuals (\u00a73, Notes under #08), so read it as what CloudWatch showed that day, not as this point's NAT cost."
 }

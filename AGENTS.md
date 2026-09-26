@@ -101,6 +101,14 @@ When generating or interacting with infrastructure configuration or deployment m
 in this repository where prose is load-bearing.
 * **`figures.yaml` is the registry:** every number the report prints resolves from it.
   Nothing is computed in prose.
+* **`executions/*/data/` holds readings, not results:** every number in a data file is a
+  field of what an authority returned - a Prometheus sample, an AWS API response, a CUR
+  row, a generator's own summary line - or what a tool computed from those in the same
+  run, and the file names the query, the window and `generated_at`. A figure copied from
+  the registry, a subtraction done in an editor, an estimate or an interpretation shaped
+  as a field is a result, and results live in `figures.yaml`. The test is whether
+  re-running the command named in the file reproduces it. Prose fields (`note`,
+  `revision_note`) are commentary, not data. Stated in full in `methodology.md` §2.
 * **`formats.md`** is the contract for how a number is written and marked.
 * **`methodology.md`** is why the structure is shaped this way. Both are vendored from
   report-kit and carry a provenance header — edit upstream, not here.

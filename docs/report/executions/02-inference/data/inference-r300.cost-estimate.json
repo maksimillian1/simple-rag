@@ -5,11 +5,125 @@
     "end": "2026-09-05T14:45:40Z"
   },
   "window_hours": 0.2972,
-  "M9_serving_gross_usd": 0.1769,
-  "serving_floor_rate_usd_per_hour": 0.2256,
-  "serving_floor_cost_for_window_usd": 0.0671,
-  "M9_net_of_floor_usd": 0.1098,
-  "queries_served": 180001,
-  "D16_dollar_per_1k_queries_usd": 0.00061,
-  "note": "karpenter-cost-estimate.py --nodepool apps-serving. 8 distinct apps-serving nodes across the window. D16 sits between r200 ($0.00086) and r050 ($0.00038) -- lower than r200 despite the higher rate, consistent with less severe churn this time (8 nodes vs r200's 8 too, similar) and a smoother TEI ramp (2->11, closer to a clean linear progression than r200's 2->7 was)."
+  "generated_at": "2026-09-24T00:00:00Z",
+  "method": "Node rows rebuilt 2026-09-24 from this point's own Prometheus export (./inference-r300.jsonl, ref Q9 = kube_node_labels{label_karpenter_sh_nodepool=\"apps-serving\"}, range query at 15 s), priced the way karpenter-cost-estimate.py prices: the spot quote in force at each node's first_seen, per instance type and AZ. The script itself was run live against Prometheus during the campaign and its per-node rows were never saved; this reproduces them from the saved export, which is the only surviving input now that the cluster is gone. hours and cost are the tool's arithmetic over the readings in the same run, not authored numbers.",
+  "sources": {
+    "nodes": "./inference-r300.jsonl, ref Q9, exported at point close",
+    "rates": "aws ec2 describe-spot-price-history (Linux/UNIX, per instance type and AZ, newest quote at or before each node's first_seen), pulled 2026-09-24; each row carries the quote's own timestamp",
+    "iterations": "./inference-r300.generator.log, k6 summary line"
+  },
+  "nodes": [
+    {
+      "node": "ip-10-0-10-249.eu-central-1.compute.internal",
+      "nodepool": "apps-serving",
+      "instance_type": "c5.2xlarge",
+      "az": "eu-central-1a",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T14:27:50Z",
+      "last_seen": "2026-09-05T14:36:05Z",
+      "hours": 0.1375,
+      "rate": 0.1612,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T13:00:00+00:00",
+      "cost": 0.022165
+    },
+    {
+      "node": "ip-10-0-12-102.eu-central-1.compute.internal",
+      "nodepool": "apps-serving",
+      "instance_type": "c5.4xlarge",
+      "az": "eu-central-1c",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T14:27:50Z",
+      "last_seen": "2026-09-05T14:45:35Z",
+      "hours": 0.2958,
+      "rate": 0.1913,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T13:00:00+00:00",
+      "cost": 0.056587
+    },
+    {
+      "node": "ip-10-0-10-69.eu-central-1.compute.internal",
+      "nodepool": "apps-serving",
+      "instance_type": "c5a.xlarge",
+      "az": "eu-central-1a",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T14:31:20Z",
+      "last_seen": "2026-09-05T14:40:35Z",
+      "hours": 0.1542,
+      "rate": 0.093,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T09:00:00+00:00",
+      "cost": 0.014341
+    },
+    {
+      "node": "ip-10-0-11-107.eu-central-1.compute.internal",
+      "nodepool": "apps-serving",
+      "instance_type": "c5a.xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T14:33:50Z",
+      "last_seen": "2026-09-05T14:41:35Z",
+      "hours": 0.1292,
+      "rate": 0.0971,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T14:00:00+00:00",
+      "cost": 0.012545
+    },
+    {
+      "node": "ip-10-0-10-253.eu-central-1.compute.internal",
+      "nodepool": "apps-serving",
+      "instance_type": "c6a.xlarge",
+      "az": "eu-central-1a",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T14:34:20Z",
+      "last_seen": "2026-09-05T14:45:35Z",
+      "hours": 0.1875,
+      "rate": 0.093,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T09:00:00+00:00",
+      "cost": 0.017438
+    },
+    {
+      "node": "ip-10-0-11-70.eu-central-1.compute.internal",
+      "nodepool": "apps-serving",
+      "instance_type": "c6a.xlarge",
+      "az": "eu-central-1b",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T14:30:50Z",
+      "last_seen": "2026-09-05T14:42:35Z",
+      "hours": 0.1958,
+      "rate": 0.0907,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T13:00:00+00:00",
+      "cost": 0.017759
+    },
+    {
+      "node": "ip-10-0-12-129.eu-central-1.compute.internal",
+      "nodepool": "apps-serving",
+      "instance_type": "c6a.xlarge",
+      "az": "eu-central-1c",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T14:31:20Z",
+      "last_seen": "2026-09-05T14:42:05Z",
+      "hours": 0.1792,
+      "rate": 0.0935,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T10:00:00+00:00",
+      "cost": 0.016755
+    },
+    {
+      "node": "ip-10-0-10-10.eu-central-1.compute.internal",
+      "nodepool": "apps-serving",
+      "instance_type": "c6i.xlarge",
+      "az": "eu-central-1a",
+      "capacity_type": "spot",
+      "first_seen": "2026-09-05T14:33:50Z",
+      "last_seen": "2026-09-05T14:45:35Z",
+      "hours": 0.1958,
+      "rate": 0.0984,
+      "rate_source": "describe-spot-price-history, quote at 2026-09-05T09:00:00+00:00",
+      "cost": 0.019267
+    }
+  ],
+  "totals_by_nodepool": {
+    "apps-serving": 0.1769
+  },
+  "unpriced_nodes": [],
+  "iterations_complete": 180001,
+  "iterations_interrupted": 0,
+  "note": "karpenter-cost-estimate.py --nodepool apps-serving. 8 distinct apps-serving nodes across the window. D16 sits between r200 ($0.00086) and r050 ($0.00038) -- lower than r200 despite the higher rate, consistent with less severe churn this time (8 nodes vs r200's 8 too, similar) and a smoother TEI ramp (2->11, closer to a clean linear progression than r200's 2->7 was).",
+  "revision_note": "Revised 2026-09-24 under the data-file rule (figures.yaml meta.data_files): a data file holds readings, not results. Removed, all typed by hand rather than produced by any tool: M9_serving_gross_usd (now the totals_by_nodepool sum over rows anyone can re-add), serving_floor_rate_usd_per_hour / serving_floor_cost_for_window_usd / M9_net_of_floor_usd (a per-point floor netting, which D2 retired in favour of subtracting the floor once at campaign level, and which rested on a rate retired twice), D16 per 1k queries (a result; it lives in figures.yaml as d16_gross_r300), and queries_served (a choice between two counts, now recorded as the two readings the generator printed). The note above was written against the netted generation: its D16 values and the comparisons drawn from them are superseded, and the gross ordering across the five points is in 02-inference Sec3."
 }
