@@ -40,7 +40,7 @@ published.
 | Scaler tuning — thresholds and cooldowns | declared, not measured | — | how much of the convergence time is configuration rather than node provisioning, and what a faster trigger would cost in replica churn | v1.1 |
 | Idle floor, split A / B / C | one resting hour's inventory × published unit rate × 730 ᴰ (`methodology.md` §9). The hour was revised down from a planned 24 h because no cluster ever sat idle that long (`00-baseline` Preflight), so the projection carries that hour's prices, Spot included | §4.1 · `00-baseline` §2 Floor | — | v1.0 |
 | Errors found at rest, excluded from the floor | measured, itemised, not amortised ᴰ | `00-baseline` §2 Floor errors table | $175.85<!--FD35-->/month recurring and $78.31<!--FD36--> already spent sit outside every Floor figure here, being defects rather than sizing. The one exception is the `bedrock` control-plane endpoint, which was provisioned and billed and so stays inside the as-built floor (`docs/tech-debt.md` #12) | v1.0 |
-| Allocation of untaggable billing lines | recorded ᴿ | §4.1 · `00-baseline/R5` | — | v1.0 |
+| Untaggable billing lines, mapped to the Floor rows that price them | recorded ᴿ | §4.1 · `00-baseline/R5` | — | v1.0 |
 | Amortization across volumes | derived ᴰ | §4.3 | — | v1.0 |
 | Break-even against Fargate, ingestion | derived ᴰ | §4.4 · `01-ingestion/D29` | — | v1.0 |
 | Ingest and query contention on shared Qdrant and TEI | declared, not measured | §3.8 · `02-inference` contention pass | whether the latency target survives a bulk ingest running underneath it, which is the state the system is actually in during a backfill | v1.0 |
@@ -58,8 +58,8 @@ published.
 
 * **Ingestion cost at optimum** — $24,875<!--FD37--> / 1M docs ᴰ at N=25 (CUR actual, `01-ingestion` sweet spot). Fargate for the same two workers costs 2.91<!--FD123-->× more at that point (D29, §4.4), computed at N=25 only. Cost never bottoms mid-range. It rises monotonically with N, so "optimum" means the lowest clean N swept rather than a proven minimum, and the true floor may sit below N=25, untested
 * **Sustained query rate** — ≥1000 req/s ᴿ at p95 = 2425ms once converged, on 6 API and 30 TEI replicas. The design target in `architecture.md` is p95 < 200ms. It is missed by ~2225ms, almost all of which is the frozen 2000ms Bedrock stub delay rather than system latency. No rate up to 1000 hit a ceiling
-* **Retrieval cost** — $0.00375<!--FD65--> / 1k queries ᴰ marginal (CUR actual for the whole campaign, with the resting floor netted out once at campaign level; the per-point provisional `D16` figures understate it 1.5–4.3×, `02-inference` §3). On top of that: $0.000211<!--FD45--> ᴰ floor share at the sustained rate, a best case that assumes 1000 req/s continuously and grows far higher at realistic utilization (§4.3), and ~$0.51<!--FD39--> ᴱ for generation (1,800<!--FE1--> assumed input + up to 512<!--FR17--> output tokens × the real Bedrock rate). If generation is turned on, it would be ~136<!--FD115-->× the retrieval cost and dominate the total
-* **Idle floor, Block B** — $553.83<!--FD26--> / month ᴰ (Block C total: $877.54<!--FD29--> ᴰ). This is what the feature costs with zero traffic on a platform that exists anyway
+* **Retrieval cost** — $0.00375<!--FD65--> / 1k queries ᴰ marginal (CUR actual for the whole campaign, with the resting floor netted out once at campaign level; the per-point provisional `D16` figures understate it 1.5–4.3×, `02-inference` §3). On top of that: $0.000203<!--FD45--> ᴰ floor share at the sustained rate, a best case that assumes 1000 req/s continuously and grows far higher at realistic utilization (§4.3), and ~$0.51<!--FD39--> ᴱ for generation (1,800<!--FE1--> assumed input + up to 512<!--FR17--> output tokens × the real Bedrock rate). If generation is turned on, it would be ~136<!--FD115-->× the retrieval cost and dominate the total
+* **Idle floor, Block B** — $534.12<!--FD26--> / month ᴰ (Block C total: $877.54<!--FD29--> ᴰ). This is what the feature costs with zero traffic on a platform that exists anyway
 * **Primary constraints** — ingestion: none by resource signature; the limit is architectural. The sequential loop in `apps/indexer/src/main.py` keeps one TEI call in flight per pod, so throughput scales 1:1 with replica count rather than with CPU or memory · query: none found up to 1000 req/s. TEI's scale-out lags a rate step and then catches up, which is not a ceiling. Neither path has a price for the next scaling step, because neither hit a limit to relieve
 
 **Verdict** — left to the business owner. Technical read: the system is cheap to run and has headroom on both paths at the volumes tested. One gap stands between this and a shippable verdict: no measured cost for real Bedrock generation (E18, `docs/tech-debt.md` #9), the largest single number in the query-path cost and the one this report can least confirm. The Fargate comparison is made (D29, §4.4), at the N=25 sweet spot only; the other four points need the same integration of `M5` (#10). The contention pass is a declared scope boundary (Coverage) and not a second gap: every query-path finding holds for an idle ingestion path only
@@ -301,8 +301,8 @@ and fixed separated from what still moves at rest.
 
 | Block | Line | Fixed | Variable at rest | Total |
 | :--- | :--- | ---: | ---: | ---: |
-| **B · Dedicated** | Qdrant node + gp3 (current-gen PVC) · serving pool at 2+2 replicas · Bedrock interface endpoints · load balancer · S3 at rest · SQS polling | $552.91<!--FD23--> | $0.93<!--FD24--> | **$553.83<!--FD26-->** |
-| A · Shared | EKS control plane · core node group · Karpenter on Fargate · NAT hourly · monitoring stack | $313.88<!--FD21--> | $9.83<!--FD22--> | $323.71<!--FD25--> |
+| **B · Dedicated** | Qdrant node + gp3 (current-gen PVC) · serving pool at 2+2 replicas · Bedrock interface endpoints · S3 at rest · SQS polling | $533.20<!--FD23--> | $0.93<!--FD24--> | **$534.12<!--FD26-->** |
+| A · Shared | EKS control plane · core node group · Karpenter on Fargate · NAT hourly · monitoring stack · the Gateway's load balancer | $333.59<!--FD21--> | $9.83<!--FD22--> | $343.42<!--FD25--> |
 | **C · Total** | `A + B` | $866.79<!--FD27--> | $10.76<!--FD28--> | **$877.54<!--FD29-->** |
 
 **Right-sized, same HA topology** ᴱ — `00-baseline` Right-sized floor · `docs/tech-debt.md` #5
@@ -311,21 +311,29 @@ NAT and cross-AZ transfer move at rest.
 
 | Block | Fixed | Variable at rest | Total |
 | :--- | ---: | ---: | ---: |
-| **B · Dedicated** | $456.38<!--FE8--> | $0.93<!--FD24--> ᴰ | **$457.30<!--FE9-->** |
-| A · Shared | $296.89<!--FE7--> | $9.83<!--FD22--> ᴰ | $306.72<!--FE16--> |
+| **B · Dedicated** | $436.67<!--FE8--> | $0.93<!--FD24--> ᴰ | **$437.59<!--FE9-->** |
+| A · Shared | $316.60<!--FE7--> | $9.83<!--FD22--> ᴰ | $326.43<!--FE16--> |
 | **C · Total** | $753.26<!--FE10--> | $10.76<!--FD28--> ᴰ | **$764.02<!--FE11-->** |
 
-Block B right-sized, $457.30<!--FE9--> ᴱ, is the number §5's budget alarm is set against. That is a floor the
+Block B right-sized, $437.59<!--FE9--> ᴱ, is the number §5's budget alarm is set against. That is a floor the
 system is not running at today, chosen deliberately so the alarm tracks the target rather than
 the defect.
 
 Block B is what leaves the bill if the feature is deleted. It is not divided across an assumed
 number of co-tenant features, because that divisor would be arbitrary and blocks B and C already
-answer both questions a reader can ask. Lines that carry no resource-level tag were
-assigned to a block by hand and are marked ᴿ. They are 14.3% of the total (`R5`/`M2`,
-`00-baseline`), which fails the 5% validity gate. The figure is kept anyway, because it is
-dominated by AWS-managed lines that can't carry a custom tag rather than by gaps in this
-project's tagging (`00-baseline` §2).
+answer both questions a reader can ask. That criterion is what puts the Gateway's load balancer in
+A rather than B, decided 2026-09-26: the Gateway lives in `rag-platform`, admits routes from every
+namespace and already carries a second one, `/monitor` to Grafana, so deleting the feature leaves
+it standing. Block C is unaffected, and the same NLB's three public addresses were already in A. Lines that carry no resource-level tag are not
+allocated to a block: each is mapped by hand to the Floor row that already prices it, and takes
+that row's block (`R5`, marked ᴿ). Untagged money here is not separate money — it is the same
+money the Floor prices by resource, seen through the tag column — so the mapping moves no total.
+They are 14.3% of everything billed in the hour
+(`R5`/`M2`, `00-baseline`), and that share is a reading rather than a threshold: everything in this
+deployment that can carry a `feature` tag carries one, so what arrives untagged is AWS-managed flat
+charges rather than a gap in this project's tagging (`00-baseline` §2). The share was read over the
+13:00 bootstrap hour, whose denominator is inflated by bootstrap traffic; the Floor above is the
+18:00 resting hour.
 
 *The NAT gateway* is the hidden line of this architecture class and is missing from almost every
 published version of it. It is billed hourly regardless of traffic, and again per gigabyte
@@ -383,7 +391,7 @@ convention.
 | :--- | :--- | :--- |
 | Serving capacity above the always-on minimum | $0.00375<!--FD65--> ᴰ (campaign CUR actual, floor netted once; caveat after this table) | 100% |
 | **Marginal total** | $0.00375<!--FD65--> ᴰ | 100% |
-| Floor share at the sustained rate | $0.000211<!--FD45--> ᴰ (best case; negligible only because 1000 req/s continuously is a huge volume) | — |
+| Floor share at the sustained rate | $0.000203<!--FD45--> ᴰ (best case; negligible only because 1000 req/s continuously is a huge volume) | — |
 | Bedrock generation, at ~1,800<!--FE1--> input and up to 512<!--FR17--> output tokens | ~$0.51<!--FD39--> ᴱ | — |
 
 The three lines answer different questions and are not summed into a headline. The marginal
@@ -410,30 +418,30 @@ two different denominators, and they are not addends: adding a `$/doc` row to a 
 counts the same monthly floor twice. The conversion that would make them additive needs an
 arrival ratio nobody measured.
 
-Uses Block B = $553.83<!--FD26-->/month and the sweet-spot marginal rate, $24,875<!--FD37-->/1M docs = $0.02488<!--FD38-->/doc.
+Uses Block B = $534.12<!--FD26-->/month and the sweet-spot marginal rate, $24,875<!--FD37-->/1M docs = $0.02488<!--FD38-->/doc.
 
 | Monthly documents | Effective $/doc ᴰ | Floor share |
 | :--- | :--- | :--- |
-| 1 000 | $0.5787<!--FD92--> | 95.7<!--FD96-->% |
-| 10 000 | $0.0803<!--FD93--> | 69.0<!--FD97-->% |
-| 100 000 | $0.0304<!--FD94--> | 18.2<!--FD98-->% |
-| 1 000 000 | $0.0254<!--FD95--> | 2.2<!--FD99-->% |
+| 1 000 | $0.5590<!--FD92--> | 95.6<!--FD96-->% |
+| 10 000 | $0.0783<!--FD93--> | 68.2<!--FD97-->% |
+| 100 000 | $0.0302<!--FD94--> | 17.7<!--FD98-->% |
+| 1 000 000 | $0.0254<!--FD95--> | 2.1<!--FD99-->% |
 
-Uses Block B = $553.83<!--FD26-->/month and the real campaign marginal rate, $0.00375<!--FD65-->/1k queries = $0.00000375<!--FD100-->/query.
+Uses Block B = $534.12<!--FD26-->/month and the real campaign marginal rate, $0.00375<!--FD65-->/1k queries = $0.00000375<!--FD100-->/query.
 
 | Monthly queries | Effective $/query ᴰ | Floor share |
 | :--- | :--- | :--- |
-| 10 000 | $0.05539<!--FD101--> | 99.99<!--FD105-->% |
-| 100 000 | $0.00554<!--FD102--> | 99.93<!--FD106-->% |
-| 1 000 000 | $0.00056<!--FD103--> | 99.3<!--FD107-->% |
-| 10 000 000 | $0.0000591<!--FD104--> | 93.7<!--FD108-->% |
+| 10 000 | $0.05342<!--FD101--> | 99.99<!--FD105-->% |
+| 100 000 | $0.00534<!--FD102--> | 99.93<!--FD106-->% |
+| 1 000 000 | $0.000538<!--FD103--> | 99.3<!--FD107-->% |
+| 10 000 000 | $0.0000572<!--FD104--> | 93.4<!--FD108-->% |
 
-Below ~22,265<!--FD41--> documents and ~147,807,453<!--FD43--> queries per month, the volumes where floor share drops
+Below ~21,472<!--FD41--> documents and ~142,547,228<!--FD43--> queries per month, the volumes where floor share drops
 under half, you pay mostly for the feature to exist rather than for work done. Those two volumes
 are the lower bound of where this design makes economic sense. Ingestion crosses 50% floor share
 at a modest volume because its marginal cost per unit is comparatively large. The query path's marginal cost per unit is three orders of magnitude
 smaller, so the floor dominates it at every volume in the query table: even 10M queries/month
-sits at 93.7<!--FD108-->% floor share, nowhere near the crossover.
+sits at 93.4<!--FD108-->% floor share, nowhere near the crossover.
 
 ### 4.4 Conditional alternatives
 
@@ -510,4 +518,4 @@ the runtime endpoint's private DNS never matches the hostname the client resolve
 | Backfill concurrency during query hours | not set; the contention pass never ran (§3.8), so there is nothing to base it on | §3.8 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` |
 | Ingestion backlog alert | not set; `01-ingestion` never defined a drain-rate alert formula distinct from the point-close criterion already in use | §3.1 | `prometheus/rules.yaml` |
 | Do not move the query path to a VPC endpoint on a cost argument | crossover 54,854,311<!--FD50--> ᴱ queries/month, against a reference volume of 1,000,000<!--FE14-->. Below it the endpoint costs more than the NAT it replaces, so the decision rests on the privacy boundary in `ADR-0007` alone. The figure is estimated, not measured (`02-inference/K4`), so treat it as an order of magnitude | §4.4 | `terraform/` VPC endpoints, `ADR-0007` |
-| Budget alarm | recommend $640.22<!--FD56--> ᴱ/month (right-sized Block B × 1.4 = $457.30<!--FE9--> × 1.4). Set against the right-sized floor rather than the as-built one, so the alarm tracks the target the tech-debt items move toward instead of pinning today's defects in place. `terraform/budgets.tf` does not exist, so nothing enforces this today (`docs/tech-debt.md` #11) | §4.1 | `terraform/budgets.tf` (not yet created) |
+| Budget alarm | recommend $612.63<!--FD56--> ᴱ/month (right-sized Block B × 1.4 = $437.59<!--FE9--> × 1.4). Set against the right-sized floor rather than the as-built one, so the alarm tracks the target the tech-debt items move toward instead of pinning today's defects in place. `terraform/budgets.tf` does not exist, so nothing enforces this today (`docs/tech-debt.md` #11) | §4.1 | `terraform/budgets.tf` (not yet created) |

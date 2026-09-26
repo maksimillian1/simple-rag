@@ -83,6 +83,7 @@ rather than from here:
 - [ ] 2.4 `methodology.md` citations: line 18, line 518, `metrics.md` D24 (per D4) · S
 - [ ] 2.5 Raw data line about `frontier.csv` (per D7) · S
 - [x] 2.6 Questionnaire deleted 2026-09-19. `D29` stays declared-not-made (§4.4, tech-debt #10), `methodology.md` is D4, and the "N=10 rests on one run" caveat is already in the Matrix · S
+- [ ] 2.7 Final read of `index.md` · S
 
 ## 3 · 02-inference
 
@@ -94,6 +95,7 @@ rather than from here:
 
 - [x] 3.6 Done 2026-09-22. `endpoint_processed_gb` (FR15) is **$0.01/GB** — Price List API, `AmazonVPC` / productFamily `VpcEndpoint` / usagetype `EUC1-VpcEndpoint-Bytes` / endpointType `PrivateLink`, first tier (up to 1 PB monthly; the 0.006 and 0.004 tiers are five orders of magnitude out of reach at 8.6 GB/month). Cross-check: the same family prices `EUC1-VpcEndpoint-Hours` at $0.012/h, which is `endpoint_eni_hour` (FR14) read independently from CUR — two sources agreeing on the neighbouring rate. The rate was pulled 13 days after the rest of the card, so it sits in `price-2026-09-09.json` as its own `privatelink` section carrying its own `pulled` date, and the file's top-level `note` now says the top-level date covers fargate and bedrock only. The whole `pending` chain resolved: `endpoint_breakeven_gb` 625.71 GB, **`endpoint_breakeven_queries` 72,648,746/month**, `endpoint_at_ref_queries` $26.37. All three print ᴱ, not ᴰ — `query_wire_bytes` carries an estimate upstream, and the marker is computed. §4.5's table cell `$26.28 ᴰ + pending ᴱ` became `$26.37 ᴱ` (FD54; the split into fixed plus processing is not printable without registering the processing component, which Rule 0 forbids doing in prose), and its "between 31.5M and 72.6M" range became the value — the old upper bound was this figure, so the range had already guessed the rate right. `D22` in `02-inference` moved blocked → active; `concepts.md` no longer calls it a range · S
 - [ ] 3.7 `ADR-0007` claims PrivateLink "slashes NAT Gateway data processing charges". §4.5 shows that is wrong by three orders of magnitude at this workload's token-to-byte ratio. Decide: amend the ADR to rest on the privacy boundary alone, or supersede it — **not** done in this pass, an ADR is a dated decision record and editing its rationale after the fact needs its own call · S
+- [ ] 3.8 Final read of `index.md` · S
 
 ## 4 · report.md (after 1–3)
 
@@ -108,3 +110,4 @@ rather than from here:
 - [x] 4.9 Done 2026-09-25 per D7, references removed rather than charts built. §3.2 keeps its number (renumbering would break every citation of §3.3–§3.8) and is retitled "Ingestion — frontier": it now says there is no chart in v1.0 and that §3.1's Matrix is the frontier, plus the one thing the chart spec got wrong — `$/1M docs` rises with N instead of dipping to a minimum. §3.6's chart paragraph is replaced by one line pointing at its own Matrix. No `assets/` or `frontier.csv` reference is left in `report.md` · S
 - [x] 4.10 Clean 2026-09-21: the grep returns nothing outside `figures.yaml`'s own `retired` list, and `figures.py check` reports `retired values: none` across all 9 scanned documents. **Data files covered 2026-09-24** (0.5.3): `scan` carries `executions/*/data/*.json`, and `check` is clean at 47 documents. What a substring scan still cannot see in a JSON number is 0.5.4 · S
 - [ ] 4.11 §1 Verdict (D9) · S
+- [ ] 4.12 Final read of `report.md`, last: after 4.7, 4.8, 4.11 · S

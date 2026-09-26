@@ -390,7 +390,17 @@ figures:
     kind: D
     formula: nlb_hour * hours_per_month
     unit: usd_per_month
-    group: b_fixed
+    source: >-
+      Block A, not B, as of 2026-09-26. The NLB belongs to the Gateway in
+      deploy/k8s/platform/gateway/resources/gateway.yaml - namespace rag-platform, listener
+      allowedRoutes namespaces from All - and routes.yaml already parents two routes on it, / to
+      the api and /monitor to monitoring-grafana. Delete the feature and the Gateway, the NLB and
+      Grafana's route remain, which is Block B's own criterion applied. The block rests on who owns
+      the Gateway and how wide its scope is, not on that second route: Grafana's route is corroboration
+      that "from: All" is used in practice, so removing it would not move this line back to B. It also settles the
+      "A or B?" line in 00-baseline R5 and agrees with public_ipv4 (FD6), where the same NLB's
+      three addresses were already in A
+    group: a_fixed
 
   db_serving_cross_az:
     ref: FD20
@@ -402,7 +412,7 @@ figures:
   block_a_fixed:
     ref: FD21
     kind: D
-    formula: eks_control_plane + core_nodes + core_root_ebs + karpenter_fargate + nat_gateway + public_ipv4 + monitoring_pvs + kms_key
+    formula: eks_control_plane + core_nodes + core_root_ebs + karpenter_fargate + nat_gateway + public_ipv4 + monitoring_pvs + kms_key + nlb
     unit: usd_per_month
     group: totals
     appears_in: [executions/00-baseline/index.md]
@@ -418,7 +428,7 @@ figures:
   block_b_fixed:
     ref: FD23
     kind: D
-    formula: db_nodes + db_root_ebs + qdrant_pvcs + vpc_endpoints + serving_nodes + serving_root_ebs + nlb
+    formula: db_nodes + db_root_ebs + qdrant_pvcs + vpc_endpoints + serving_nodes + serving_root_ebs
     unit: usd_per_month
     group: totals
     appears_in: [executions/00-baseline/index.md]
@@ -1519,7 +1529,7 @@ figures:
     kind: D
     formula: (block_b_total + query_per_query * 1000000) / 1000000
     unit: usd_per_query
-    display: 5
+    display: 6
     group: amortization
     appears_in: [report.md]
 
@@ -1957,6 +1967,51 @@ retired:
   - pattern: "281.79"
     replaced_by: block_a_total
     why: Block A before the re-base
+  - pattern: "553.83"
+    replaced_by: block_b_total
+    why: Block B before the Gateway's load balancer moved to A (2026-09-26)
+  - pattern: "552.91"
+    replaced_by: block_b_fixed
+    why: Block B fixed before the load balancer moved to A
+  - pattern: "313.88"
+    replaced_by: block_a_fixed
+    why: Block A fixed before the load balancer moved to A
+  - pattern: "323.71"
+    replaced_by: block_a_total
+    why: Block A before the load balancer moved to A
+  - pattern: "457.30"
+    replaced_by: block_b_total_rs
+    why: right-sized Block B before the load balancer moved to A
+  - pattern: "456.38"
+    replaced_by: block_b_fixed_rs
+    why: right-sized Block B fixed before the load balancer moved to A
+  - pattern: "306.72"
+    replaced_by: block_a_total_rs
+    why: right-sized Block A before the load balancer moved to A
+  - pattern: "296.89"
+    replaced_by: block_a_fixed_rs
+    why: right-sized Block A fixed before the load balancer moved to A
+  - pattern: "640.22"
+    replaced_by: budget_alarm
+    why: budget alarm from the right-sized Block B that still carried the load balancer
+  - pattern: "775.37"
+    replaced_by: budget_alarm_as_built
+    why: as-built budget alarm from the Block B that still carried the load balancer
+  - pattern: "22,265"
+    replaced_by: docs_at_half_floor
+    why: ingestion crossover from the Block B that still carried the load balancer
+  - pattern: "18,384"
+    replaced_by: docs_at_half_floor_rs
+    why: right-sized ingestion crossover, same cause
+  - pattern: "147,807,453"
+    replaced_by: queries_at_half_floor
+    why: query crossover from the Block B that still carried the load balancer
+  - pattern: "122,045,426"
+    replaced_by: queries_at_half_floor_rs
+    why: right-sized query crossover, same cause
+  - pattern: "0.000211"
+    replaced_by: floor_share_per_1k_queries
+    why: floor share from the Block B that still carried the load balancer
   - pattern: "0.20892"
     replaced_by: serving_idle_rate
     why: serving idle rate from the bootstrap capture hour

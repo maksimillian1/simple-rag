@@ -2,9 +2,15 @@
 Vendored from report-kit — do not edit here.
 Source: src/report_kit/templates/methodology.md
 Version: v0.2 — the tag pinned in requirements.txt, so the cited section numbers and the
-checker that enforces them name the same release. The body is byte-identical to that tag's template.
+checker that enforces them name the same release. The body was byte-identical to that tag's
+template until the local divergence below.
 Vendored: 2026-09-22
 Edit upstream and re-copy. The report cites section numbers, and an upstream edit renumbers them.
+
+LOCAL DIVERGENCES, not yet upstream. Both are subsections, so no ## number moved; push them
+to the template before the next vendoring, or re-copying will drop them:
+  §2 "Data files hold readings, not results" (2026-09-24)
+  §9 "Cost calculation approach (AWS)" (2026-09-25)
 -->
 
 # Methodology
@@ -125,6 +131,27 @@ number the registry resolves?* `formats.md` is what makes that question askable 
 attaches to the digits, which shapes a scan ignores on purpose, and the three states a number
 can be in. A number outside the contract is not an error; a number that looks checked and is
 not is the failure worth engineering against.
+
+### Data files hold readings, not results
+
+An execution's `data/` is the record of what an authority returned: a Prometheus sample, an AWS
+API response, a CUR row, a generator's own summary line. Every number in such a file is a field
+of one of those, or what a tool computed from them in the same run, and the file names what
+produced it — the query or command, the window, `generated_at`.
+
+Nothing typed by hand goes in. A figure copied from the registry, a subtraction done in an
+editor, an estimate, an interpretation shaped as a field: those are results, and results live in
+the registry, where a formula is checkable and a ref can be marked. A result frozen into a data
+file has no way to fail. The registry's check never reads it, so it agrees with nothing and
+drifts, and the file goes on looking like evidence while it does.
+
+The test is mechanical: *could the command named in the file produce the file again?* A number
+that needs a person in the loop fails it. What that costs is the measurement itself: a total
+whose own inputs were never saved cannot be re-derived once the cluster is gone, and what
+remains is a figure with a provenance line pointing at a file that cannot support it.
+
+Prose belongs there and is not data: `note`, `interpretation` and `revision_note` carry what the
+author saw, read as commentary written on a date.
 
 ---
 
@@ -348,6 +375,24 @@ is the lower bound of where the design makes economic sense.
 
 **A build comparison needs the realistic alternative**, not the dramatic one. If the platform
 exists regardless, the alternative is a different mode on the same platform.
+
+### Cost calculation approach (AWS)
+
+- **CUR 2.0 supplies the inventory; the arithmetic is yours.** Hourly rows say what stood in a
+  window and what it was billed for. Sum them only where the window is the answer — a run, a
+  marginal cost.
+- **A monthly figure is inventory × published unit rate × 730.** The rate comes from the Price
+  List API, or off the CUR row that carries it. Dividing a bill gives an average, not a rate.
+- **EBS is size × $/GB-month**, not volume-hours summed.
+- **Variable lines are rest-hour usage × rate × 730** — NAT and transfer bytes projected from the
+  resting hour, and marked as projected.
+- **`line_item_unblended_cost`, usage line-item types only.** Tax, credits, refunds and monthly
+  fees land in an arbitrary hour and corrupt a window.
+- **Spot carries one hour's price into all 730.** Name the resting hour with the figure; a spot
+  line whose hour is unnamed cannot be re-read. Run windows are priced per node from the quote in
+  force at that node's `first_seen`.
+- **Split cost allocation is how a shared EKS line breaks down per workload.** Child rows sit
+  under the parent total, so counting both doubles the shared lines.
 
 ---
 
