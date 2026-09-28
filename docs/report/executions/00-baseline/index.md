@@ -96,7 +96,7 @@ System configuration params under test.
 ### Cost basis → report §4
 
 - **Source of record** — CUR 2.0, hourly, resource IDs and split cost allocation on, at `s3://simple-rag-cur-reports-883f615c/cur2/simple-rag`
-- **Method** — `methodology.md` §9, "Cost calculation approach (AWS)". Nothing here departs from it
+- **Method** — `docs/report/methodology.md` §9, "Cost calculation approach (AWS)". Nothing here departs from it
 - **Cost column** — `line_item_unblended_cost` (§9). `line_item_amortized_cost` differs for the same node under a Savings Plan; none is active on this account
 - **Region and currency** — `eu-central-1` (`terraform/variables.tf`, not overridden in `terraform.tfvars`) · USD
 - **Rate card** — `./data/price-2026-09-09.json` plus every `R` figure in `figures.yaml`. Some are read off CUR rows, some from the AWS Price List API — the PrivateLink per-GB rate was pulled 2026-09-22, later than the rest. Fargate and Bedrock are carried because no run buys them. **A monthly fee is the one place where an hourly CUR row and the rate card disagree, and the card wins** (§9): `eu-central-1-KMS-Keys` bills $0.0013889/h because AWS prorated $1.00 across September's actual 720 hours, so projecting the hour on the 730-hour convention would read $1.0139. FD8 is $1.00 from FR19. Verified against the resting hour 2026-09-26; every other hourly line reads the same either way
@@ -175,12 +175,12 @@ Same HA topology (2 core, 2 database, 2 serving nodes, 3 AZs, 2 Karpenter replic
 | Serving nodes | 2 × c7i-flex.2xlarge Spot | 2 × c7i-flex.xlarge On-Demand, $0.1935<!--FR11-->/h; 1 API + 1 TEI on each | TEI + API ran on xlarge nodes the full hour 09-05 11:00; needs TEI requests 3/4 (HEAD has 6/8). The tier stays amd64 for a reason that is not sizing: `tei-embeddings`' image has no arm64 manifest, so the Graviton move made on the database line above is not available here | 276.96<!--FD16--> | 282.51<!--FE4--> |
 | Qdrant PVCs | 2 × 50 GB gp3 | 2 × 10 GB gp3 | collection snapshot 496 MB | 9.52<!--FD14--> | 1.90<!--FE5--> |
 | Karpenter on Fargate | 2 × 0.5 vCPU / 1 GB (request 300m) | 2 × 0.25 vCPU / 1 GB (request 250m) | controller CPU ≈ 0 at rest (probe) | 41.45<!--FD4--> | 24.46<!--FE6--> |
-| Interface VPC endpoints | 2 × 3 AZ (`bedrock`, `bedrock-runtime`) | 1 × 3 AZ: the `bedrock` control-plane endpoint is a defect, not a size | nothing reaches it; the API imports only `bedrockruntime` (errors table) | 52.56<!--FD15--> | 26.28<!--FD47--> |
+| Interface VPC endpoints | 2 × 3 AZ (`bedrock`, `bedrock-runtime`) | none — both removed | two reasons, not one: the `bedrock` control-plane endpoint is a defect reachable by nothing (errors table), and the runtime endpoint is withdrawn by decision — its break-even sits 55× above the design volume and the privacy boundary it was bought for was never in effect, both endpoints being in `eu-central-1` while the client calls `us-east-1` (`ADR-0018`) | 52.56<!--FD15--> | 0 |
 | Core nodes | 2 × t3.large On-Demand | unchanged | memory never measured; CPU alone would fit t3.medium | 140.16<!--FD2--> | 140.16<!--FD2--> |
 | Everything else fixed | | unchanged | | 157.50<!--FD84--> | 157.50<!--FD84--> |
-| **C fixed** | | | | **866.79<!--FD27-->** | **753.26<!--FE10-->** |
+| **C fixed** | | | | **866.79<!--FD27-->** | **726.98<!--FE10-->** |
 | Variable at rest | | unchanged | | 10.76<!--FD28--> | 10.76<!--FD28--> |
-| **C total** | | | | **877.54<!--FD29-->** | **764.02<!--FE11-->** |
+| **C total** | | | | **877.54<!--FD29-->** | **737.74<!--FE11-->** |
 
 Every row above argues from an observed working set. CUR argues the same case from the billing
 side, independently: in the resting hour the six nodes cost $0.8298<!--FD129--> ᴰ (the Floor's three

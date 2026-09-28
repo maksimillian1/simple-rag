@@ -29,7 +29,7 @@ repair.
 
 The floor is not a bill for a month, or for a day. CUR gives the inventory of one resting hour
 and what it was billed for; the month is that inventory times a published unit rate times 730
-(`methodology.md` §9). The multiplier is a rate convention and is exact. What is assumed is that
+(`docs/report/methodology.md` §9). The multiplier is a rate convention and is exact. What is assumed is that
 the hour is typical, and one hour catches neither a daily nor a weekly cycle.
 
 Spot is where the assumption bites hardest: a spot line carries that hour's price into all 730,

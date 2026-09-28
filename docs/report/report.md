@@ -7,7 +7,7 @@ and at what monthly volume the design pays for itself.
 - **System under test** — chunker `sha-404a267` · indexer `sha-32365dc` · api `sha-bafdc1f` · tei `cpu-1.6` (tag, no digest pin) · commit `1ef1f0a8` · 2026-09-05 (the last cluster-identity capture before teardown; tags, not `sha256:` manifest digests, per `00-baseline`). That commit carries TEI at 6 cores / 8 limit, which only `inference-r1000` ran on; every other point, and the whole floor, ran `cfa0ab79` at 3 / 4 (`docs/tech-debt.md` #4)
 - **Envelope** — text-layer PDF corpus, bulk drop · N ≤ 125 · R ≤ 1000 req/s (untested above; no ceiling was found, and 1000 is not a swept maximum) · EKS + Karpenter Spot, KEDA autoscaling from 2 replicas, self-hosted Qdrant, TEI `bge-small-en-v1.5` · `eu-central-1`
 - **Executions** — `00-baseline` · `01-ingestion` · `02-inference`
-- **Cost source** — `methodology.md` §9 "Cost calculation approach (AWS)", basis in `00-baseline` §2 · AWS Cost and Usage Report 2.0 · `eu-central-1` · USD
+- **Cost source** — `docs/report/methodology.md` §9 "Cost calculation approach (AWS)", basis in `00-baseline` §2 · AWS Cost and Usage Report 2.0 · `eu-central-1` · USD
 - **Raw data** — `executions/{00-baseline,01-ingestion,02-inference}/data/`. No charts in v1.0 (D7)
 - **Figures** — measured unless marked: ᴰ derived · ᴿ recorded · ᴱ estimated
 - **Supersedes** — —
@@ -38,7 +38,7 @@ published.
 | Generation cost per 1k queries — Bedrock | estimated ᴱ | §4.2 · `02-inference/E18` | — | v1.0 |
 | Behaviour above the sustained rate | out of scope | — | whether the deployment degrades or collapses under overload. Latency past capacity measures the generator's backlog, so it needs served-rate and status-code instruments and its own runs | v1.1 |
 | Scaler tuning — thresholds and cooldowns | declared, not measured | — | how much of the convergence time is configuration rather than node provisioning, and what a faster trigger would cost in replica churn | v1.1 |
-| Idle floor, split A / B / C | one resting hour's inventory × published unit rate × 730 ᴰ (`methodology.md` §9). The hour was revised down from a planned 24 h because no cluster ever sat idle that long (`00-baseline` Preflight), so the projection carries that hour's prices, Spot included | §4.1 · `00-baseline` §2 Floor | — | v1.0 |
+| Idle floor, split A / B / C | one resting hour's inventory × published unit rate × 730 ᴰ (`docs/report/methodology.md` §9). The hour was revised down from a planned 24 h because no cluster ever sat idle that long (`00-baseline` Preflight), so the projection carries that hour's prices, Spot included | §4.1 · `00-baseline` §2 Floor | — | v1.0 |
 | Errors found at rest, excluded from the floor | measured, itemised, not amortised ᴰ | `00-baseline` §2 Floor errors table | $175.85<!--FD35-->/month recurring and $78.31<!--FD36--> already spent sit outside every Floor figure here, being defects rather than sizing. The one exception is the `bedrock` control-plane endpoint, which was provisioned and billed and so stays inside the as-built floor (`docs/tech-debt.md` #12) | v1.0 |
 | Untaggable billing lines, mapped to the Floor rows that price them | recorded ᴿ | §4.1 · `00-baseline/R5` | — | v1.0 |
 | Amortization across volumes | derived ᴰ | §4.3 | — | v1.0 |
@@ -150,7 +150,7 @@ time-weighted mean of 19.5); the knee is the documented ceiling for a hurry.
 The sweet spot (N=25) sits at the edge of the clean-cost range: no N below it has a trustworthy
 cost read, and no refinement pass placed a clean point there. N=10 exists but is off-plan and
 non-standard; its real cost is higher than N=25's, so it neither unseats N=25 nor confirms a true
-minimum. `methodology.md` §7's caveat about this shape applies: the true minimum may sit below 25,
+minimum. `docs/report/methodology.md` §7's caveat about this shape applies: the true minimum may sit below 25,
 untested.
 
 ### 3.4 Shape of the ingestion cost curve
@@ -301,14 +301,14 @@ run window before any per-unit number is computed.
 ### 4.1 Floor
 
 One resting hour of a running, unloaded system, projected to a month at the published unit rates
-(`methodology.md` §9 · line-by-line audit in `00-baseline` §2 Floor). Split rather than totalled,
+(`docs/report/methodology.md` §9 · line-by-line audit in `00-baseline` §2 Floor). Split rather than totalled,
 and fixed separated from what still moves at rest.
 
 **As built** ᴰ
 
 | Block | Line | Fixed | Variable at rest | Total |
 | :--- | :--- | ---: | ---: | ---: |
-| **B · Dedicated** | Qdrant node + gp3 (current-gen PVC) · serving pool at 2+2 replicas · Bedrock interface endpoints · S3 at rest · SQS polling | $533.20<!--FD23--> | $0.93<!--FD24--> | **$534.12<!--FD26-->** |
+| **B · Dedicated** | Qdrant node + gp3 (current-gen PVC) · serving pool at 2+2 replicas · Bedrock interface endpoints (removed in the right-sized column, `ADR-0018`) · S3 at rest · SQS polling | $533.20<!--FD23--> | $0.93<!--FD24--> | **$534.12<!--FD26-->** |
 | A · Shared | EKS control plane · core node group · Karpenter on Fargate · NAT hourly · monitoring stack · the Gateway's load balancer | $333.59<!--FD21--> | $9.83<!--FD22--> | $343.42<!--FD25--> |
 | **C · Total** | `A + B` | $866.79<!--FD27--> | $10.76<!--FD28--> | **$877.54<!--FD29-->** |
 
@@ -318,11 +318,11 @@ NAT and cross-AZ transfer move at rest.
 
 | Block | Fixed | Variable at rest | Total |
 | :--- | ---: | ---: | ---: |
-| **B · Dedicated** | $436.67<!--FE8--> | $0.93<!--FD24--> ᴰ | **$437.59<!--FE9-->** |
+| **B · Dedicated** | $410.39<!--FE8--> | $0.93<!--FD24--> ᴰ | **$411.31<!--FE9-->** |
 | A · Shared | $316.60<!--FE7--> | $9.83<!--FD22--> ᴰ | $326.43<!--FE16--> |
-| **C · Total** | $753.26<!--FE10--> | $10.76<!--FD28--> ᴰ | **$764.02<!--FE11-->** |
+| **C · Total** | $726.98<!--FE10--> | $10.76<!--FD28--> ᴰ | **$737.74<!--FE11-->** |
 
-Block B right-sized, $437.59<!--FE9--> ᴱ, is the number §5's budget alarm is set against. That is a floor the
+Block B right-sized, $411.31<!--FE9--> ᴱ, is the number §5's budget alarm is set against. That is a floor the
 system is not running at today, chosen deliberately so the alarm tracks the target rather than
 the defect.
 
@@ -356,7 +356,8 @@ processed, including image pulls and model weight downloads. The hourly charge i
 per-gigabyte charge appears again in §4.2 as a marginal line.
 
 *Interface VPC endpoints are the second hidden line.* Each is billed per hour per availability
-zone, before a byte moves. Two of them exist only for this feature.
+zone, before a byte moves — which is exactly why both were removed (`ADR-0018`, §4.5): a fixed
+$26.28/month each that a per-gigabyte discount only repays 55x above this system's design volume.
 
 *Quantization sets the database instance class.* At 1M points × 384 dimensions, an INT8-quantized
 resident copy needs 0.384 GB against 1.536 GB for float32 ᴰ, which is why a `.large` node holds
@@ -497,21 +498,24 @@ wire:
 | Generation | $508.64<!--FD51--> ᴱ | $508.64<!--FD51--> ᴱ |
 | Network as a share of generation | 0.12<!--FD55-->% ᴱ | — |
 
-Transport is not a cost argument on this path. `ADR-0007` rests on a privacy boundary, which
-holds, and on "slashes NAT Gateway data processing charges", which does not; `ADR-0017` supersedes
-that clause and carries this calculation. Every byte figure is
-estimated; `02-inference/K4` carries the assumptions and their biases.
+The endpoint's three ENIs cost $26.28<!--FD48-->/month whatever the traffic, and its data rate is
+$0.01<!--FR15-->/GB where the NAT charges $0.052<!--FR4-->. It repays that fixed cost at
+625.71<!--FD49--> GB/month, which at 12,248<!--FD40--> bytes a query is 54,854,311<!--FD50--> ᴱ
+queries per month — **55x the reference volume**, and a volume the sweep never approached. Below
+it the endpoint costs more than the NAT it replaces.
 
-**Condition:** the endpoint's three ENIs cost $26.28<!--FD48-->/month whatever the traffic, and
-its data rate is $0.01<!--FR15-->/GB where the NAT charges $0.052<!--FR4-->. It repays that fixed
-cost at 625.71<!--FD49--> GB/month, which at 12,248<!--FD40--> bytes a query is
-54,854,311<!--FD50--> ᴱ queries per month, a volume the sweep never approached. Below it the
-endpoint costs more than the NAT it replaces, and the case for it rests on the privacy boundary
-alone.
+`ADR-0007` chose the endpoint on a privacy boundary and on "slashes NAT Gateway data processing
+charges". The second is measured false by the margin above. **`ADR-0018` removes both endpoints**:
+the cost claim is wrong, and the privacy boundary is not worth $26.28/month at this volume — nor
+was it ever in effect, both endpoints being in `eu-central-1` while the client calls `us-east-1`.
+Generation now egresses through NAT, protected by TLS and IAM rather than by a VPC perimeter, and
+no claim to the contrary stands in this report. Every byte figure is estimated; `02-inference/K4`
+carries the assumptions and their biases, and one real generation run replaces all three at once.
 
-Reading the deployment also settles two defects without a run, both `docs/tech-debt.md` #12: the
-`bedrock` control-plane endpoint, $26.28<!--FD47-->/month of `block_b_fixed`, is reachable by nothing, and
-the runtime endpoint's private DNS never matches the hostname the client resolves.
+The same reading settles two defects without a run, both `docs/tech-debt.md` #12: the `bedrock`
+control-plane endpoint, $26.28<!--FD47-->/month of `block_b_fixed`, is reachable by nothing, and the
+runtime endpoint's private DNS never matches the hostname the client resolves. `ADR-0018` closes
+both by deletion rather than by repair, and the endpoints are gone from `vpc.tf` as of 2026-09-28.
 
 ---
 
@@ -534,4 +538,5 @@ the runtime endpoint's private DNS never matches the hostname the client resolve
 | Backfill concurrency during query hours | not set; the contention pass never ran (§3.8), so there is nothing to base it on | §3.8 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` |
 | Ingestion backlog alert | not set; `01-ingestion` never defined a drain-rate alert formula distinct from the point-close criterion already in use | §3.1 | `prometheus/rules.yaml` |
 | Do not move the query path to a VPC endpoint on a cost argument | crossover 54,854,311<!--FD50--> ᴱ queries/month, against a reference volume of 1,000,000<!--FE14-->. Below it the endpoint costs more than the NAT it replaces, so the decision rests on the privacy boundary in `ADR-0007` alone. The figure is estimated, not measured (`02-inference/K4`), so treat it as an order of magnitude | §4.4 | `terraform/` VPC endpoints, `ADR-0007` |
-| Budget alarm | recommend $612.63<!--FD56--> ᴱ/month (right-sized Block B × 1.4 = $437.59<!--FE9--> × 1.4). Set against the right-sized floor rather than the as-built one, so the alarm tracks the target the tech-debt items move toward instead of pinning today's defects in place; the as-built floor would put it at $747.77<!--FD57--> ᴰ (per D1, both columns are carried). `terraform/budgets.tf` does not exist, so nothing enforces this today (`docs/tech-debt.md` #11) | §4.1 | `terraform/budgets.tf` (not yet created) |
+| NAT topology | set `single_nat_gateway = false` ᴰ. A NAT gateway is zonal and does not fail over, so the single gateway the floor was measured on makes one zone a point of failure for node join (Cilium's image is pulled from a public registry, so a node without egress never leaves `NotReady`), for every image pull, and for the `ec2`, `ssm`, `sqs`, `s3` and `sts` APIs at once — the cluster freezes at its current size in all three zones, not just the lost one. Removing the dependency instead of duplicating the gateway costs more than duplicating it and is a project rather than a setting (`ADR-0017`), so this is the only available answer. One gateway per zone is $113.88<!--FD132--> against $37.96<!--FD5-->, plus two more Elastic IPs at $7.30<!--FD135-->, so **+$83.22<!--FD136-->/month**, 11.3<!--FD134-->% of the right-sized floor. That sits outside the floor rather than inside it: the right-sized column changes sizes and keeps the topology, and a gateway per zone is a topology change. `single_nat_gateway = true` stays available for development | §4.1 Floor · `ADR-0017` | `terraform/variables.tf` |
+| Budget alarm | recommend $575.84<!--FD56--> ᴱ/month (right-sized Block B × 1.4 = $411.31<!--FE9--> × 1.4). Set against the right-sized floor rather than the as-built one, so the alarm tracks the target the tech-debt items move toward instead of pinning today's defects in place; the as-built floor would put it at $747.77<!--FD57--> ᴰ (per D1, both columns are carried). `terraform/budgets.tf` does not exist, so nothing enforces this today (`docs/tech-debt.md` #11) | §4.1 | `terraform/budgets.tf` (not yet created) |

@@ -41,7 +41,7 @@ M18 confirms one sizing number once.
 | R21 | Qdrant point count at window close | `POST /collections/simple-rag/points/count` with `exact=true`, by `run-ingestion-point.py` | active | completeness check against the frozen corpus count; if it disagrees the denominator lies · the estimate on `GET /collections/simple-rag` lags indexing and is not used here |
 | D22 | docs/min | `00-baseline` §2 unit count ÷ wall time from R19 | active | |
 | D23 | TEI cost caused by the run | `M11 − (serving pool idle rate × window hours)`, cross-checked against the `tei` rows of M12 | active | zero when M9 stayed at 2 · the subtraction is what keeps a Floor line out of a marginal figure, and it is the same operation `02-inference/D16` performs on the same pool |
-| D24 | `$/run` | `M10 + D23 + M13 + M14` | active | floor lines excluded by definition (`methodology.md` §9) |
+| D24 | `$/run` | `M10 + D23 + M13 + M14` | active | floor lines excluded by definition (`docs/report/methodology.md` §9) |
 | D25 | `$/1M docs` | `D24 ÷ doc_count × 1e6` | active | the frontier's y-axis |
 | D26 | warm-up and unused-capacity share | `M12 unused_cost on the ingestion pool ÷ M10` | active | the U-curve mechanism → K1 · the Prometheus interval `M3 → M4` is the same effect read a second way, and the two are reported together rather than averaged |
 | D27 | marginal decomposition at the sweet spot | `M12` split into chunker, indexer, tei and unused capacity, plus `M13` and `M14` | active | components sum to D24 · the boundary between components inside it is an allocation rule, not a measurement → K5 |

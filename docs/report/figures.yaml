@@ -526,8 +526,12 @@ figures:
   block_b_fixed_rs:
     ref: FE8
     kind: E
-    formula: block_b_fixed - db_nodes + db_nodes_rs - serving_nodes + serving_nodes_rs - qdrant_pvcs + qdrant_pvcs_rs - vpc_endpoint_control_plane
+    formula: block_b_fixed - db_nodes + db_nodes_rs - serving_nodes + serving_nodes_rs - qdrant_pvcs + qdrant_pvcs_rs - vpc_endpoints
     unit: usd_per_month
+    source: >-
+      both Bedrock interface endpoints leave the right-sized floor as of 2026-09-28: the
+      control-plane one as a defect reachable by nothing, the runtime one by decision (ADR-0018),
+      its break-even sitting 55x above the volume this system is designed for
     group: right_sized
 
   block_b_total_rs:
@@ -568,7 +572,12 @@ figures:
   c_fixed_rs_sizing_only:
     ref: FE12
     kind: E
-    formula: c_fixed_rs + vpc_endpoint_control_plane
+    formula: c_fixed_rs + vpc_endpoints
+    source: >-
+      the right-sized fixed floor from sizing alone, with both Bedrock endpoints still in place.
+      The gap to c_fixed_rs is what removing them saves, for two different reasons: the
+      control-plane endpoint is a defect (#12) and the runtime endpoint is an architecture
+      decision (ADR-0018)
     unit: usd_per_month
     group: right_sized
     appears_in: [../tech-debt.md]
@@ -1996,6 +2005,57 @@ figures:
     source: the share of the resting hour's dollars that do arrive with a `feature` tag - M2's complement
     group: attribution
     appears_in: [executions/00-baseline/index.md]
+
+  nat_gateway_per_az:
+    ref: FD132
+    kind: D
+    formula: 3 * nat_gateway_hour * hours_per_month
+    unit: usd_per_month
+    source: >-
+      one NAT gateway in each of the three Availability Zones, which is what `single_nat_gateway =
+      false` provisions. A NAT gateway is zonal and does not fail over, so a single one makes its
+      zone a point of failure for node join, image pulls and every AWS API the runtime uses (ADR-0017)
+    group: guardrails
+    appears_in: [report.md]
+
+  nat_ha_delta:
+    ref: FD133
+    kind: D
+    formula: nat_gateway_per_az - nat_gateway
+    unit: usd_per_month
+    source: what the gateways alone cost over the single one the floor was measured on, before their addresses
+    group: guardrails
+
+  nat_ha_extra_ips:
+    ref: FD135
+    kind: D
+    formula: 2 * public_ipv4_hour * hours_per_month
+    unit: usd_per_month
+    source: a gateway per zone needs an Elastic IP per zone, two more than the single gateway the floor was measured on
+    group: guardrails
+    appears_in: [report.md]
+
+  nat_ha_total:
+    ref: FD136
+    kind: D
+    formula: nat_ha_delta + nat_ha_extra_ips
+    unit: usd_per_month
+    source: what per-AZ egress costs in full, gateways plus their addresses
+    group: guardrails
+    appears_in: [report.md]
+
+  nat_ha_share_of_c_rs:
+    ref: FD134
+    kind: D
+    formula: nat_ha_total / c_total_rs * 100
+    unit: percent
+    display: 1
+    source: >-
+      the full per-AZ cost against the right-sized Block C floor. It sits outside that floor rather
+      than inside it: the right-sized column changes sizes and keeps the topology, and a gateway per
+      zone is a topology change (ADR-0017)
+    group: guardrails
+    appears_in: [report.md]
 
   node_cost_hour:
     ref: FD129
