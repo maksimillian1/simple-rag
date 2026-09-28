@@ -90,8 +90,8 @@ windows recorded in R19 → K6:
                             --tag feature=simple-rag --split --format csv
 ```
 
-One invocation per point window. The serving pool idle rate from `00-baseline` §2 is subtracted
-before the figures land in `./data/frontier.csv`.
+One invocation per point window. The serving pool idle rate from `00-baseline` §2 is subtracted,
+and the result is written to that point's `./data/⟨point⟩.cost-estimate.json`.
 
 ### Run ledger
 
@@ -383,9 +383,27 @@ SQS + S3 (both ~$0, covered by the free tier at this volume). It excludes `apps-
 purpose: the underlying query shows it gross next to compute ($1.20/$0.90/$0.68/$0.39/$0.87 for
 125/75/50/25/10). `D23` (TEI above floor, net) is measured separately as of 2026-09-19 and added in
 the Matrix, so this table's last column sits below the Matrix's `$/1M docs` by exactly
-D23 × 10,000 at every point. It also excludes ~$0.9–1.15/hour of `baseline_other` (EKS control
-plane, two core nodes (`r7g.large`, `t3.large`), ELB, CloudWatch, KMS), which appears in every
-hour regardless of N and is fixed cluster overhead rather than marginal to any one point.
+D23 × 10,000 at every point. It also excludes `baseline_other`, everything billed in the window that is neither
+`apps-compute`, `apps-serving`, NAT, SQS nor S3. Re-read from CUR 2026-09-28 over the four full run
+hours (09-04 14:00–18:00Z) it is **$1.32–1.66/hour**, not the ~$0.9–1.15 this paragraph
+used to claim, and it is only partly fixed:
+
+| | $/hour | |
+| :--- | :--- | :--- |
+| 4 nodes: 2 × `t3.large` core + 2 × `r7g.large` database | 0.4504 | flat every hour |
+| EKS control plane, Karpenter on Fargate, EBS, ELB, public IPv4, KMS, the two Bedrock endpoints | 0.3393 | flat every hour |
+| cross-AZ transfer | 0.3362–0.8544 | scales with the run |
+| CloudWatch vended logs | 0–0.2376 | the control-plane logging defect, `00-baseline` errors table |
+
+So $0.7897/hour is genuinely fixed cluster overhead and agrees with the Floor read another way
+(C $1.2021/h minus serving $0.3833/h minus NAT $0.052/h = $0.7668/h, the gap being EBS detail and
+rate × 730 against a measured hour). The rest is not overhead at all: transfer more than doubles
+between the lightest and heaviest run hour, and the logging line is a defect that starts billing at
+15:00Z. Two corrections to the old sentence: the node list said "two core nodes
+(`r7g.large`, `t3.large`)", which merged two pools into one pair — core is 2 × `t3.large` and
+the database is 2 × `r7g.large`, four nodes in total — and "fixed cluster overhead rather than
+marginal" held for the flat $0.79 only. The endpoint line above is $0.072/hour of the flat part and
+is gone as of `ADR-0018`.
 
 Two things confirmed, one thing newly found:
 - **Direction holds** — the monotonic rise with N is real, not an artifact of the `M14` method.
@@ -540,7 +558,7 @@ cluster is gone) would turn this into a confirmed reading.
   the sweet spot (N=25, $24,875<!--FD75-->) → report §3.3
 - **Reference value** — no pre-sweep default `maxReplicaCount` was frozen for this parameter. This is its first exploration, so there is nothing to compare against. Fargate equivalent (D29): computed at N=25 — $0.7562<!--FD121--> against $0.2595<!--FD122--> on Spot for the two workers (§3 D29, report §4.4)
 - **Condition boundary** — `00-baseline` §2 Envelope, plus packing density, bulk-drop arrival and the TEI trigger
-- **Raw data** — no `./data/frontier.csv` was written and no `plot-frontier.py` exists. The Matrix is built directly from each point's `.jsonl`/`.cost-estimate.json`; chart it by hand from those files or from the Matrix before this execution closes
+- **Raw data** — `./data/⟨point⟩.jsonl`, `⟨point⟩.cost-estimate.json` and `⟨point⟩.meta.json` per point, plus `series.txt`, the collection configs and the upload logs. The Matrix is built directly from them. No chart in v1.0 (D7)
 
 ### M12 — split-cost decomposition by workload
 

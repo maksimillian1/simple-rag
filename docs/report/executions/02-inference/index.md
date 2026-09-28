@@ -447,8 +447,9 @@ synthesized placeholder, not an LLM completion) → K1.
   `kubectl get scaledobject -o yaml`, not assumed); the stubbed generation path; the restored
   (reloaded, see `01-ingestion/#10`) collection; generator placement outside the VPC via the NLB;
   `00-baseline` §2 Envelope
-- **Raw data** — no `./data/frontier.csv` and no `plot-rate.py` exist. The Matrix is built
-  directly from each point's `.jsonl`; chart it by hand from those files or from the Matrix
+- **Raw data** — `./data/⟨point⟩.jsonl`, `⟨point⟩.cost-estimate.json`,
+  `⟨point⟩.meta.json`, `⟨point⟩.point.md` and `⟨point⟩.generator.log` per point, plus
+  `series.txt`. The Matrix is built directly from them. No chart in v1.0 (D7)
 
 **Cost at the sustained rate** — D16 at r1000 (the top of the tested range) = $0.00088<!--FD82-->/1k
 queries gross (Matrix note). D17 (floor share) and E18 (generation, estimated) are not computed
