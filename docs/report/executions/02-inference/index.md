@@ -534,8 +534,12 @@ its own, so it is not a ceiling.**
 
 - **Evidence** — checked with `rate()` CPU (raw-counter arithmetic mishandles pod-restart
   resets). At `r1000`'s ramp peak, the busiest `tei-embeddings` pods hit 7.0–7.8 of their 8-core
-  limit (87–97.5%), a real, momentary saturation. `qdrant-0`/`qdrant-1` peaked at 0.877 / 1.568
-  cores, nowhere near a limit and never a factor at any rate tested. `api`'s busiest pod peaked
+  limit (87–97.5%), a real, momentary saturation. `qdrant-0`/`qdrant-1` peaked at 0.877 / 1.568<!--FM59-->
+  cores against a 2<!--FR27-->-core limit (`qdrant-values.yaml`), so the busier replica reached
+  78<!--FD137-->% of its own ceiling at `r1000` and far less at every rate below. Not a constraint
+  in this sweep, but the one component whose headroom the top of the range actually consumed, and
+  the two replicas hold the same single shard, so the 1.8x spread between them is read distribution
+  rather than data. `api`'s busiest pod peaked
   at 0.268 of its 0.5-core limit (~54%) at `r500`'s worst moment. It was never stressed at any
   rate, which is *why* it barely scaled: its `api-scaler` trigger (`sum(rate(cpu[2m]))/replicas`
   at threshold `0.2`, confirmed live) works correctly, and CPU demand didn't cross it until

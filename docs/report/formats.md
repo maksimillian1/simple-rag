@@ -1,7 +1,7 @@
 <!--
 Vendored from report-kit — do not edit here.
 Source: src/report_kit/templates/formats.md
-Version: v0.2 — the tag pinned in requirements.txt, so the text and the checker that
+Version: v0.3 — the tag pinned in requirements.txt, so the text and the checker that
 enforces it name the same release. The body is byte-identical to that tag's template.
 Vendored: 2026-09-22
 Edit upstream and re-copy. The report cites section numbers, and an upstream edit renumbers them.

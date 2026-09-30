@@ -1,0 +1,4 @@
+block,usd_per_month,label,mark,note
+B,534.12,B · Dedicated,D,"As built. Qdrant node + gp3 · serving pool at 2+2 replicas · Bedrock interface endpoints · S3 at rest · SQS polling. $533.20 fixed + $0.93 variable at rest. Right-sized, same HA topology: $411.31 (E), the floor §5's budget alarm is set against"
+A,343.42,A · Shared,D,"As built. EKS control plane · core node group · Karpenter on Fargate · NAT hourly · monitoring stack · the Gateway's load balancer. $333.59 fixed + $9.83 variable at rest. Right-sized, same HA topology: $326.43 (E)"
+C,877.54,C · Total,D,"A + B as built. Not read by the chart, which sums A and B itself. Right-sized, same HA topology: $737.74 (E)"

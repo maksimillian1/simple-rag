@@ -4,6 +4,17 @@ Numbers flow one way: `00-baseline` → `01-ingestion` / `02-inference` → `rep
 bottom; a section only starts once the decisions it depends on are made. Size is a guess: S ≤ 30
 min, M ≤ 2 h, L ≥ half a day. Work that needs a live cluster is in `docs/tech-debt.md`, not here.
 
+## 0.4 · Charts → `report-kit` (first)
+
+- [ ] 0.4.1 `docs/report/scripts/plot-charts.py` (799 lines, added 2026-09-29) moves into the
+  package and is invoked as `report-kit charts`, the same move `figures.py` made in §0.6. Pin it in
+  `requirements.txt` with the checker, and prove the two render identically before deleting the
+  local copy · M
+- [ ] 0.4.2 **This reopens D7**, which settled "remove for v1.0" and is why §3.2 and §3.6 now read
+  "No chart in v1.0" and why 2.5 stripped every `frontier.csv` and `plot-*.py` reference from the
+  execution documents. Re-decide D7 first: if charts ship, those places come back, and the CSVs the
+  script's `SCHEMA` declares have to be written from `figures.yaml` rather than by hand · S
+
 ## Settled numbers (from `00-baseline` Floor)
 
 | Figure | As built | Right-sized ᴱ |
@@ -73,7 +84,7 @@ rather than from here:
 - [x] 1.6 Done 2026-09-25. The approach is now stated once, as theses, in `methodology.md` §9 "Cost calculation approach (AWS)": CUR is the inventory and not the arithmetic, rows are summed only where the window is the answer, a monthly figure is inventory × published unit rate × 730, EBS is size × $/GB-month, variable lines are rest-hour usage projected, Spot carries one named hour's price into all 730, split-allocation child rows stay out of the parent total. `00-baseline` §2 now points at it and keeps only what is local: the bucket, the cost column's Savings-Plan note, region and currency, the rate card (incl. the Price List API rates § the PrivateLink per-GB pulled later), which resting hour each Spot figure rests on (Floor 09-04, campaign 09-05, half apart), and the reader — `pyarrow` directly, per M1, with the exporter's own prefix in `meta.cur`. Same pointer in `report.md` header and `meta.method`. The three wrong claims are gone: "a sum over its rows", "every other rate is in the CUR rows", "nothing about Spot is frozen" · S
 - [x] 1.7 Done 2026-09-25. K3 is now "The monthly floor is one resting hour projected": CUR gives the inventory of one resting hour, a published unit rate times 730 gives the month (`methodology.md` §9), the multiplier is exact and what is assumed is that the hour is typical. The month-close re-read is **kept, narrowed**: once the period closes the inventory and the published rates cannot move, so the second read touches only Spot and the variable lines — which is also where the assumption bites, the two captured resting hours being half apart. Preflight line 52 and the Retro line already say the second read is still open and stay as they are · S
 - [x] 1.8 [deleted] - `deploy/k8s/apps-applicationset.yaml`: comment says the loop is "cosmetic, no cost"; it is $74.86/month. Fix or delete the comment (AGENTS.md: no comments in config) · S
-- [ ] 1.9 Final read of `index.md` · S · (`00-baseline/questionnaire.md` deleted 2026-09-19; its six problems live on as 1.1–1.8 here and as sections 2–4)
+- [x] 1.9 Redefined 2026-09-29 into §0.7, not dropped. A full read of `00-baseline/index.md` is not what this document needs: its prose is evidence, the registry already enforces its numbers across 45 documents, and no reader reaches it except through a pointer in `report.md`. What is read instead is the sections `report.md` actually cites, listed in §0.7, with `humanizer` applied to those and not to the whole file · S · (`00-baseline/questionnaire.md` deleted 2026-09-19; its six problems live on as 1.1–1.8 here and as sections 2–4)
 
 ## 2 · 01-ingestion
 
@@ -83,7 +94,7 @@ rather than from here:
 - [x] 2.4 Done 2026-09-28, in the same sweep as 3.4. All three — `index.md:18`, `index.md:534` (line 518 when the task was written) and `metrics.md:44` (D24) — now read `docs/report/methodology.md`, and the fourth in the same file, `index.md:461`, reads `docs/report/formats.md`. D4 called this fixing relative paths, but none of the citations was ever a markdown link: they were bare filenames in inline code, so nothing resolved or failed to resolve. The change is to one form of reference, from the repository root, readable at any depth · S
 - [x] 2.5 Done 2026-09-28, removed rather than corrected. A file that was never written and a script that never existed do not belong in the report at all, so `frontier.csv`, `plot-frontier.py` and `plot-rate.py` are gone from every document, history included. Three places, one more than the task named: `01-ingestion` Raw data and `02-inference` Raw data both now list the files that do exist and close with "No chart in v1.0 (D7)" like `report.md` §3.2, and `01-ingestion/index.md:94` described the csv as a live pipeline step — it now names `⟨point⟩.cost-estimate.json`, where the netted figures actually land. Both Raw data lines also carried "chart it by hand before this execution closes", a standing instruction D7 had cancelled. The word `frontier` stays in `concepts.md` and `metrics.md`, where it names the curve rather than a file · S
 - [x] 2.6 Questionnaire deleted 2026-09-19. `D29` stays declared-not-made (§4.4, tech-debt #10), `methodology.md` is D4, and the "N=10 rests on one run" caveat is already in the Matrix · S
-- [ ] 2.7 Final read of `index.md` · S
+- [x] 2.7 Redefined 2026-09-29 into §0.7, not dropped. A full read of `01-ingestion/index.md` is not what this document needs: its prose is evidence, the registry already enforces its numbers across 45 documents, and no reader reaches it except through a pointer in `report.md`. What is read instead is the sections `report.md` actually cites, listed in §0.7, with `humanizer` applied to those and not to the whole file · S
 
 ## 3 · 02-inference
 
@@ -94,7 +105,7 @@ rather than from here:
 - [x] 3.5 Questionnaire deleted 2026-09-19. Contention is a declared scope boundary (D3), the Bedrock calibration stays open in `report.md` §1 Verdict and tech-debt #9, the `point.md` files are D8 · S
 - [x] 3.6 Done 2026-09-22. `endpoint_processed_gb` (FR15) is **$0.01/GB** — Price List API, `AmazonVPC` / productFamily `VpcEndpoint` / usagetype `EUC1-VpcEndpoint-Bytes` / endpointType `PrivateLink`, first tier (up to 1 PB monthly; the 0.006 and 0.004 tiers are five orders of magnitude out of reach at 8.6 GB/month). Cross-check: the same family prices `EUC1-VpcEndpoint-Hours` at $0.012/h, which is `endpoint_eni_hour` (FR14) read independently from CUR — two sources agreeing on the neighbouring rate. The rate was pulled 13 days after the rest of the card, so it sits in `price-2026-09-09.json` as its own `privatelink` section carrying its own `pulled` date, and the file's top-level `note` now says the top-level date covers fargate and bedrock only. The whole `pending` chain resolved: `endpoint_breakeven_gb` 625.71 GB, **`endpoint_breakeven_queries` 72,648,746/month**, `endpoint_at_ref_queries` $26.37. All three print ᴱ, not ᴰ — `query_wire_bytes` carries an estimate upstream, and the marker is computed. §4.5's table cell `$26.28 ᴰ + pending ᴱ` became `$26.37 ᴱ` (FD54; the split into fixed plus processing is not printable without registering the processing component, which Rule 0 forbids doing in prose), and its "between 31.5M and 72.6M" range became the value — the old upper bound was this figure, so the range had already guessed the rate right. `D22` in `02-inference` moved blocked → active; `concepts.md` no longer calls it a range · S
 - [x] 3.7 Done 2026-09-28, in two ADRs rather than by editing 0007: an ADR is a dated decision record, and rewriting the 2026-05-31 rationale would hide that the decision rested on a premise measurement later contradicted. 0007 keeps its text and gains a Status pointer. **`adr/0017-nat-gateway-topology.md`** carries what the investigation turned up on the way — NAT is not an egress convenience but cluster-critical (a node stays `NotReady` until Cilium's image is pulled from a public registry, so no egress means no node join anywhere), a NAT gateway is zonal and does not fail over, and the seven things it would take to remove the dependency cost more than a gateway per zone; hence `single_nat_gateway = false` in production, +$75.92/month, carried as a §5 guardrail at $83.22 including the two extra Elastic IPs, stated as sitting outside the right-sized floor rather than inside it. **`adr/0018-bedrock-egress-transport.md`** supersedes 0007 clause 2 and **removes both Bedrock endpoints**: the cost claim is false by 45× at the reference volume (break-even 54,854,311 queries against 1,000,000), and the privacy boundary is withdrawn as not worth $26.28/month here — and was never in effect anyway, both endpoints sitting in `eu-central-1` while the client calls `us-east-1`. Generation now egresses through NAT under TLS and IAM, and no VPC-perimeter claim survives anywhere in the repository. Floor follows: `block_b_fixed_rs` loses `vpc_endpoints` rather than only `vpc_endpoint_control_plane`, so right-sized B $437.59 → **$411.31**, C $764.02 → **$737.74**, budget alarm $612.63 → **$575.84**, both right-sized crossovers and the floor share with them · S
-- [ ] 3.8 Final read of `index.md` · S
+- [x] 3.8 Redefined 2026-09-29 into §0.7, not dropped. A full read of `02-inference/index.md` is not what this document needs: its prose is evidence, the registry already enforces its numbers across 45 documents, and no reader reaches it except through a pointer in `report.md`. What is read instead is the sections `report.md` actually cites, listed in §0.7, with `humanizer` applied to those and not to the whole file · S
 
 ## 4 · report.md (after 1–3)
 
@@ -108,5 +119,34 @@ rather than from here:
 - [x] 4.8 Done 2026-09-26. Of the three carries, one had landed, one did not apply, one was half done. **§3.1 `TEI $`** already carried the measured D23 (FM21-FM25, $0.82 / $0.52 / $0.29 / $0.01 / $0.31 for n125-n10, matching 2.1 to the cent), with `$/run` and `$/1M docs` moved with it and the sweet spot at $24,875. **§3.3's `methodology.md` citation** needed nothing: D4's relative-path fix is for the execution documents two levels down, while `report.md` sits in the same directory as the vendored file, so the bare name resolves — and §7 "Sweep coarse to fine" does carry the cited caveat ("minimum on a range boundary — not proven, no descending branch on one side"), which is what §3.3 leans on. **§3.6** carried 3.1's gross values but its column header was still authored by hand as `$/1k queries ᴿ` when FD78-FD82 are `kind: D`; the marker is computed, not authored (§0.6), and the checker cannot see a marker in a header. Fixed to `$/1k queries (gross) ᴰ`, matching `02-inference`'s name for the same column, and a paragraph under the table now says what gross means here and points at the campaign marginal $0.00375 — the omission mattered more than the marker, being the same confusion that forced `query_per_1k_gross` to be deleted in 3.2 · S
 - [x] 4.9 Done 2026-09-25 per D7, references removed rather than charts built. §3.2 keeps its number (renumbering would break every citation of §3.3–§3.8) and is retitled "Ingestion — frontier": it now says there is no chart in v1.0 and that §3.1's Matrix is the frontier, plus the one thing the chart spec got wrong — `$/1M docs` rises with N instead of dipping to a minimum. §3.6's chart paragraph is replaced by one line pointing at its own Matrix. No `assets/` or `frontier.csv` reference is left in `report.md` · S
 - [x] 4.10 Clean 2026-09-21: the grep returns nothing outside `figures.yaml`'s own `retired` list, and `figures.py check` reports `retired values: none` across all 9 scanned documents. **Data files covered 2026-09-24** (0.5.3): `scan` carries `executions/*/data/*.json`, and `check` is clean at 47 documents. What a substring scan still cannot see in a JSON number is 0.5.4 · S
-- [ ] 4.11 §1 Verdict (D9) · S
-- [ ] 4.12 Final read of `report.md`, last: after 4.7, 4.8, 4.11 · S
+- [x] 4.11 Settled 2026-09-28: **ship with guardrails**, the owner's call per D9. §1 now carries a "What the sweep settled" block above the Verdict: four findings, one each for ingestion, the query path and the baseline, and a fourth on the two paths having opposite operating points. The `Primary constraints` number bullet was dropped into them rather than kept alongside, since it restated the first two; nothing was lost, the constraint ladder itself living in §3.5 and its coverage rows. The Verdict names which §5 rows are conditions rather than suggestions (`single_nat_gateway = false`, the $575.84 budget alarm, the ingestion ceiling of 20) and which gap ships declared (E18, generation never measured, 136× the retrieval cost). Three figures were registered for it: `qdrant_cpu_peak` FM59, `qdrant_cpu_limit` FR27 and `qdrant_cpu_peak_share` FD137, plus `rightsize_fixed_saving` FD138. The Qdrant reading also corrected `02-inference` §3, which called 1.568 cores "nowhere near a limit" when the limit is 2 · S
+- [x] 4.12 Folded into §0.7 on 2026-09-29 as 0.7.1, which is the same work with the method written down: read for sense, then `humanizer`, then the §1 findings aloud. It stays last, after 4.7, 4.8 and 4.11, all of which are now closed · S
+
+---
+### The order
+
+- [ ] 0.7.1 `report.md` in full: read for sense first, then the `humanizer` pass, then re-read the
+  four §1 findings aloud. One file, and the only one a reader acts on · M
+- [ ] 0.7.2 The cited sections of the execution documents only, listed below. `humanizer` on those
+  sections, not on whole files: they hold 419 marked numbers whose printed digits must match the
+  registry, and rewriting prose nobody reads is churn with a real chance of moving a mark · M
+- [ ] 0.7.3 `check`, `validate` and `orphans` on every document afterwards. The mark count and
+  coverage must come back unchanged; if they moved, the rewrite touched a number · S
+
+### What `report.md` cites, and therefore what gets read
+
+Everything else in the three execution files is evidence: it is reachable, dated and checked, and
+no reader arrives at it except through one of these pointers.
+
+| Target | Where it lives | Cited |
+| :--- | :--- | ---: |
+| `00-baseline` §2 Results — Cost basis, Envelope, Floor, Right-sized floor | `index.md:66–201` | 10× |
+| `00-baseline` §1 Preflight, and `R5` | `index.md:13–65` | 2× |
+| `01-ingestion` §3 Results — Matrix, M12, Saturation, Guardrails | `index.md:484–686` | 3× + `D23` `D25` `D26` `M10` `M12` |
+| `01-ingestion` §1 Plan and §2 Journal — Notes, and `M6` `M7` `M15` `D29` | `index.md:12–467` | 3× + 7 refs |
+| `02-inference` §3 Results — Matrix, Contention pass, Saturation | `index.md:383–565` | 5× + `D15` `D16` `M6` `M7` |
+| `02-inference` §1 Plan — `E18`, `K4`, `R14` | `index.md:12–142` | 7× |
+| `02-inference` §2 Journal — Notes | `index.md:143–382` | 1× |
+
+`E18` and `K4` carry the report's largest estimate and the assumptions under it, so they are read
+with the care given to §4.5, not as evidence.

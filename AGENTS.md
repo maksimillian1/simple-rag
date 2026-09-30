@@ -109,12 +109,20 @@ in this repository where prose is load-bearing.
   as a field is a result, and results live in `figures.yaml`. The test is whether
   re-running the command named in the file reproduces it. Prose fields (`note`,
   `revision_note`) are commentary, not data. Stated in full in `methodology.md` §2.
+* **`charts/*.csv` are views, not data:** one CSV per chart, each cell a transcription of
+  what a document already prints, rendered into `assets/*.svg` by `report-kit charts`.
+  Nothing in a chart CSV is a new claim, and no number is computed there, and the renderer
+  is not edited to accommodate a value. The live column contract is
+  `report-kit charts --list`; the reasoning behind it is `charts.md` inside the pinned
+  package, not vendored here because no document in this report cites it.
 * **`formats.md`** is the contract for how a number is written and marked.
 * **`methodology.md`** is why the structure is shaped this way. Both are vendored from
   report-kit and carry a provenance header — edit upstream, not here.
-* **Verify before calling a change done:** `report-kit figures check`, run from
-  `docs/report/`. The command ships with report-kit, pinned to a tag in
-  `docs/report/requirements.txt` — install it with
+* **Verify before calling a change done:** `report-kit figures check` and
+  `report-kit charts --check`, both run from `docs/report/`. `charts/*.csv` is in the
+  registry's `scan`, so the first covers the charts' numbers along with the prose; the
+  second only answers whether each CSV's columns still support its chart. Both ship with
+  report-kit, pinned to a tag in `docs/report/requirements.txt` — install it with
   `pip install -r docs/report/requirements.txt`.
 * A hook in `.claude/settings.json` states the contract before an edit under
   `docs/report/` and runs the checker after one. It informs rather than blocks, so a

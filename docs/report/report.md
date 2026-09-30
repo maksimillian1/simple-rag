@@ -60,9 +60,41 @@ published.
 * **Sustained query rate** — ≥1000 req/s ᴿ at p95 = 2425ms once converged, on 6 API and 30 TEI replicas. The design target in `architecture.md` is p95 < 200ms. It is missed by ~2225ms, almost all of which is the frozen 2000ms Bedrock stub delay rather than system latency. No rate up to 1000 hit a ceiling
 * **Retrieval cost** — $0.00375<!--FD65--> / 1k queries ᴰ marginal (CUR actual for the whole campaign, with the resting floor netted out once at campaign level; the per-point provisional `D16` figures understate it 1.5–4.3×, `02-inference` §3). On top of that: $0.000203<!--FD45--> ᴰ floor share at the sustained rate, a best case that assumes 1000 req/s continuously and grows far higher at realistic utilization (§4.3), and ~$0.51<!--FD39--> ᴱ for generation (1,800<!--FE1--> assumed input + up to 512<!--FR17--> output tokens × the real Bedrock rate). If generation is turned on, it would be ~136<!--FD115-->× the retrieval cost and dominate the total
 * **Idle floor, Block B** — $534.12<!--FD26--> / month ᴰ (Block C total: $877.54<!--FD29--> ᴰ). This is what the feature costs with zero traffic on a platform that exists anyway
-* **Primary constraints** — ingestion: none by resource signature; the limit is architectural. The sequential loop in `apps/indexer/src/main.py` keeps one TEI call in flight per pod, so throughput scales 1:1 with replica count rather than with CPU or memory · query: none found up to 1000 req/s. TEI's scale-out lags a rate step and then catches up, which is not a ceiling. Neither path has a price for the next scaling step, because neither hit a limit to relieve
 
-**Verdict** — left to the business owner. Technical read: the system is cheap to run and has headroom on both paths at the volumes tested. One gap stands between this and a shippable verdict: no measured cost for real Bedrock generation (E18, `docs/tech-debt.md` #9), the largest single number in the query-path cost and the one this report can least confirm. The Fargate comparison is made (D29, §4.4), at the N=25 sweet spot only; the other four points need the same integration of `M5` (#10). The contention pass is a declared scope boundary (Coverage) and not a second gap: every query-path finding holds for an idle ingestion path only
+**What the sweep settled**
+
+* **Ingestion is capped by code, not by hardware.** Nothing saturated at any N. Throughput scales
+  with replica count because the sequential loop in `apps/indexer/src/main.py` holds one TEI call in
+  flight per pod, so 26 embedding replicas were needed to reach 2.60 docs/min at N=125, and docs/min
+  was still climbing when the sweep stopped on cost rather than on a ceiling. Sizing cannot move
+  this line. The loop can.
+* **On the query path the component closest to a hard ceiling is the one that cannot scale.** TEI
+  touched 97.5% of its CPU limit during r1000's ramp, which more replicas relieved and did. Qdrant
+  reached 1.568<!--FM59--> of its 2<!--FR27-->-core limit, 78<!--FD137-->%, and has nowhere to go:
+  two replicas hold one shard at every rate. What the path costs follows arrival rate, not volume.
+  Below ~55<!--FD143--> requests a second the bill is the floor; above it the floor falls to
+  22.2<!--FD141-->% at 500M queries a month and 12.5<!--FD142-->% at a billion, and everything paid
+  for beyond it is an embedding replica, since `api` holds two until ~300 req/s.
+* **The defects cost more than the sizing.** Errors found at rest recur at $175.85<!--FD35-->/month
+  against $139.80<!--FD138--> ᴱ saved by right-sizing every line in the floor. Looking for what
+  should not be running paid better than sizing what should.
+* **The two paths want opposite operating points.** Cost per document rises with concurrency:
+  $24,875<!--FD37--> ᴰ per 1M docs at the N=25 optimum against $88,161<!--FD72--> ᴰ at N=125. Cost
+  per query falls with rate: $0.00250<!--FD78--> ᴰ per 1k at 50 req/s against $0.00088<!--FD82--> ᴰ
+  at 1000. Ingestion is cheapest run slowly, the query path is cheapest run hot, and they share no
+  operating point, so spare capacity in one is not an argument for scheduling the other into it.
+
+**Verdict** — **ship with guardrails.** The system is cheap to run at the volumes tested and has
+headroom on both paths, and nothing found here blocks release. The guardrails are §5's committable
+values, and three of them are conditions rather than suggestions: `single_nat_gateway = false` in
+production (`ADR-0017`), the budget alarm at $575.84<!--FD56--> ᴱ/month, and the ingestion
+concurrency ceiling at 20 ᴱ. What ships with a declared gap is the generation cost: `E18` at
+~$0.51<!--FD39--> ᴱ/1k queries is an estimate, no run has called Bedrock, and it is
+136<!--FD115--> ᴱ times the measured retrieval cost, so the largest number in the query path is
+the one this report can least confirm (`docs/tech-debt.md` #9). The Fargate comparison is made at
+the N=25 sweet spot only; the other four points need the same integration of `M5` (#10). The
+contention pass is a declared scope boundary (Coverage) and not a gap: every query-path finding
+holds for an idle ingestion path only.
 
 ---
 
@@ -451,13 +483,32 @@ Uses Block B = $534.12<!--FD26-->/month and the real campaign marginal rate, $0.
 | 100 000 | $0.00534<!--FD102--> | 99.93<!--FD106-->% |
 | 1 000 000 | $0.000538<!--FD103--> | 99.3<!--FD107-->% |
 | 10 000 000 | $0.0000572<!--FD104--> | 93.4<!--FD108-->% |
+| 500 000 000 | $0.0000048<!--FD139--> | 22.2<!--FD141-->% |
+| 1 000 000 000 | $0.0000043<!--FD140--> | 12.5<!--FD142-->% |
 
 Below ~21,472<!--FD41--> documents and ~142,547,228<!--FD43--> queries per month, the volumes where floor share drops
 under half, you pay mostly for the feature to exist rather than for work done. Those two volumes
 are the lower bound of where this design makes economic sense. Ingestion crosses 50% floor share
-at a modest volume because its marginal cost per unit is comparatively large. The query path's marginal cost per unit is three orders of magnitude
-smaller, so the floor dominates it at every volume in the query table: even 10M queries/month
-sits at 93.4<!--FD108-->% floor share, nowhere near the crossover.
+at a modest volume because its marginal cost per unit is comparatively large. The query path's
+marginal cost per unit is three orders of magnitude smaller, so its crossover sits at a rate the
+design has to be built for rather than a volume it might reach.
+
+**The query rows assume an arrival rate, and the low ones are out of the regime the rate was
+measured in.** A month holds 2,592,000 seconds, so the four smallest rows are 0.004, 0.04, 0.4 and
+3.9 requests a second sustained. The marginal was measured over a campaign that ran at 50 to 1000,
+where `tei-embeddings` scaled from 2 replicas to 30 and paid for the nodes underneath them. At 0.4
+requests a second nothing scales: the resting pair answers everything, no node is ever added, and
+the only marginal left is NAT bytes. So those rows overstate the marginal and their floor share is
+a lower bound, which makes the conclusion stronger rather than weaker. The three rows that do sit
+inside the measured range are the crossover at 55 requests a second, 500M a month at 193 (r200
+served 192.5) and a billion at 386 (between r300 and r500), and they are the ones to read. Above
+the crossover the marginal takes over quickly: the floor is down to 22.2<!--FD141-->% of the bill at
+500M and 12.5<!--FD142-->% at a billion, so most of what is paid there is work rather than standing
+cost.
+
+`api` is not what drives that. It held 2 replicas to ~300 requests a second and reached 6 only at
+828, never passing 54% of its CPU limit (§3.7). Every replica the marginal pays for above the
+crossover is an embedding replica.
 
 ### 4.4 Conditional alternatives
 

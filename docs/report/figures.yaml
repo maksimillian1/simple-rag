@@ -25,6 +25,7 @@ scan:
   - executions/02-inference/concepts.md
   - ../tech-debt.md
   - executions/*/data/*.json
+  - charts/*.csv
 
 figures:
   hours_per_month:
@@ -1584,6 +1585,68 @@ figures:
     display: 1
     group: amortization
 
+  seconds_per_month:
+    ref: FR28
+    kind: R
+    value: 2592000
+    unit: seconds
+    source: a 30-day month, the convention the monthly volumes in this section are read against
+    group: amortization
+
+  crossover_rate:
+    ref: FD143
+    kind: D
+    formula: queries_at_half_floor / seconds_per_month
+    unit: requests_per_second
+    display: 0
+    source: >-
+      the query crossover expressed as the arrival rate it implies. It falls between r050's served
+      45.5 and r200's 192.5, so it is interpolated inside the measured range rather than
+      extrapolated past it
+    group: amortization
+    appears_in: [report.md]
+
+  eff_per_query_500m:
+    ref: FD139
+    kind: D
+    formula: (block_b_total + query_per_query * 500000000) / 500000000
+    unit: usd_per_query
+    display: 7
+    source: >-
+      500 million queries a month is 193 requests a second sustained, which is r200's served rate.
+      Unlike the rows below the crossover, this one sits inside the range the marginal was measured
+      over
+    group: amortization
+    appears_in: [report.md]
+
+  eff_per_query_1b:
+    ref: FD140
+    kind: D
+    formula: (block_b_total + query_per_query * 1000000000) / 1000000000
+    unit: usd_per_query
+    display: 7
+    source: a billion queries a month is 386 requests a second sustained, between r300 and r500
+    group: amortization
+    appears_in: [report.md]
+
+  floor_share_queries_500m:
+    ref: FD141
+    kind: D
+    formula: block_b_total / (block_b_total + query_per_query * 500000000) * 100
+    unit: percent
+    display: 1
+    group: amortization
+    appears_in: [report.md]
+
+  floor_share_queries_1b:
+    ref: FD142
+    kind: D
+    formula: block_b_total / (block_b_total + query_per_query * 1000000000) * 100
+    unit: percent
+    display: 1
+    group: amortization
+    appears_in: [report.md]
+
   chunker_per_1m:
     ref: FM42
     kind: M
@@ -2055,6 +2118,46 @@ figures:
       than inside it: the right-sized column changes sizes and keeps the topology, and a gateway per
       zone is a topology change (ADR-0017)
     group: guardrails
+    appears_in: [report.md]
+
+  qdrant_cpu_limit:
+    ref: FR27
+    kind: R
+    value: 2
+    unit: cores
+    source: deploy/k8s/platform/qdrant/qdrant-values.yaml, resources.limits.cpu
+    group: saturation
+
+  qdrant_cpu_peak:
+    ref: FM59
+    kind: M
+    value: 1.568
+    unit: cores
+    display: 3
+    source: >-
+      the busier of the two Qdrant replicas at r1000's ramp peak, rate()-based CPU; qdrant-0 peaked
+      at 0.877 over the same window. One shard replicated on both, so the 1.8x spread between them
+      is read distribution rather than data
+    group: saturation
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  qdrant_cpu_peak_share:
+    ref: FD137
+    kind: D
+    formula: qdrant_cpu_peak / qdrant_cpu_limit * 100
+    unit: percent
+    display: 0
+    source: how close the database came to its own CPU limit at the top of the tested range
+    group: saturation
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  rightsize_fixed_saving:
+    ref: FD138
+    kind: D
+    formula: c_fixed - c_fixed_rs
+    unit: usd_per_month
+    source: what right-sizing the whole floor saves, against which the recurring errors are measured
+    group: totals
     appears_in: [report.md]
 
   node_cost_hour:

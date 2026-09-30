@@ -7,4 +7,11 @@
 #
 # Bump deliberately, then re-run the check and read the mark count before
 # treating the new version as equivalent.
-report-kit @ git+https://github.com/maksimillian1/report-kit@v0.2
+#
+# The [charts] extra pulls in matplotlib, which `report-kit charts` needs to
+# render `charts/*.csv` into `assets/`. Only to render: `charts --check`, which
+# cross-references those CSVs against figures.yaml, draws nothing and needs
+# nothing extra.
+#
+#   cd docs/report && report-kit charts --check && report-kit charts all
+report-kit[charts] @ git+https://github.com/maksimillian1/report-kit@v0.3
