@@ -113,8 +113,8 @@ in this repository where prose is load-bearing.
   what a document already prints, rendered into `assets/*.svg` by `report-kit charts`.
   Nothing in a chart CSV is a new claim, and no number is computed there, and the renderer
   is not edited to accommodate a value. The live column contract is
-  `report-kit charts --list`; the reasoning behind it is `charts.md` inside the pinned
-  package, not vendored here because no document in this report cites it.
+  `report-kit charts --list`, the mechanics are `report-kit charts --help`, and what may go
+  in a cell is `formats.md`.
 * **`formats.md`** is the contract for how a number is written and marked.
 * **`methodology.md`** is why the structure is shaped this way. Both are vendored from
   report-kit and carry a provenance header — edit upstream, not here.

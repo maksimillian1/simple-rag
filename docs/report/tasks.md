@@ -63,6 +63,11 @@ rather than from here:
 - **Both marking forms now parse.** The hidden form (`553.83<!--FD26-->`) always worked. The visible anchor `**$554** ᴿ (FD7)` did not: the checker allowed at most one character-class run before the `(`, so it matched only a bare `554 (FD7)` and skipped every anchor carrying bold or a trust marker — every anchor anyone would really write. Found by probing all four documented forms against the tool instead of reading the regex. Nothing in the report used the form, so no figure was ever wrongly verified; the contradiction was between `formats.md` and the checker.
 - **Renumbering has one hazard.** Refs are tool-assigned, so reclassifying or appending is free, but **deleting** a figure shifts every later ref of that letter while the marks already in documents keep naming the old numbers. Deleting `query_per_1k_gross` moved 28 `FM` refs. Append, never insert; after a delete, re-run `check` and read the mark count. Written up in the kit's `formats.md`.
 - **The checker comes from the package as of 2026-09-22.** `docs/report/scripts/figures.py` is deleted; the check is `report-kit figures check`, pinned to `v0.2` in `docs/report/requirements.txt`. The two were proved interchangeable before the swap — the package resolved this registry to the same 9 documents, 199 figures, 308 marks and 50/50 coverage at exit 0 — and v0.2 additionally skips fenced code blocks and inline code spans, which changed nothing here because no marked number lives inside one. The pin is a tag rather than a branch: these 308 marks were verified against one version of the resolver. The hook invokes it as `python3 -m report_kit.cli figures --path docs/report/figures.yaml check`, and both halves of that are load-bearing — a hook does not inherit an interactive shell's `PATH`, and the command finds a registry by walking *up* from the working directory, so from the repository root it would find nothing and exit 2 on every edit.
+- **Registry baseline, 2026-10-03.** `check` now resolves **50 documents, 267 figures, 492 marked
+numbers, coverage 126/126, retired values none**. The 199/308/50-50 counts in the 2026-09-21 bullet
+above are that day's record and stay as written; this line is the one to quote. Two additions since:
+group `steady_state` (b3) and the four remaining cells of report §3.4's unused-capacity column. The
+count moves whenever a figure is added, so read it from the tool rather than from here.
 - **The `bedrock` control-plane endpoint is an error, not a size.** It was provisioned and billed, so it stays inside the as-built floor and is listed in the `00-baseline` errors table; figure 2 removes it. That is the one line where the two figures differ for a reason other than sizing, and it widens the gap by $26.28/month (`docs/tech-debt.md` #12).
 
 ## 0.5 · Precondition for D2 (blocks 2.1, 3.1, 3.2)
@@ -123,6 +128,9 @@ rather than from here:
 - [x] 4.12 Folded into §0.7 on 2026-09-29 as 0.7.1, which is the same work with the method written down: read for sense, then `humanizer`, then the §1 findings aloud. It stays last, after 4.7, 4.8 and 4.11, all of which are now closed · S
 
 ---
+
+## Proofread
+
 ### The order
 
 - [ ] 0.7.1 `report.md` in full: read for sense first, then the `humanizer` pass, then re-read the
@@ -150,3 +158,184 @@ no reader arrives at it except through one of these pointers.
 
 `E18` and `K4` carry the report's largest estimate and the assumptions under it, so they are read
 with the care given to §4.5, not as evidence.
+
+---
+
+### Weak points to check before the read (flagged 2026-10-01)
+
+A review of `report.md` against the three execution files, `figures.yaml`, `tech-debt.md` and the
+decisions above, plus what the humanizer pass left standing inside the execution files. Each line is "where → what is wrong", in severity order inside each group. **†** the
+execution file is right and only `report.md` is wrong; **‡** the problem sits inside an execution
+file.
+
+Decisions live on a board rather than in this list: **Red Pencil** —
+`https://claude.ai/artifact/TFJZzPveHpxNNJuUiyVj2i`. It holds the chosen resolution per item, and
+any edited wording of it, in the artifact's own store: collection `decisions`, one document per id
+with `choice`, `texts` and `resolved`. The board is the working surface, this list is the record.
+**A resolved item leaves the board and is ticked here** — `- [x]` plus
+`· решено <date>: <what was done>` at the end of its line. Resolved so far: **b3**.
+
+#### a) Несостыковки — two places say different things
+
+- [ ] a1 **§3.4 denies the shape §3.1 prints.** "`$/1M docs` rises monotonically with N, N=10
+  through 125, no U-shape" against 44,707 → 24,875 → 44,335 → 61,573 → 88,161, a V with its
+  minimum at N=25. §1 and §3.2 repeat the wording. Defensible: "rises monotonically from N=25 upward"
+- [ ] a2 **§3.1 and §3.3 disagree on N=10.** §3.1: "its real cost is trusted". §3.3: "no N below it
+  has a trustworthy cost read" and "the true floor may sit below N=25, untested", though N=10 was
+  tested at a higher cost. † `01-ingestion` Sweet spot: "N=10 could already be past it and rising"
+- [ ] a3 **N=100 is in neither the matrix nor the excluded list.** Ledger #04 `ingestion-n100` is a
+  clean post-fix point (plus #03 `n50-test`, #04a `n100-sticky`); §3.1 excludes only N=4/12/24 and
+  175, so the reader sees five runs of eight and a1's claim spans a hole at 100. Check
+  `D24 ≈ $1.76/run` against the Matrix's `$/run` first
+- [ ] a4 **The planned grid is cited three ways.** §3.1 "4/12/24/refine/refine" against
+  `01-ingestion` Plan: {4,24,50,100,125,175}, revised from {4,8,12,16,20,24}, swept as {4,50,175}
+  plus refinements
+- [ ] a5 **The report's date precedes its content.** Header "v1.0 · 2026-09-09"; the text carries
+  the 2026-09-26 Gateway decision, `ADR-0018`, `vpc.tf` "as of 2026-09-28" and §5's 2026-09-19
+  changes
+- [ ] a6 **Dead citations.** The header cites `tech-debt.md` #4, deleted by 1.2; §4.1 cites "§4.5",
+  which doesn't exist (4.1–4.4), and `tech-debt.md` #12 cites it back
+- [ ] a7 **§1 leads with the as-built floor, against D1.** It gives $534.12 and $877.54 and no
+  right-sized figure
+- [ ] a8 **"Settled numbers" at the top of this file is stale**: B 553.83/457.30, A 323.71, C
+  764.02, crossovers 22,265 / 147.8M, floor share 0.000211, alarm 775.37/640.22, against the
+  report's 534.12 / 411.31 / 343.42 / 737.74 / 21,472 / 142.5M / 0.000203 / 747.77 / 575.84. Same
+  for D1's and D5's thresholds and D6's text. Fix or delete before the read, or it seeds wrong
+  corrections
+- [ ] a9 **The query crossover prints twice.** §4.2 "~148M queries/month" (the retired 147.8M)
+  against §4.3's 142,547,228
+- [ ] a10 **A month is 730 h and 720 h.** The floor projects × 730 (§4.2: 2,628,000,000 queries at
+  1000 req/s); §4.3 uses "2,592,000 seconds" for the 55 req/s crossover and the 193 / 386 readings
+- [ ] a11 **"Six points running"** for 84,018 (§2.1) against `01-ingestion` "the seventh time" and
+  `00-baseline` Topology, `n50-test` through `n10` (eight) †
+- [ ] a12 **Qdrant node count.** §3.7 "one dedicated node", §4.1 "Qdrant node + gp3", against
+  `00-baseline`: 2 × r7g.large, one shard replicated across both †
+- [ ] a13 **Waste boundary.** §3.1, §3.3 and the `01-ingestion` Matrix say "+39% cost"; the
+  `01-ingestion` Waste boundary line says "rises 35%". 6.16/4.43 = +39%, so that line is stale ‡
+- [ ] a14 **$1.4787 carries two markers**: ᴿ in §3.4's table, unmarked (FM50) in §4.4
+- [ ] a15 **Printed tables don't add** (rounding at print per §0.6, which the report never states):
+  533.20 + 0.93 = 534.13 printed 534.12; 410.39 + 0.93 = 411.32 printed 411.31; 410.39 + 316.60 =
+  726.99 printed 726.98; §3.1 N=25 1.09 + 0.01 + 1.38 = 2.48 printed 2.49. One footnote covers all four
+- [ ] a16 **Coverage's Status column mixes four kinds of value** (a status, a trust marker, a whole
+  method paragraph on the Idle-floor row), and "Since" means "measured since" on some rows and
+  "targeted for" on the v1.1 ones
+- [ ] a17 **`00-baseline` untagged lines.** Retro: "8 non-zero untagged lines, $0.21163"; R5 now
+  has 11 combos and $0.3758642 ‡
+- [ ] a18 **`00-baseline` right-sized endpoints.** The lead-in removes only the `bedrock` endpoint;
+  the table removes both (`ADR-0018`) ‡
+- [ ] a19 **`00-baseline` Retro cites "the worry in M2's own notes"**, which M2's notes don't
+  contain ‡
+- [ ] a20 **`01-ingestion` N=25 NAT**: $1.44 in prose, $1.38 in the Matrix's `Other $` ‡
+- [ ] a21 **`01-ingestion` "monotonic downward"** (ledger #09, Retro), where cost rises with N ‡
+- [ ] a22 **`01-ingestion` Retro: "`D23` is still the unresolved rough estimate"**; Close says it
+  was measured 2026-09-19 ‡
+- [ ] a23 **`02-inference` r050 served rate.** Notes keep it flagged "until the tighter re-read,
+  before it is used in §3's Matrix"; the Matrix already uses it ‡
+- [ ] a24 **`02-inference` #03 pod timing.** "Started at `13:38:52`, after the window closed at
+  `13:39:24`", but 13:38:52 is the earlier time ‡
+- [ ] a25 **`02-inference` #05 narrows the knee to (300, 500)**; #04 and the Finding say 500 is
+  sustainable and there is no ceiling ‡
+- [ ] a26 **`02-inference` contention pass at N=50**; the `01-ingestion` guardrail is now 20 ‡
+- [ ] a27 **`02-inference` TEI `maxReplicaCount` row** derives ~35-40 replicas from 6 cores per pod;
+  TEI is back at 3/4 since 2026-09-26 (4.7 fixed this in the report only) ‡
+- [ ] a28 Minor: `02-inference` Safeguards still holds the template placeholders `⟨wall time⟩ · ⟨$⟩` ‡
+
+#### b) Нелогичности — the claim does not follow from the data
+
+- [ ] b1 **The retrieval-latency claim fails its arithmetic, on a disclaimed instrument.** §3.7:
+  retrieval-only "would sit well inside 200ms", but 2425 − 2000 = 425 ms. p50 1672 ms sits *below*
+  the 2000 ms stub, which `02-inference` calls impossible for a constant sleep (Envoy buckets jump
+  1000 → 2500 ms, so p50/p95 are directional only). That caveat never reaches `report.md`, yet §1's
+  "missed by ~2225ms, almost all of which is the stub" rests on it †
+- [ ] b2 **The knee threshold contradicts the knee.** 10% gain per step gives 50, but 75 → 125 is
+  2.33 → 2.60 = +11.6%. `01-ingestion` has the same gap, and also says "no saturation point exists
+  to name as a knee", then names one
+- [x] b3 **≥1000 req/s comes from a row the report's own rule excludes.** §3.6 excludes rows where
+  served falls short of offered; r1000 served 828.3 (83%), r500 80%. "Once converged" is the way
+  out, but only a converged p95 and error rate are published, no converged *served* rate
+  · **решено 2026-10-03**: re-read both points sample by sample from their own `Q1`/`Q2` exports
+  and from the k6 logs, which had never been read (M1 takes served rate from Prometheus only).
+  Each point *holds* its offered rate at the p95 floor for about 1m45s — `r1000` 998–1,001 req/s
+  at 0.02% errors (14:57:16–14:59:01Z), `r500` 499–501 req/s at 0.25% (14:00:51–14:01:51Z) — while
+  the phase around the hold misses `D15`'s 0.1% bound (0.28% / 955 req/s and 0.49% / 457 req/s).
+  Both window averages also carry the generator's own shortfall: 30,985 of 600,000 scheduled
+  iterations dropped at `r1000` and 32,045 of 300,000 at `r500`, VU pool pinned at its ceiling,
+  plus a three-minute stall inside `r1000` that the Notes had written up as the system scaling in.
+  `report.md` declares the qualified figure once (§1 BLUF, §3.7) and carries `*` at every later
+  use; `02-inference`'s Finding, Matrix note, both phase tables, #04/#06 Notes and the Retro
+  follow. 17 figures registered as `figures.yaml` group `steady_state`; `check` clean at 263
+  figures / 488 marks / 122-122 coverage
+- [ ] b4 **§4.2's embedding row and §3.1's `TEI $` price the same thing ~33× apart.** §3.1 at N=25:
+  `TEI $` $0.01/run (D23 $0.0075 → ~$75/1M). §4.2: "Embedding tier above its always-on minimum"
+  $2,490/1M = $0.249/run ($3,256 − $766), and its netted floor share ($766/1M = $0.0766/run) misses
+  1.03 h × $0.18754/h = $0.193. Coverage points that row at `D23`, the other number. Either a double
+  count inside $24,875 or two unreconciled sources; the one item here that can move a headline, so
+  settle it first
+- [ ] b5 **§2.3 says no run measured a ceiling** ("set out of reach"); §5 says the TEI cap of 30
+  "was fully used at r1000 with zero margin"
+- [ ] b6 **"4 components … sum correctly" (§4.2)** is three plus a residual: the fourth ($19,790)
+  is the total minus the other three, and the same row says it doesn't reconcile with the Matrix
+- [ ] b7 **Defects-beat-sizing is computed with a defect inside the sizing.** §1: $175.85/month
+  against "$139.80 ᴱ saved by right-sizing every line". Per `tech-debt` #5 sizing alone is
+  $866.79 → $779.54 = $87.25; the other $52.56 is the two Bedrock endpoints, defects per §0.6 and
+  the errors table. The finding gets *stronger* with the right number
+- [ ] b8 **The quantization argument runs at 12× the collection.** §4.1 reasons at 1M points
+  (0.384 GB against 1.536 GB) for why "a `.large` node holds the collection at all"; the collection
+  is 84,018 points, which any node holds. The real reason for the class is the 2-vCPU / 1.568-core
+  peak, already in the section
+- [ ] b9 **"No constraint found" against "a real, momentary saturation".** §3.7 against
+  `02-inference` Saturation (TEI at 87–97.5% of limit). The no-ceiling proof also rests on r1000,
+  the only point at `cpu 6 / 8`; the five `3 / 4` rows publish no TEI CPU peak
+- [ ] b10 **Two superlatives.** §1 Verdict: generation (`E18`) is "the largest number in the query
+  path"; §3.8: contention is "the largest open item in this report", while the Verdict calls
+  contention a scope boundary "and not a gap"
+- [ ] b11 **§3.5 carries plan text for a sweep that never ran**: the N=4 → N=24 chunker argument
+  ("why the sweep runs to 24 rather than stopping at 12") and "If the embedding tier appears as
+  Tier 2 …", in future tense, with no Tier 2 observed and 4/12/24 never run (a4)
+- [ ] b12 **§3.5's Tier 2 precondition names the wrong component.** Tier 1 is the indexer's
+  sequential loop; the Tier 2 bullet reasons from "the chunker was never relieved by a resource fix"
+- [ ] b13 **N, `maxReplicaCount` and observed concurrency don't reconcile.** The live cap was 10
+  through every run (20 from 2026-09-19), yet N ran to 125 with the indexer "at its full 125/125
+  ceiling" and the chunker at ~20. Say once what N sets and what the cap limits, or §5's guardrail
+  of 20 reads as a value the sweep already passed
+- [ ] b14 **§3.1 claims a second docs/min measurement** ("the derivative of queue depth … catches a
+  run that stalled"), but §3 has no such result and §3.4's warm-up and tail columns are "not
+  captured". Cite it or demote it to method
+- [ ] b15 **§3.4 retracts itself.** "Split cost allocation reports them directly", then the next
+  paragraph: the number is fleet-wide and can't be separated from platform idle
+- [ ] b16 **Four rows share p95 = 2425 ms to the millisecond** (r200, r300, r500 and r1000
+  converged) without remark; against Envoy's 1000 → 2500 gap that is one interpolation artifact
+- [ ] b17 **§4.2's query table says "at the sustained rate"** for a campaign-wide marginal over
+  50–1000 req/s, and §4.3 then puts the low rows outside the measured regime
+- [ ] b18 **§5 keeps rows with no committable value** (eight "not set" / "not revised"), against D5
+  and `methodology.md` §10, and keeps "Backfill concurrency during query hours", which D3 deleted
+- [ ] b19 **A condition nothing enforces.** §1 makes the $575.84 alarm one of three conditions; §5
+  says `terraform/budgets.tf` doesn't exist. Make the condition "write it" (`tech-debt` #11) or drop it
+- [ ] b20 **Spurious precision on estimated crossovers**: 142,547,228 and 54,854,311 queries from
+  three-significant-figure inputs, the second called "an order of magnitude" in its own paragraph
+- [ ] b21 **§5 citations that lead nowhere.** "Max input file size | §3.5 · ADR-0001" (§3.5 has no
+  file-size content); "Chunks per SQS message | §4.2 SQS line" (§4.2 has no SQS line; SQS is in the
+  residual row)
+- [ ] b23 **The generator's own counters are published nowhere, and on two points they are
+  double-digit.** `dropped_iterations` — iterations k6 could not start because no VU was free —
+  runs 56 / 377 / 0 / **32,045** / **30,985** across r050-r1000, i.e. 10.7% of what was scheduled
+  at r500 and 5.2% at r1000, with the pool pinned at its ceiling both times. `02-inference` M1
+  takes served rate from Prometheus and never from k6's output, which is right for the system's
+  view and leaves the one instrument that says when the *generator* stopped being open-loop
+  unread. b3 put the two numbers into §3.6 and the Matrix note; what is still missing is the rule:
+  a point's close should print `dropped_iterations`, peak VU occupancy against `maxVUs` and k6's
+  progress cadence beside the Prometheus figures, and a point whose drop share is over a few
+  percent is a generator reading, not a system one. Written into `02-inference`'s Retro
+  ("Back into the kit", item 3) on 2026-10-03; it belongs in the kit's point template, not only
+  in this campaign's retro · S
+- [ ] b24 **§3.1's `Compute $` and `Other $` columns have no saved decomposition.** They split
+  `cur_marginal_nXX`, which is registered, but the split itself exists only as printed cents —
+  `orphans` reports all eight cells and nothing in `executions/01-ingestion/data/` carries them,
+  so they cannot be registered without inventing precision. One CUR pull over the five point hours
+  settles it, and K3's month-close re-read is owed anyway now that 2026-09 has closed. Until then
+  the two columns are the only unregistered numbers left in `report.md` · S
+- [ ] b22 Minor: "Article 1" (§4.1) is never identified; the header's "1000 is not a swept maximum"
+  means *not a proven ceiling* (1000 is the top rate swept); §1 marks the sustained rate ᴿ where
+  `D15` is derived (fixed in §3.6 by 4.8); §4.3's "`api` held 2 replicas to ~300 requests a second"
+  against 3 at r300 in the matrix; §4's formula adds the two denominators the lead-in says are never
+  mixed

@@ -2214,6 +2214,262 @@ figures:
     group: utilisation
     appears_in: [report.md, executions/00-baseline/index.md]
 
+  # --- group steady_state: added 2026-10-03, b3 ---
+  # The hold windows and their surrounding phases, read sample by sample from each
+  # point's own Q1/Q2 export (envoy_cluster_upstream_rq_total and _rq_xx{class="5"},
+  # rate()[1m] at a 15s step). Percentages are sum(5xx)/sum(served) over the window's
+  # samples: the 1m rate smoothing counts each event in both terms alike, so the ratio
+  # holds even though the sums are not request counts.
+
+  r1000_hold_served_lo:
+    ref: FM60
+    kind: M
+    value: 997.9
+    unit: requests_per_second
+    display: 0
+    source: >-
+      lowest 15s sample of Q1 over r1000's hold window, 2026-09-05 14:57:16-14:59:01Z, with
+      tei-embeddings at 30 replicas and p95 on its flat floor; ./data/inference-r1000.jsonl
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r1000_hold_served_hi:
+    ref: FM61
+    kind: M
+    value: 1000.7
+    unit: requests_per_second
+    display: 0
+    source: highest 15s sample of Q1 over the same hold window; ./data/inference-r1000.jsonl
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r1000_hold_err:
+    ref: FM62
+    kind: M
+    value: 0.0167
+    unit: percent
+    display: 2
+    source: >-
+      worst 15s sample of Q2/Q1 over the hold window (0.17 5xx/s against 1000.6 served/s at
+      14:59:01Z); every earlier sample in the window reads 0.00. Window total 0.002%
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r1000_phase_served:
+    ref: FM63
+    kind: M
+    value: 954.7
+    unit: requests_per_second
+    display: 0
+    source: >-
+      mean of Q1 over r1000's whole steady phase, 14:57:16-15:01:01Z: 30 replicas reached to the
+      generator stall. Pulled down by a 45s excursion at 14:59:16-15:00:01 (760-885 req/s)
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r1000_phase_err:
+    ref: FM64
+    kind: M
+    value: 0.2841
+    unit: percent
+    display: 2
+    source: sum(Q2)/sum(Q1) over the same phase; against D15's 0.1% bound
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r1000_dropped:
+    ref: FM65
+    kind: M
+    value: 30985
+    unit: iterations
+    display: 0
+    source: >-
+      dropped_iterations in ./data/inference-r1000.generator.log: iterations k6 could not start
+      because no VU was free. 568,923 started + 30,985 dropped = 599,908 of 600,000 scheduled
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r500_hold_served_lo:
+    ref: FM66
+    kind: M
+    value: 498.9
+    unit: requests_per_second
+    display: 0
+    source: >-
+      lowest 15s sample of Q1 over r500's hold window, 2026-09-05 14:00:51-14:01:51Z, with
+      tei-embeddings at 13 replicas and p95 on its flat floor; ./data/inference-r500.jsonl
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r500_hold_served_hi:
+    ref: FM67
+    kind: M
+    value: 501.1
+    unit: requests_per_second
+    display: 0
+    source: highest 15s sample of Q1 over the same hold window; ./data/inference-r500.jsonl
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r500_hold_err:
+    ref: FM68
+    kind: M
+    value: 0.2506
+    unit: percent
+    display: 2
+    source: >-
+      sum(Q2)/sum(Q1) over r500's hold window. Already above D15's 0.1% bound: only two
+      consecutive samples, 14:00:51 and 14:01:06, sit under it
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r500_phase_served:
+    ref: FM69
+    kind: M
+    value: 457.1
+    unit: requests_per_second
+    display: 0
+    source: >-
+      mean of Q1 over r500's whole steady phase, 14:00:51-14:03:36Z: p95 floor reached to the
+      start of wind-down. Pulled down by 14:02:06-14:03:06, where served fell to 345-455 req/s
+      at an unchanged offered rate
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r500_phase_err:
+    ref: FM70
+    kind: M
+    value: 0.4908
+    unit: percent
+    display: 2
+    source: sum(Q2)/sum(Q1) over the same phase; against D15's 0.1% bound
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r500_dropped:
+    ref: FM71
+    kind: M
+    value: 32045
+    unit: iterations
+    display: 0
+    source: >-
+      dropped_iterations in ./data/inference-r500.generator.log. 267,956 started + 32,045 dropped
+      = 300,001 of 300,000 scheduled; the VU pool was pinned at its 2,500 ceiling from 00m11.9s,
+      so effectively all of them fall in the opening ramp
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  d15_error_bound:
+    ref: FR29
+    kind: R
+    value: 0.1
+    unit: percent
+    display: 1
+    source: >-
+      the error ceiling D15 sets for the sustained rate (02-inference §1 Metrics, D15: "M3 under
+      0.1% and M1 matching the offered rate"). A declared criterion, not a measurement
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r1000_vu_cap:
+    ref: FR30
+    kind: R
+    value: 5000
+    unit: vus
+    display: 0
+    source: >-
+      maxVUs for r1000, from load.js: ceil(rate x (MOCK_DELAY_MS/1000 + 0.5)) x 2. Reached during
+      the ramp, which is when iterations begin to be dropped
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r500_vu_cap:
+    ref: FR31
+    kind: R
+    value: 2500
+    unit: vus
+    display: 0
+    source: maxVUs for r500 by the same formula; reached at 00m11.9s of the run
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r1000_drop_share:
+    ref: FD144
+    kind: D
+    formula: r1000_dropped / 600000 * 100
+    unit: percent
+    display: 1
+    source: dropped against scheduled (offered rate 1000/s x the 600s scenario duration)
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+  r500_drop_share:
+    ref: FD145
+    kind: D
+    formula: r500_dropped / 300000 * 100
+    unit: percent
+    display: 1
+    source: dropped against scheduled (offered rate 500/s x the 600s scenario duration)
+    group: steady_state
+    appears_in: [report.md, executions/02-inference/index.md]
+
+
+  # --- the rest of report 3.4's unused-capacity column, registered 2026-10-03 ---
+  # n25 is FM50 (group fargate); these four are the same reading at the other points,
+  # quoted in report 3.4's table. 01-ingestion's M12 decomposition stays unmarked per 2.3.
+
+  unused_ekslevel_n10:
+    ref: FM72
+    kind: M
+    value: 1.8478134875473315
+    unit: usd
+    display: 4
+    source: >-
+      data/m12-eks-split.json points.n10.unused_ekslevel - provisioned instance capacity no
+      pod's request share claimed that hour. Fleet-wide across every EKS node, so the
+      ingestion share of it is not separable and report 3.4 declines to guess one
+    group: fargate
+    appears_in: [report.md]
+
+  unused_ekslevel_n50:
+    ref: FM73
+    kind: M
+    value: 1.1984041736568158
+    unit: usd
+    display: 4
+    source: >-
+      data/m12-eks-split.json points.n50.unused_ekslevel - provisioned instance capacity no
+      pod's request share claimed that hour. Fleet-wide across every EKS node, so the
+      ingestion share of it is not separable and report 3.4 declines to guess one
+    group: fargate
+    appears_in: [report.md]
+
+  unused_ekslevel_n75:
+    ref: FM74
+    kind: M
+    value: 1.4556166165919338
+    unit: usd
+    display: 4
+    source: >-
+      data/m12-eks-split.json points.n75.unused_ekslevel - provisioned instance capacity no
+      pod's request share claimed that hour. Fleet-wide across every EKS node, so the
+      ingestion share of it is not separable and report 3.4 declines to guess one
+    group: fargate
+    appears_in: [report.md]
+
+  unused_ekslevel_n125:
+    ref: FM75
+    kind: M
+    value: 1.8122471353768763
+    unit: usd
+    display: 4
+    source: >-
+      data/m12-eks-split.json points.n125.unused_ekslevel - provisioned instance capacity no
+      pod's request share claimed that hour. Fleet-wide across every EKS node, so the
+      ingestion share of it is not separable and report 3.4 declines to guess one
+    group: fargate
+    appears_in: [report.md]
+
 allow:
   - pattern: "24,750"
     file: executions/01-ingestion/index.md

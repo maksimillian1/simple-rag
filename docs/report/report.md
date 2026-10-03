@@ -5,7 +5,7 @@ and at what monthly volume the design pays for itself.
 
 - **Report** — `simple-rag` · v1.0 · 2026-09-09
 - **System under test** — chunker `sha-404a267` · indexer `sha-32365dc` · api `sha-bafdc1f` · tei `cpu-1.6` (tag, no digest pin) · commit `1ef1f0a8` · 2026-09-05 (the last cluster-identity capture before teardown; tags, not `sha256:` manifest digests, per `00-baseline`). That commit carries TEI at 6 cores / 8 limit, which only `inference-r1000` ran on; every other point, and the whole floor, ran `cfa0ab79` at 3 / 4 (`docs/tech-debt.md` #4)
-- **Envelope** — text-layer PDF corpus, bulk drop · N ≤ 125 · R ≤ 1000 req/s (untested above; no ceiling was found, and 1000 is not a swept maximum) · EKS + Karpenter Spot, KEDA autoscaling from 2 replicas, self-hosted Qdrant, TEI `bge-small-en-v1.5` · `eu-central-1`
+- **Envelope** — text-layer PDF corpus, bulk drop · N ≤ 125 · R ≤ 1000 req/s\* (untested above; no ceiling was found, and 1000 is not a swept maximum) · EKS + Karpenter Spot, KEDA autoscaling from 2 replicas, self-hosted Qdrant, TEI `bge-small-en-v1.5` · `eu-central-1`
 - **Executions** — `00-baseline` · `01-ingestion` · `02-inference`
 - **Cost source** — `docs/report/methodology.md` §9 "Cost calculation approach (AWS)", basis in `00-baseline` §2 · AWS Cost and Usage Report 2.0 · `eu-central-1` · USD
 - **Raw data** — `executions/{00-baseline,01-ingestion,02-inference}/data/`. No charts in v1.0 (D7)
@@ -57,9 +57,12 @@ published.
 ## 1. BLUF
 
 * **Ingestion cost at optimum** — $24,875<!--FD37--> / 1M docs ᴰ at N=25 (CUR actual, `01-ingestion` sweet spot). Fargate for the same two workers costs 2.91<!--FD123-->× more at that point (D29, §4.4), computed at N=25 only. Cost never bottoms mid-range. It rises monotonically with N, so "optimum" means the lowest clean N swept rather than a proven minimum, and the true floor may sit below N=25, untested
-* **Sustained query rate** — ≥1000 req/s ᴿ at p95 = 2425ms once converged, on 6 API and 30 TEI replicas. The design target in `architecture.md` is p95 < 200ms. It is missed by ~2225ms, almost all of which is the frozen 2000ms Bedrock stub delay rather than system latency. No rate up to 1000 hit a ceiling
+* **Sustained query rate** — 1000 req/s\*, held for 1m45s. From 14:57:16 to 14:59:01Z, with `tei-embeddings` at 30 replicas, the fleet served 998<!--FM60-->–1,001<!--FM61--> req/s at a flat p95 of 2425ms and 0.02<!--FM62-->% errors. Then the generator stalled — k6 silent from 08m30s to 11m28s elapsed, completions down to 43/s, the embedding tier scaling in 30 → 6 for want of traffic — and the second ramp carried this point's worst latency and errors. Over the full steady phase the point served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, against `D15`'s 0.1<!--FR29-->% bound: not met. The design target in `architecture.md` is p95 < 200ms, missed by ~2225ms, almost all of it the frozen 2000ms Bedrock stub delay rather than system latency
 * **Retrieval cost** — $0.00375<!--FD65--> / 1k queries ᴰ marginal (CUR actual for the whole campaign, with the resting floor netted out once at campaign level; the per-point provisional `D16` figures understate it 1.5–4.3×, `02-inference` §3). On top of that: $0.000203<!--FD45--> ᴰ floor share at the sustained rate, a best case that assumes 1000 req/s continuously and grows far higher at realistic utilization (§4.3), and ~$0.51<!--FD39--> ᴱ for generation (1,800<!--FE1--> assumed input + up to 512<!--FR17--> output tokens × the real Bedrock rate). If generation is turned on, it would be ~136<!--FD115-->× the retrieval cost and dominate the total
 * **Idle floor, Block B** — $534.12<!--FD26--> / month ᴰ (Block C total: $877.54<!--FD29--> ᴰ). This is what the feature costs with zero traffic on a platform that exists anyway
+
+\* **1000 req/s** means the 1m45s hold above, not the r1000 window and not a proven ceiling.
+Every later use of the figure carries the asterisk back to this qualification and to §3.7.
 
 **What the sweep settled**
 
@@ -201,11 +204,11 @@ that cost just isn't what drives the monotonic curve.
 
 | N | Unused capacity $ ᴿ (fleet-wide) | Warm-up interval | Consolidation tail |
 | :--- | :--- | :--- | :--- |
-| 10 | $1.8478 | not captured; no per-point `M3`→`M4` node/pod timestamps were pulled | not captured |
+| 10 | $1.8478<!--FM72--> | not captured; no per-point `M3`→`M4` node/pod timestamps were pulled | not captured |
 | 25 | $1.4787 | not captured | not captured |
-| 50 | $1.1984 | not captured | not captured |
-| 75 | $1.4556 | not captured | not captured |
-| 125 | $1.8123 | not captured | not captured |
+| 50 | $1.1984<!--FM73--> | not captured | not captured |
+| 75 | $1.4556<!--FM74--> | not captured | not captured |
+| 125 | $1.8122<!--FM75--> | not captured | not captured |
 
 Unused-capacity `$` (`M12`, pulled 2026-09-09, `01-ingestion` §3) is fleet-wide: it covers every
 EKS node in the cluster that hour, not just `apps-compute`. There is no "share of compute $"
@@ -253,8 +256,8 @@ queried: no guard references it, and `series.txt` has no `Q` ref for it.
 | 50 | 45.5 (91%) | 2 / 3 | not timed, window avg already clean | 1672 | 2418 | — | 0% | $0.00250<!--FD78--> | none |
 | 200 | 192.5 (96%) | 2 / 7 | not timed, window avg already clean | 1750 | 2425 | — | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> | none |
 | 300 | 296.4 (99%) | 3 / 11 | not timed, window avg already clean | 1749 | 2425 | — | 0.20% avg / 2.75% peak | $0.00098<!--FD80--> | none |
-| 500 | 398.7 (80%, window avg) | 3 / 16 | ~7 min to 13 replicas, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / **~0% once converged** | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
-| 1000 | 828.3 (83%, window avg) | 6 / 30 | ~4 min to 30 replicas, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / **~0% once converged** | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
+| 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | ~7 min to 13 replicas, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
+| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | ~4 min to 30 replicas, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
 
 `$/1k queries` is gross: it is each point's own serving cost over its own queries, floor included,
 so it falls with rate mostly because the always-on pair is spread over more traffic. It is not what
@@ -268,11 +271,16 @@ one series. Its `$/1k queries` carries the same divergence and is not bounded th
 doubled per-pod request fits fewer pods per node, and this is the only point whose node mix is
 dominated by `4xlarge`. Direction and magnitude are unmeasured.
 
-Offered rate and served rate are reported separately. Where they diverge the generator, not the
-system, was the limit, and the row is excluded from the capacity claim. r500's and r1000's window
-averages look like a capacity collapse. Reading the time series directly shows a clean ramp to a
-flat, zero-error steady state once TEI finished converging, which is a convergence-speed lag
-rather than a ceiling (`02-inference` §3 Notes). The real campaign cost ($0.00375<!--FD65-->/1k queries,
+Offered rate and served rate are reported separately, and at r500 and r1000 part of the gap is
+the generator's. k6 schedules by the clock, but each scheduled iteration needs a free virtual
+user, and the pool is sized off the 2000ms stub (rate × 2.5s, doubled). When the ramp pushed p95
+to 25s, demand for slots ran several times over that cap and k6 dropped what it could not start:
+32,045<!--FM71--> of 300,000 scheduled at r500 (10.7<!--FD145-->%) and 30,985<!--FM65--> of
+600,000 at r1000 (5.2<!--FD144-->%), both with the pool pinned at its ceiling
+(2,500<!--FR31--> and 5,000<!--FR30--> VUs). So neither window average reads the system: each
+mixes the scale-out ramp, the generator's own shortfall and, at r1000, a three-minute stall.
+What the two points held once converged is in §3.7; the ramp itself is convergence speed rather
+than a ceiling (`02-inference` §3 Notes). The real campaign cost ($0.00375<!--FD65-->/1k queries,
 CUR actual, `02-inference` §3) runs 1.5–4.3× higher than every `$/1k queries` figure in this table.
 Those are per-point provisional reads that miss NAT entirely, along with the floor and settle
 time between points. They are kept only to compare rates with each other, not as absolute costs.
@@ -286,10 +294,10 @@ No chart in v1.0 (D7); the Matrix above carries offered rate against p95 and rep
 
 ### 3.7 Query capacity and constraint
 
-- **Sustained rate** — ≥1000 req/s, untested above that. Every rate up to 1000 reached the same steady-state p95 (~2425ms) and error floor (~0%) once TEI converged, so this is a lower bound rather than a proven ceiling
+- **Sustained rate** — 1000 req/s\*, held for 1m45s: 14:57:16–14:59:01Z, `tei-embeddings` at 30 replicas, 998<!--FM60-->–1,001<!--FM61--> req/s served, p95 flat at 2425ms, 0.02<!--FM62-->% errors. Over the full steady phase around it, to 15:01:01Z, the point served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, which does not meet `D15`'s 0.1<!--FR29-->% bound; that phase ends in a generator stall rather than a system limit. r500 is the same shape and thinner: 499<!--FM66-->–501<!--FM67--> req/s held for one minute at the same p95 floor, but at 0.25<!--FM68-->% errors, and no stretch of it meets the bound for longer than 30s; across its own phase it served 457<!--FM69--> req/s at 0.49<!--FM70-->%. Untested above 1000, so a lower bound rather than a proven ceiling
 - **Capacity that rate required** — 6 API replicas and 30 embedding replicas at r1000, converged in ~4 min from the minimum of 2 each
 - **Reference value** — the `p95 < 200 ms` line in `architecture.md`, a design target, missed by ~2225ms at every tested rate. Almost all of that is the frozen 2000ms Bedrock stub delay rather than retrieval latency. The retrieval-only path (subtracting the stub) would sit well inside 200ms, but that number was never isolated and measured directly
-- **Constraint** — none found, by resource signature, up to 1000 req/s. Proof: `tei-embeddings` CPU runs high during scale-out (7.0-7.8 of 8 cores) and drops as replicas catch up, so it is not a sustained ceiling; `api` never exceeded 0.268 of its 0.5-core limit; Qdrant never exceeded 1.568 cores. With no ceiling found, there is nothing to relieve and no next scaling step to price
+- **Constraint** — none found, by resource signature, up to 1000 req/s\*. Proof: `tei-embeddings` CPU runs high during scale-out (7.0-7.8 of 8 cores) and drops as replicas catch up, so it is not a sustained ceiling; `api` never exceeded 0.268 of its 0.5-core limit; Qdrant never exceeded 1.568 cores. With no ceiling found, there is nothing to relieve and no next scaling step to price
 
 Retrieval is one gRPC round trip per query: dense, sparse and payload-text prefetch fused by
 Qdrant with RRF, plus one embedding call. There is no cross-encoder and no GPU on the path, so
@@ -307,7 +315,7 @@ runs during a backfill.
 
 | Condition | Sustained req/s | p95 ms | api / tei replicas | Δ against §3.7 |
 | :--- | :--- | :--- | :--- | :--- |
-| query load only | ≥1000 (§3.7) | 2425 | 6 / 30 (at r1000) | — |
+| query load only | 1000\* (§3.7) | 2425 | 6 / 30 (at r1000) | — |
 | query load with ingestion at the §5 guardrail | not run | not run | not run | not run |
 
 Not attempted: the cluster was torn down before this pass was scheduled (`02-inference` §3
@@ -446,7 +454,7 @@ The three lines answer different questions and are not summed into a headline. T
 total is what an additional query costs once the tier is already scaled. It uses the campaign
 CUR read (`02-inference` §3), not the per-point provisional `D16` figures in §3.6, which
 understate it 1.5–4.3× because they miss NAT entirely and the floor and settle time between points.
-The floor share assumes the tier runs at the sustained rate (1000 req/s) continuously, which
+The floor share assumes the tier runs at the sustained rate (1000 req/s\*) continuously, which
 makes it an extreme best case: it is negligible only because 1000 req/s continuously serves
 2,628,000,000<!--FD116--> queries/month. At every volume in the §4.3 table the floor dominates
 instead; the crossover there is ~148M queries/month, far above anything swept. The generation line is a vendor
@@ -580,11 +588,11 @@ both by deletion rather than by repair, and the endpoints are gone from `vpc.tf`
 | Node consolidation delay | not revised; live `apps-compute: 5m` unchanged, `WhenEmpty`. §3.4's unoccupied-capacity number is fleet-wide and too coarse to argue for a different value | §3.4 unoccupied-capacity share | `apps-compute` NodePool |
 | Max input file size | `MAX_ALLOWED_SIZE_BYTES: 104857600` (100MB, code default, unchanged). The sample corpus's p95 (49.23MB) sits well under it, but the full corpus has an untested file of up to 124MB, above it | §3.5 · ADR-0001 | `apps/chunker` env |
 | Chunks per SQS message | `BATCH_SIZE: 30` (code default, unchanged) | §4.2 SQS line · ADR-0004 | `apps/chunker` env |
-| Go API replica ceiling | live `maxReplicaCount: 10`. 6 replicas were observed at r1000 (D15's lower bound), so some margin exists, but D15 is untested above 1000 req/s and the setting isn't confirmed sufficient at a higher rate | §3.7 replicas at the sustained rate, plus margin | `api-scaler` |
-| Embedding tier replica ceiling | keep live `maxReplicaCount: 30`. It was fully used at r1000 with zero margin, and it carried that rate: 30 replicas sustained ≥1000 req/s at the steady-state p95 and ~0% error (§3.7), which is the rate this deployment is sized for. No quota increase is requested. Above 1000 req/s the cap binds first, then this account's Spot vCPU quota (`L-34B43A08`=256). What that quota allows depends on the per-pod request, so it is not one number: ~35-40 replicas at the `cpu 6` request `r1000` ran on, and roughly twice that at the frozen `cpu 3` the code carries (`00-baseline` §2 Configuration freeze) | §3.7 replicas at the sustained rate | `tei-embeddings-scaler` |
+| Go API replica ceiling | live `maxReplicaCount: 10`. 6 replicas were observed at r1000 (D15's lower bound), so some margin exists, but D15 is untested above 1000 req/s\* and the setting isn't confirmed sufficient at a higher rate | §3.7 replicas at the sustained rate, plus margin | `api-scaler` |
+| Embedding tier replica ceiling | keep live `maxReplicaCount: 30`. It was fully used at r1000 with zero margin, and it carried that rate: 30 replicas held 1000 req/s\* for 1m45s at the steady-state p95 and 0.02<!--FM62-->% errors (§3.7), which is the rate this deployment is sized for. No quota increase is requested. Above 1000 req/s the cap binds first, then this account's Spot vCPU quota (`L-34B43A08`=256). What that quota allows depends on the per-pod request, so it is not one number: ~35-40 replicas at the `cpu 6` request `r1000` ran on, and roughly twice that at the frozen `cpu 3` the code carries (`00-baseline` §2 Configuration freeze) | §3.7 replicas at the sustained rate | `tei-embeddings-scaler` |
 | Go API memory limit | not revised; no OOM or working-set warning surfaced in any point's Notes across the sweep | `02-inference/M6` | `deploy/k8s/apps/api` |
 | Embedding tier memory limit | not revised, for the same reason; CPU, not memory, was the driver at every rate | `02-inference/M6` | `deploy/k8s/apps/tei` |
-| Query rate alert | not set. `D15` is a lower bound (≥1000, untested above), so `D15 × 0.8` would alert on a number already known to be too low | §3.7 | `prometheus/rules.yaml` |
+| Query rate alert | not set. `D15` is a lower bound (1000\*, untested above), so `D15 × 0.8` would alert on a number already known to be too low | §3.7 | `prometheus/rules.yaml` |
 | Latency SLO alert | not set. Every p95 in this campaign is dominated by the fixed 2000ms mock delay, and a threshold tuned against it wouldn't transfer to real Bedrock traffic without at least one real-generation calibration point, which this report never took | §3.7 | `prometheus/rules.yaml` |
 | Backfill concurrency during query hours | not set; the contention pass never ran (§3.8), so there is nothing to base it on | §3.8 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` |
 | Ingestion backlog alert | not set; `01-ingestion` never defined a drain-rate alert formula distinct from the point-close criterion already in use | §3.1 | `prometheus/rules.yaml` |
