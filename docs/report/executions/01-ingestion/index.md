@@ -552,7 +552,7 @@ cluster is gone) would turn this into a confirmed reading.
   the sweet spot (N=25, $24,875<!--FD75-->) → report §3.3
 - **Reference value** — no pre-sweep default `maxReplicaCount` was frozen for this parameter. This is its first exploration, so there is nothing to compare against. Fargate equivalent (D29): computed at N=25 — $0.7562<!--FD121--> against $0.2595<!--FD122--> on Spot for the two workers (§3 D29, report §4.4)
 - **Condition boundary** — `00-baseline` §2 Envelope, plus packing density, bulk-drop arrival and the TEI trigger
-- **Raw data** — `./data/⟨point⟩.jsonl`, `⟨point⟩.cost-estimate.json` and `⟨point⟩.meta.json` per point, plus `series.txt`, the collection configs and the upload logs. The Matrix is built directly from them. No chart in v1.0 (D7)
+- **Raw data** — `./data/⟨point⟩.jsonl`, `⟨point⟩.cost-estimate.json` and `⟨point⟩.meta.json` per point, plus `series.txt`, the collection configs and the upload logs. The Matrix is built directly from them
 
 ### M12 — split-cost decomposition by workload
 

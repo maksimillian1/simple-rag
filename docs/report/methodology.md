@@ -6,7 +6,7 @@ checker that enforces them name the same release. The body is byte-identical to 
 template. No local divergence: the two subsections this report added, §2 "Data files hold
 readings, not results" and §9 "Cost calculation approach (AWS)", are in the template as of
 v0.3, so re-copying no longer drops anything.
-Vendored: 2026-10-01
+Vendored: 2026-10-03
 Edit upstream and re-copy. The report cites section numbers, and an upstream edit renumbers them.
 -->
 
@@ -185,7 +185,7 @@ second consumer forces it:
 | `executions/00-baseline/` | a second execution would copy the system description |
 | `executions/NN-⟨name⟩/` | a second execution exists, then numbering |
 | `concepts.md` · `metrics.md` | the block outgrows one screen inside `index.md` |
-| `charts/` · `assets/` | the first `charts new ⟨chart⟩`: one CSV in, one SVG out |
+| `charts/` | the first chart: one CSV in, its SVG generated beside it |
 
 Why shared material cannot simply live in the first benchmark: the second one starts
 depending on it, and you cannot add the second without editing something already frozen.
@@ -241,7 +241,8 @@ A chart sits one step to the side of that path. It is drawn from a CSV under `ch
 transcribes what the documents already print, so it is a view of the report rather than a
 second reading of the system, and the two must not be confused: `data/` holds what an
 authority returned, `charts/` holds what a renderer needs. Both are committed, and the
-rendered asset records which CSV produced it. `formats.md` is the contract.
+rendered asset records which CSV produced it. `formats.md` says what may go
+in a cell, and `report-kit charts --format` the shape of the file.
 
 ---
 

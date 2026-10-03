@@ -1,0 +1,64 @@
+[
+  {
+    "svg": "amortization-docs-navy.svg",
+    "kind": "line",
+    "theme": "navy",
+    "mark_x": [
+      21472.0,
+      "crossover"
+    ],
+    "source": "charts/amortization-docs.csv",
+    "source_sha256_12": "5a7f0c7aa9b2"
+  },
+  {
+    "svg": "amortization-queries-navy.svg",
+    "kind": "line",
+    "theme": "navy",
+    "mark_x": [
+      142547228.0,
+      "crossover"
+    ],
+    "source": "charts/amortization-queries.csv",
+    "source_sha256_12": "43bca5071648"
+  },
+  {
+    "svg": "floor-blocks-navy.svg",
+    "kind": "bars",
+    "theme": "navy",
+    "source": "charts/floor-blocks.csv",
+    "source_sha256_12": "8330888fdc77"
+  },
+  {
+    "svg": "frontier-api-navy.svg",
+    "kind": "line",
+    "theme": "navy",
+    "rule": [
+      2000.0,
+      "generation stub"
+    ],
+    "source": "charts/frontier-api.csv",
+    "source_sha256_12": "8f7b7950755a"
+  },
+  {
+    "svg": "frontier-jobs-navy.svg",
+    "kind": "line",
+    "theme": "navy",
+    "source": "charts/frontier-jobs.csv",
+    "source_sha256_12": "77d320d0c67e"
+  },
+  {
+    "svg": "split-jobs-navy.svg",
+    "kind": "bars",
+    "theme": "navy",
+    "source": "charts/split-jobs.csv",
+    "source_sha256_12": "0d4fb5014f75"
+  },
+  {
+    "svg": "tradeoff-jobs-navy.svg",
+    "kind": "line",
+    "theme": "navy",
+    "points": true,
+    "source": "charts/tradeoff-jobs.csv",
+    "source_sha256_12": "23dbc37ecf0e"
+  }
+]

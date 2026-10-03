@@ -3,7 +3,7 @@ Vendored from report-kit — do not edit here.
 Source: src/report_kit/templates/formats.md
 Version: v0.3 — the tag pinned in requirements.txt, so the text and the checker that
 enforces it name the same release. The body is byte-identical to that tag's template.
-Vendored: 2026-09-22
+Vendored: 2026-10-03
 Edit upstream and re-copy. The report cites section numbers, and an upstream edit renumbers them.
 -->
 
@@ -152,25 +152,22 @@ reports it as unclassified rather than guessing; the fix is always to register i
 
 ## Numbers in a chart CSV
 
-A chart is drawn from a CSV under `charts/`, one per chart, and those numbers obey this file
-too. `report-kit charts --list` prints the columns each one takes; `report-kit charts new
-⟨chart⟩` writes the file. Four rules, and the first is the one that matters.
+A chart is drawn from a CSV by `report-kit charts`. The format is
+`report-kit charts --format` and a worked file per shape is in
+`examples/tenant-platform/`; what follows is the part that is about numbers.
 
-**A chart CSV is a view, not a reading and not a result.** Three kinds of file hold numbers in
-a report and they are not interchangeable: an execution's `data/` holds what an authority
-returned (`methodology.md` §2), `figures.yaml` holds every number a document prints, and a
-chart CSV transcribes what the documents already print so that a renderer needs no knowledge
-of the report. Nothing in one is a new claim.
+**A chart CSV is a view, not a reading and not a result.** An execution's
+`data/` holds what an authority returned (`methodology.md` §2), `figures.yaml`
+holds every number a document prints, and a chart CSV transcribes what the
+documents already print so that a renderer needs no knowledge of the report.
+Nothing in one is a new claim.
 
-**Copy, never compute.** If a document states `$44,200`, write `44200`. The exception is a
-column `--list` marks as *derived*: where the source gives the inputs and not the result,
-compute it with the stated formula. A derived column that disagrees with its own inputs fails
-`report-kit charts --check`, which is the only arithmetic claim the renderer makes.
+**Copy, never compute**, and put only what is drawn in the file. If a document
+states `$44,200`, write `44200`.
 
-**An unknown value is an empty cell.** Never a plausible number, a number from an earlier
-revision, or one from a different point. A chart skips a row missing what it plots, and which
-panels a chart has depends on the columns it was given: a sweep that was never priced charts
-its throughput. A caveat that changes what a figure means goes in `note`; the row stays.
+**An unknown value is an empty cell** — never a plausible number, never one from
+an earlier revision. A row missing what the shape plots is dropped, and a
+caveat that changes what a figure means goes in a label column.
 
 **Drift is caught here, not by the renderer.** Add the CSVs to `scan`:
 
@@ -180,8 +177,6 @@ scan:
   - charts/*.csv
 ```
 
-`report-kit figures check` then reads them with the prose, and a value this report has retired
-is named where it survives in a picture, together with the figure that replaced it. The
-renderer owns no second resolver, and `charts --check` answers only whether the columns still
-support the chart.
-
+`report-kit figures check` then reads them with the prose, and a value this
+report has retired is named where it survives in a picture, together with the
+figure that replaced it.

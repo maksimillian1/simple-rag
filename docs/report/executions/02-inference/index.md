@@ -435,7 +435,7 @@ exclude generation, stubbed at a fixed 2000ms (`mock_delay_ms`, confirmed live, 
   `00-baseline` §2 Envelope
 - **Raw data** — `./data/⟨point⟩.jsonl`, `⟨point⟩.cost-estimate.json`,
   `⟨point⟩.meta.json`, `⟨point⟩.point.md` and `⟨point⟩.generator.log` per point, plus
-  `series.txt`. The Matrix is built directly from them. No chart in v1.0 (D7)
+  `series.txt`. The Matrix is built directly from them
 
 **Cost at the sustained rate** — D16 at r1000, the top of the tested range, is
 $0.00088<!--FD82-->/1k queries gross. D17 (floor share) and E18 (generation, estimated) are in

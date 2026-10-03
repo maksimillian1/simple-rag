@@ -8,7 +8,7 @@ and at what monthly volume the design pays for itself.
 - **Envelope** — text-layer PDF corpus, bulk drop · N ≤ 125 · R ≤ 1000 req/s\* (untested above; no ceiling was found, and 1000 is not a swept maximum) · EKS + Karpenter Spot, KEDA autoscaling from 2 replicas, self-hosted Qdrant, TEI `bge-small-en-v1.5` · `eu-central-1`
 - **Executions** — `00-baseline` · `01-ingestion` · `02-inference`
 - **Cost source** — `docs/report/methodology.md` §9 "Cost calculation approach (AWS)", basis in `00-baseline` §2 · AWS Cost and Usage Report 2.0 · `eu-central-1` · USD
-- **Raw data** — `executions/{00-baseline,01-ingestion,02-inference}/data/`. No charts in v1.0 (D7)
+- **Raw data** — `executions/{00-baseline,01-ingestion,02-inference}/data/`
 - **Figures** — measured unless marked: ᴰ derived · ᴿ recorded · ᴱ estimated
 - **Supersedes** — —
 - **Changes** — first revision
@@ -75,7 +75,7 @@ Every later use of the figure carries the asterisk back to this qualification an
   touched 97.5% of its CPU limit during r1000's ramp, which more replicas relieved and did. Qdrant
   reached 1.568<!--FM59--> of its 2<!--FR27-->-core limit, 78<!--FD137-->%, and has nowhere to go:
   two replicas hold one shard at every rate. What the path costs follows arrival rate, not volume.
-  Below ~55<!--FD143--> requests a second the bill is the floor; above it the floor falls to
+  Below ~54<!--FD143--> requests a second the bill is the floor; above it the floor falls to
   22.2<!--FD141-->% at 500M queries a month and 12.5<!--FD142-->% at a billion, and everything paid
   for beyond it is an embedding replica, since `api` holds two until ~300 req/s.
 * **The defects cost more than the sizing.** Errors found at rest recur at $175.85<!--FD35-->/month
@@ -164,10 +164,9 @@ report is delivered daily and revised until the month closes.
 
 ### 3.2 Ingestion — frontier
 
-No chart in v1.0 (D7). §3.1's Matrix is the frontier: docs/min against N, which rises
-monotonically and never flattens, and `$/1M docs` against N, which rises with it rather than
-dipping to a minimum. The shape the chart was specified to show is not the shape the sweep
-found — §3.3 names what stands in for the knee.
+§3.1's Matrix is the frontier: docs/min against N, which rises monotonically and never flattens,
+and `$/1M docs` against N, which rises with it rather than dipping to a minimum. A frontier is
+expected to bend; this one does not, and §3.3 names what stands in for the knee.
 
 ### 3.3 Ingestion — knee · sweet spot · waste boundary
 
@@ -290,7 +289,7 @@ Past capacity an open-loop generator queues its own excess, and the measured p95
 the length of the run instead of describing the system. What the system does above the sustained
 rate is a coverage row, not a number here.
 
-No chart in v1.0 (D7); the Matrix above carries offered rate against p95 and replicas.
+The Matrix above carries offered rate against p95 and replicas.
 
 ### 3.7 Query capacity and constraint
 
@@ -502,14 +501,15 @@ marginal cost per unit is three orders of magnitude smaller, so its crossover si
 design has to be built for rather than a volume it might reach.
 
 **The query rows assume an arrival rate, and the low ones are out of the regime the rate was
-measured in.** A month holds 2,592,000 seconds, so the four smallest rows are 0.004, 0.04, 0.4 and
-3.9 requests a second sustained. The marginal was measured over a campaign that ran at 50 to 1000,
+measured in.** A month holds 2,628,000<!--FR28--> seconds (730 hours), so the four smallest rows are
+0.004<!--FD146-->, 0.04<!--FD147-->, 0.4<!--FD148--> and 3.8<!--FD149--> requests a second sustained. The marginal was measured over a campaign that ran at 50 to 1000,
 where `tei-embeddings` scaled from 2 replicas to 30 and paid for the nodes underneath them. At 0.4
 requests a second nothing scales: the resting pair answers everything, no node is ever added, and
 the only marginal left is NAT bytes. So those rows overstate the marginal and their floor share is
 a lower bound, which makes the conclusion stronger rather than weaker. The three rows that do sit
-inside the measured range are the crossover at 55 requests a second, 500M a month at 193 (r200
-served 192.5) and a billion at 386 (between r300 and r500), and they are the ones to read. Above
+inside the measured range are the crossover at 54<!--FD143--> requests a second, 500M a month at
+190<!--FD150--> (r200 served 192.5) and a billion at 381<!--FD151--> (between r300 and r500), and they are
+the ones to read. Above
 the crossover the marginal takes over quickly: the floor is down to 22.2<!--FD141-->% of the bill at
 500M and 12.5<!--FD142-->% at a billion, so most of what is paid there is work rather than standing
 cost.

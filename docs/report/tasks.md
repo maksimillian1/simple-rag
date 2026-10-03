@@ -52,6 +52,7 @@ rather than from here:
 | D7 | Charts: `assets/*.svg` and `data/frontier.csv` do not exist, §3.2 and §3.6 point to them | build 2 charts from the Matrices (M) · remove the references (S) | remove for v1.0 | 2.5, 4.9 |
 | D8 | `02-inference/data/*.point.md` | delete · keep | **settled 2026-09-28: keep.** The premise was wrong: they are not unfilled templates. Only the fields fed by the metrics export and the cost pass are blank; each file records the config commit with its dirty flag, the window, the generator-end instant, peak replicas, collection size at open, ceiling hits and guards breached. Three of the four generator-end instants existed nowhere else and are not recoverable, and that instant is exactly what a guard has to be read at — the r500 false failure came from reading one later. They are now in the Run ledger too, and the files stay as the run-time record | 3.4 |
 | D9 | §1 Verdict | ship · ship with guardrails · do not ship | business call, last | 4.11 |
+| D10 | What the published article is | copy `report.md` 1:1 · publish `report.md` itself · a derived file on the same registry | **settled 2026-10-03: a derived file, same registry.** `article.md` is the source of publication and `report.md` stays the authority on every claim; the article may compress, reorder and drop, never assert what the report does not. It is not a paste: it carries the same hidden marks, sits in `figures.yaml` `scan`, and `docs/report/scripts/render_article.py` strips them into `rendered/article.md`, rewrites repo-relative pointers into permalinks pinned to a commit, stamps the sha and refuses while `check` is dirty. That gate is the whole reason for a second file rather than a copy — a published number that no longer resolves is the failure this arrangement exists to prevent. The format differs on purpose: overlap is ~70%, and the other ~30% is prose no check covers, which is why §0.8 names section by section what is verbatim, what becomes a conclusion and what goes. Tables are decided one at a time — an existing chart, a new `charts/*.csv`, an image, or prose | 0.7, 0.8 |
 
 ## 0.6 · Settled 2026-09-19, applies everywhere
 
@@ -140,6 +141,49 @@ count moves whenever a figure is added, so read it from the tool rather than fro
   registry, and rewriting prose nobody reads is churn with a real chance of moving a mark · M
 - [ ] 0.7.3 `check`, `validate` and `orphans` on every document afterwards. The mark count and
   coverage must come back unchanged; if they moved, the rewrite touched a number · S
+- [ ] 0.7.4 `article.md` last, against §0.8's mapping: every row marked *verbatim* must still say
+  what `report.md` says after the proofread, and every row marked *conclusion* must not have grown
+  a claim of its own. Then `docs/report/scripts/render_article.py` — it runs `check` itself and refuses on a dirty
+  registry, so a clean render is the sign-off · M
+
+## 0.8 · What the article keeps, compresses and drops (D10)
+
+Overlap is roughly 70%. The rows that say **verbatim** are the findings and the mechanisms: they
+carry the article and must keep saying what `report.md` says. The rows that say **conclusion** are
+where the format actually differs — an audit surface for a reader deciding whether to ship becomes
+one or two sentences for a reader deciding whether to read. The **chart** column is what replaces a
+table; charts come from `charts/*.csv` through `report-kit charts`, and the article and the slide
+deck are where they are used.
+
+| `report.md` | In the article | Table becomes |
+| :--- | :--- | :--- |
+| Header block | conclusion — one line: what was measured, where, when, and a link to the report | — |
+| Coverage, 54 rows | conclusion — one paragraph: what is measured, what is declared, what is out of scope | dropped |
+| §1 BLUF | verbatim, four figures | — |
+| §1 What the sweep settled | verbatim — this is the article's spine | `tradeoff-jobs` for the fourth finding |
+| §1 Verdict | conclusion — the three conditions, not the row-by-row reasoning | — |
+| §2.1, §2.2 | conclusion — fixture, denominator, window | — |
+| §2.3 | dropped, except the shared embedding tier and packing density | — |
+| §3.1 | verbatim finding | matrix → `frontier-jobs` plus three lines |
+| §3.2 | folded into §3.1 | — |
+| §3.3 | verbatim | table → prose |
+| §3.4 | verbatim — the mechanism the report was written to test | `split-jobs` |
+| §3.5 | verbatim — the ceiling is in the code, which is the article's best line | — |
+| §3.6 | conclusion plus the hold (b3) | matrix → `frontier-api` |
+| §3.7 | verbatim, qualification and asterisk included | — |
+| §3.8 | conclusion — one sentence naming the scope boundary | dropped |
+| §4.1 | verbatim, hidden lines included (NAT, endpoints, quantization) | two tables → `floor-blocks` plus one image |
+| §4.2 | verbatim | tables → image |
+| §4.3 | conclusion — the crossovers and what they mean | both tables → `amortization-docs`, `amortization-queries` |
+| §4.4 | verbatim — both conditional alternatives | tables → prose |
+| §5, 16 rows | conclusion — the three committable conditions, one sentence for the rest | dropped |
+
+Two things this mapping exists to catch. A later edit to `report.md` has a named place to check:
+if it touches a **verbatim** row, the article moves with it. And a **conclusion** row is where a
+claim can quietly appear that no execution file supports — the registry will not see it, because it
+is prose.
+
+---
 
 ### What `report.md` cites, and therefore what gets read
 
@@ -204,8 +248,9 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   corrections
 - [ ] a9 **The query crossover prints twice.** §4.2 "~148M queries/month" (the retired 147.8M)
   against §4.3's 142,547,228
-- [ ] a10 **A month is 730 h and 720 h.** The floor projects × 730 (§4.2: 2,628,000,000 queries at
-  1000 req/s); §4.3 uses "2,592,000 seconds" for the 55 req/s crossover and the 193 / 386 readings
+- [x] a10 **A month is 730 h and 720 h.** Done 2026-10-03: always 730. `seconds_per_month` (FR28) is
+  now `hours_per_month * 3600`, and §4.3's rates are registered and marked (FD146–FD151): crossover
+  55 → 54 req/s, 500M 193 → 190, a billion 386 → 381
 - [ ] a11 **"Six points running"** for 84,018 (§2.1) against `01-ingestion` "the seventh time" and
   `00-baseline` Topology, `n50-test` through `n10` (eight) †
 - [ ] a12 **Qdrant node count.** §3.7 "one dedicated node", §4.1 "Qdrant node + gp3", against
@@ -265,12 +310,20 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   use; `02-inference`'s Finding, Matrix note, both phase tables, #04/#06 Notes and the Retro
   follow. 17 figures registered as `figures.yaml` group `steady_state`; `check` clean at 263
   figures / 488 marks / 122-122 coverage
-- [ ] b4 **§4.2's embedding row and §3.1's `TEI $` price the same thing ~33× apart.** §3.1 at N=25:
-  `TEI $` $0.01/run (D23 $0.0075 → ~$75/1M). §4.2: "Embedding tier above its always-on minimum"
-  $2,490/1M = $0.249/run ($3,256 − $766), and its netted floor share ($766/1M = $0.0766/run) misses
-  1.03 h × $0.18754/h = $0.193. Coverage points that row at `D23`, the other number. Either a double
-  count inside $24,875 or two unreconciled sources; the one item here that can move a headline, so
-  settle it first
+- [ ] b4 **§4.2 decomposes a cash total with apportioned shares.** Reframed 2026-10-03, and the
+  earlier reading of it ("33× discrepancy, may move the headline") was wrong: the rows sum to
+  $24,875 by construction, so the headline cannot move. What the two numbers are: §3.1's `TEI $`
+  = $0.0075/run is **cash** (serving-pool node bill for the hour minus the day's resting rate — at
+  N=25 TEI went 2 → 4 replicas on the pair of nodes already running, so almost no new money left
+  the account), while §4.2's $3,256 − $766 = $0.249/run is **apportionment** (AWS split cost
+  allocation dividing those same nodes' bill among their pods by request; confirmed against
+  `m12-eks-split.json` n25: tei-embeddings 0.3256, indexer 0.2574, chunker 0.0021). Apportionment
+  moves money between pods on a node whose bill did not change, so the 33× is expected and both
+  figures are legitimate. The defect is that they share a table: the total is cash, the components
+  are apportionment, and the residual $19,790 — derived as total minus the three — silently absorbs
+  the difference, so the embedding row takes $2,490 of the headline where ~$75 of cash is
+  attributable. About 10% of $24,875 is attributed to the wrong place, and Coverage calls the §4.2
+  row `D23`, which is the other method
 - [ ] b5 **§2.3 says no run measured a ceiling** ("set out of reach"); §5 says the TEI cap of 30
   "was fully used at r1000 with zero margin"
 - [ ] b6 **"4 components … sum correctly" (§4.2)** is three plus a residual: the fourth ($19,790)

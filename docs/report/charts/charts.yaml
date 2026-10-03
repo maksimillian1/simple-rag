@@ -1,0 +1,18 @@
+frontier-jobs:
+  kind: line
+tradeoff-jobs:
+  kind: line
+  points: true
+frontier-api:
+  kind: line
+  rule: {at: 2000, text: generation stub}
+split-jobs:
+  kind: bars
+floor-blocks:
+  kind: bars
+amortization-docs:
+  kind: line
+  mark_x: {at: 21472, text: crossover}
+amortization-queries:
+  kind: line
+  mark_x: {at: 142547228, text: crossover}

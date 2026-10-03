@@ -1,6 +1,7 @@
-n_set,n_reached,throughput,usd_per_1m_units,run,unit,period,n_peak,duration,compute_usd,other_usd,usd_per_run,unit_count,mark,dominated,note
-10,9.0,0.76,44707,#10,docs,min,10,132.5,1.55,2.61,4.47,100,D,1,"off-plan and non-standard: fresh cluster, the script timed out (exit 4) and the point was closed by hand; CUR actual first pulled 2026-09-07; N=25 is both faster and cheaper"
-25,19.5,1.62,24875,#08,docs,min,25,61.7,1.09,1.38,2.49,100,D,,"sweet spot: the lowest $/1M docs of the five, N=10 included"
-50,32.6,2.27,44335,#07,docs,min,50,44.0,1.26,2.88,4.43,100,D,,"knee: the last N with a meaningful docs/min gain (+40% over N=25; 10% per step was the threshold)"
-75,40.5,2.33,61573,#06,docs,min,75,42.9,1.54,4.10,6.16,100,D,,"waste boundary: $/run rises 35% for a 2.6% docs/min gain over N=50"
-125,63.5,2.60,88161,#05,docs,min,125,38.5,2.01,5.99,8.82,100,D,,"highest throughput and highest unit cost; docs/min never plateaus in the tested range"
+run,n_set,throughput,usd_per_1m
+label,concurrency,docs/min,$/1M docs
+#10,10,0.76,44707
+#08,25,1.62,24875
+#07,50,2.27,44335
+#06,75,2.33,61573
+#05,125,2.60,88161

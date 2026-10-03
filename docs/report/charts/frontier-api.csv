@@ -1,6 +1,7 @@
-offered_rps,p95_ms,run,unit,served_rps,replicas_api,replicas_tei,converge_s,p50_ms,p95_converged_ms,error_pct,error_converged_pct,usd_per_1k_units,reference_ms,reference_note,mark,excluded,note
-50,2418,#02,queries,45.5,2,3,,1672,,0,,0.00250,2000,generation stub,R,,"convergence not timed (E); the window average was already clean, so the source states no separate converged p95 or error"
-200,2425,#03,queries,192.5,2,7,,1750,,0.24,,0.00141,,,R,,"error is the window average; 4.0% peak. Convergence not timed (E)"
-300,2425,#05,queries,296.4,3,11,,1749,,0.20,,0.00098,,,R,,"error is the window average; 2.75% peak. Convergence not timed (E). Off-plan point added after r500"
-500,7934,#04,queries,398.7,3,16,420,2973,2425,0.78,0,0.00121,,,R,,"p95 and error are whole-window averages including the ramp; ~7 min to 13 replicas, then clean; served 80% of offered. converge_s is the source's ~7 min in seconds"
-1000,6378,#06,queries,828.3,6,30,240,2092,2425,4.97,0,0.00088,,,R,,"not the same configuration as the other four: tei-embeddings at cpu 6/8 against the frozen 3/4. The bound covers the latency and scaling columns only; what the doubled request does to usd_per_1k_units is unmeasured. ~4 min to 30 replicas, then clean; served 83% of offered. converge_s is the source's ~4 min in seconds"
+run,offered,p95_window,p95_converged,api,tei
+label,req/s,ms,ms,replicas,replicas
+#02,50,2418,,2,3
+#03,200,2425,,2,7
+#05,300,2425,,3,11
+#04,500,7934,2425,3,16
+#06,1000,6378,2425,6,30

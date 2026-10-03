@@ -1,5 +1,5 @@
 # The report's numbers are checked by report-kit's `figures` command. The pin is
-# a tag, not a branch: the 308 marks in these documents were verified against one
+# a tag, not a branch: the 500 marks in these documents were verified against one
 # version of the resolver, and `@master` would quietly become a different one.
 #
 #   pip install -r docs/report/requirements.txt
@@ -9,9 +9,8 @@
 # treating the new version as equivalent.
 #
 # The [charts] extra pulls in matplotlib, which `report-kit charts` needs to
-# render `charts/*.csv` into `assets/`. Only to render: `charts --check`, which
-# cross-references those CSVs against figures.yaml, draws nothing and needs
-# nothing extra.
+# render `charts/*.csv` into SVGs beside them, as `charts/charts.yaml` says.
+# Only to render: `charts --check` draws nothing and needs nothing extra.
 #
-#   cd docs/report && report-kit charts --check && report-kit charts all
+#   cd docs/report && report-kit charts --all && report-kit charts --check
 report-kit[charts] @ git+https://github.com/maksimillian1/report-kit@v0.3

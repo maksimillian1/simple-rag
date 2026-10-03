@@ -110,18 +110,25 @@ in this repository where prose is load-bearing.
   re-running the command named in the file reproduces it. Prose fields (`note`,
   `revision_note`) are commentary, not data. Stated in full in `methodology.md` §2.
 * **`charts/*.csv` are views, not data:** one CSV per chart, each cell a transcription of
-  what a document already prints, rendered into `assets/*.svg` by `report-kit charts`.
-  Nothing in a chart CSV is a new claim, and no number is computed there, and the renderer
-  is not edited to accommodate a value. The live column contract is
-  `report-kit charts --list`, the mechanics are `report-kit charts --help`, and what may go
-  in a cell is `formats.md`.
+  what a document already prints, holding only what is drawn. `charts/charts.yaml` gives
+  each its shape and marks, and `report-kit charts --all` renders `charts/<name>.svg` beside
+  it; never edit an SVG. Nothing in a chart CSV is a new claim, no number is computed there,
+  and the renderer is not edited to accommodate a value. The file format is
+  `report-kit charts --format`, and what may go in a cell is `formats.md`.
+* **`article.md` is derived, not copied:** the published article is its own file, written to
+  compress and drop rather than to restate, and `report.md` stays the authority on every
+  claim. It carries the same figure marks and sits in the registry's `scan`, so a figure that
+  changes moves both documents or fails the check, and `docs/report/scripts/render_article.py` - not a
+  paste - produces what gets published. The decision is `docs/report/tasks.md` D10, what it
+  keeps and drops is §0.8.
 * **`formats.md`** is the contract for how a number is written and marked.
 * **`methodology.md`** is why the structure is shaped this way. Both are vendored from
   report-kit and carry a provenance header — edit upstream, not here.
 * **Verify before calling a change done:** `report-kit figures check` and
   `report-kit charts --check`, both run from `docs/report/`. `charts/*.csv` is in the
   registry's `scan`, so the first covers the charts' numbers along with the prose; the
-  second only answers whether each CSV's columns still support its chart. Both ship with
+  second fails on a CSV it cannot draw, one `charts.yaml` leaves out, and an SVG older than
+  its CSV or its entry. Both ship with
   report-kit, pinned to a tag in `docs/report/requirements.txt` — install it with
   `pip install -r docs/report/requirements.txt`.
 * A hook in `.claude/settings.json` states the contract before an edit under

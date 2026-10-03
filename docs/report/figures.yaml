@@ -12,10 +12,18 @@ meta:
   rule: every currency figure printed in the report exists here; totals are summed from exact values, never from rounded parts
   rounding: AWS itself stores CUR costs unrounded (69% of this month's rows carry 10 decimals) and rounds once at the end; rounding per row and summing would have overstated 2026-09 by $2.06
   display: prose prints whole dollars; tables print cents where the lines have to add up; rates and per-unit figures keep the decimals that separate them
+  article: >-
+    article.md is a derived document, not a copy of report.md: it compresses and drops, never
+    asserts what report.md does not. It is in this scan, so every number it prints carries the same
+    mark and resolves from here - a figure that changes moves both documents or fails check.
+    docs/report/scripts/render_article.py strips the marks into rendered/article.md and refuses while check is
+    dirty; the published text is always that render. What it keeps, compresses and drops: tasks.md
+    D10 and the mapping in tasks.md 0.8
   naming: name a figure after what it is, not after how it was produced. A leaf carries the metric ref when the report has one (m9_gross_r050), otherwise the resource (serving_nodes). A per-point figure ends in the point id (_r050, _n25), a per-day one in the date (_0905). Groups are named by subject, not by date. Two authors without this rule produced serving_gross_r050 and m9_gross_r050 for the same number on 2026-09-21; the m9_ form won because the report cites M9
 
 scan:
   - report.md
+  - article.md
   - executions/00-baseline/index.md
   - executions/00-baseline/concepts.md
   - executions/01-ingestion/index.md
@@ -1588,9 +1596,12 @@ figures:
   seconds_per_month:
     ref: FR28
     kind: R
-    value: 2592000
+    formula: hours_per_month * 3600
     unit: seconds
-    source: a 30-day month, the convention the monthly volumes in this section are read against
+    display: 0
+    source: the 730-hour month every monthly figure in this report projects to, in seconds
+    group: amortization
+    appears_in: [report.md]
     group: amortization
 
   crossover_rate:
@@ -1613,9 +1624,8 @@ figures:
     unit: usd_per_query
     display: 7
     source: >-
-      500 million queries a month is 193 requests a second sustained, which is r200's served rate.
-      Unlike the rows below the crossover, this one sits inside the range the marginal was measured
-      over
+      500 million queries a month is rate_at_500m sustained, about r200's served rate. Unlike the
+      rows below the crossover, this one sits inside the range the marginal was measured over
     group: amortization
     appears_in: [report.md]
 
@@ -1625,7 +1635,7 @@ figures:
     formula: (block_b_total + query_per_query * 1000000000) / 1000000000
     unit: usd_per_query
     display: 7
-    source: a billion queries a month is 386 requests a second sustained, between r300 and r500
+    source: a billion queries a month is rate_at_1b sustained, between r300 and r500
     group: amortization
     appears_in: [report.md]
 
@@ -2468,6 +2478,61 @@ figures:
       pod's request share claimed that hour. Fleet-wide across every EKS node, so the
       ingestion share of it is not separable and report 3.4 declines to guess one
     group: fargate
+    appears_in: [report.md]
+
+  rate_at_10k:
+    ref: FD146
+    kind: D
+    formula: 10000 / seconds_per_month
+    unit: requests_per_second
+    display: 3
+    source: the arrival rate a 10k-query month implies, sustained
+    group: amortization
+    appears_in: [report.md]
+
+  rate_at_100k:
+    ref: FD147
+    kind: D
+    formula: 100000 / seconds_per_month
+    unit: requests_per_second
+    display: 2
+    group: amortization
+    appears_in: [report.md]
+
+  rate_at_1m:
+    ref: FD148
+    kind: D
+    formula: 1000000 / seconds_per_month
+    unit: requests_per_second
+    display: 1
+    group: amortization
+    appears_in: [report.md]
+
+  rate_at_10m:
+    ref: FD149
+    kind: D
+    formula: 10000000 / seconds_per_month
+    unit: requests_per_second
+    display: 1
+    group: amortization
+    appears_in: [report.md]
+
+  rate_at_500m:
+    ref: FD150
+    kind: D
+    formula: 500000000 / seconds_per_month
+    unit: requests_per_second
+    display: 0
+    group: amortization
+    appears_in: [report.md]
+
+  rate_at_1b:
+    ref: FD151
+    kind: D
+    formula: 1000000000 / seconds_per_month
+    unit: requests_per_second
+    display: 0
+    group: amortization
     appears_in: [report.md]
 
 allow:
