@@ -376,7 +376,19 @@ phase. The generator's own share is in the Matrix note below.
 
 Figures are whole-window averages (active portion, `M1 > 20–100` depending on the point's scale)
 unless noted. They include the ramp, so `r500`/`r1000` read worse here than the hold each one
-reached (Finding, above; Notes). `p99` was never queried; `series.txt` has no `Q` ref for it.
+reached (Finding, above; Notes). `p99` was never queried at either instrument.
+
+**Why two p95 columns, added 2026-10-04.** Envoy answers over any window asked for, but its
+buckets jump 1000 → 2500ms and every response in this campaign lands inside that one bucket, so
+`histogram_quantile` interpolates: `1000 + 0.95 × 1500 = 2425`. That is the printed figure —
+arithmetic, not measurement — which is why four rates share it to the millisecond, and
+`1000 + 0.5 × 1500` is why p50 reads 1672ms, below the 2000ms stub every request pays (M2 already
+flagged that as impossible). k6 times each request exactly, from outside the VPC, so it carries
+the internet hop and the NLB on top and ought to read higher; it reads 300-400ms lower instead,
+which is the size of Envoy's overstatement. k6's own limit is the window: its summary covers a
+whole run, so `r500` and `r1000` carry their scale-out minutes in that column and the hold cannot
+be cut out of it — per-request output (`--out json`) was never captured and the cluster is gone.
+For those two rows Envoy's converged figure is the one to read, with the overstatement understood.
 
 They also include what the **generator** failed to send. k6 schedules by the clock but needs a
 free VU per iteration, and `load.js` sizes the pool off the stub (rate × 2.5s, doubled). The ramp
@@ -387,13 +399,13 @@ pushed p95 to 25s, demand for slots past the cap, and k6 dropped what it could n
 never from k6's own output (M1), which is right for the system's view and left the one
 generator-side instrument unread until 2026-10-03.
 
-| Run | Offered req/s | Served req/s | api / tei replicas | Converge | p50 ms | p95 ms | p99 ms | Error % | Queries served | Serving $ (gross) | $/1k queries (gross) | Saturation signal |
+| Run | Offered req/s | Served req/s | api / tei replicas | Converge | p50 ms ᴿ | p95 ms ᴿ (Envoy) | p95 ms (k6) | Error % | Queries served | Serving $ (gross) | $/1k queries (gross) | Saturation signal |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | ---: | ---: | ---: | :--- |
-| #02 | 50 | 45.5 (91%) | 2 / 3 | not timed ᴱ, window avg already clean | 1672 | 2418 | — | 0% | 29,938<!--FM32--> | $0.0747<!--FM31--> | $0.00250<!--FD78--> | none |
-| #03 | 200 | 192.5 (96%) | 2 / 7 | not timed ᴱ, window avg already clean | 1750 | 2425 | — | 0.24% avg / 4.0% peak | 119,623<!--FM34--> | $0.1686<!--FM33--> | $0.00141<!--FD79--> | none |
-| #05 | 300 | 296.4 (99%) | 3 / 11 | not timed ᴱ, window avg already clean | 1749 | 2425 | — | 0.20% avg / 2.75% peak | 180,001<!--FM36--> | $0.1769<!--FM35--> | $0.00098<!--FD80--> | none |
-| #04 | 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | **~7 min to 13 replicas** ᴿ, then clean | 2973 | 7934 (window avg) / **2425 once converged** | — | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | 267,956<!--FM38--> | $0.3255<!--FM37--> | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
-| #06 | 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | **~4 min to 30 replicas** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | — | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | 568,923<!--FM40--> | $0.4992<!--FM39--> | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
+| #02 | 50 | 45.5 (91%) | 2 / 3 | not timed ᴱ, window avg already clean | 1672 | 2418 | **2040** | 0% | 29,938<!--FM32--> | $0.0747<!--FM31--> | $0.00250<!--FD78--> | none |
+| #03 | 200 | 192.5 (96%) | 2 / 7 | not timed ᴱ, window avg already clean | 1750 | 2425 | **2150** | 0.24% avg / 4.0% peak | 119,623<!--FM34--> | $0.1686<!--FM33--> | $0.00141<!--FD79--> | none |
+| #05 | 300 | 296.4 (99%) | 3 / 11 | not timed ᴱ, window avg already clean | 1749 | 2425 | **2060** | 0.20% avg / 2.75% peak | 180,001<!--FM36--> | $0.1769<!--FM35--> | $0.00098<!--FD80--> | none |
+| #04 | 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | **~7 min to 13 replicas** ᴿ, then clean | 2973 | 7934 (window avg) / **2425 once converged** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | 267,956<!--FM38--> | $0.3255<!--FM37--> | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
+| #06 | 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | **~4 min to 30 replicas** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | 568,923<!--FM40--> | $0.4992<!--FM39--> | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
 
 **#06 is not the same configuration as the others.** `r1000` ran `tei-embeddings` at `cpu 6 / 8`
 (commit `1ef1f0a`, applied just before it); #01-#05 ran the frozen `3 / 4` (`00-baseline` §2

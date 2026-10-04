@@ -538,8 +538,11 @@ time is plausibly what a clean N=10 point costs rather than a corrupted read. Wi
 run, "plausibly" is as far as the data goes. A second, independent N=10 run (not attempted; the
 cluster is gone) would turn this into a confirmed reading.
 
-- **Knee** — N=50, the last point with a meaningful docs/min gain (25→50: +40%; 50→75: only
-  +2.6%). Threshold used: 10% docs/min gain per step
+- **Knee** — **not identified.** The threshold used, 10% docs/min gain per step, selects N=125:
+  the per-step gains are +113% (10→25), +40% (25→50), +2.6% (50→75) and +11.6% again (75→125), so
+  they are not monotone and the rule lands on the top of the swept range, which is a rule finding
+  no bend rather than a bend at 125. N=50 is the last step before gains first stalled and is what
+  the Gap cost below is measured against; it is not a knee. → report §3.3
 - **Sweet spot** — N=25, the minimum `$/1M docs` ($24,875<!--FD75-->) among all five points, N=10 included.
   N=10's real cost ($44,707<!--FD76-->) is *higher*, and the NAT re-check shows that is a genuine reading of
   N=10's economics (low throughput keeps the fixed per-hour costs running longer), not a corrupted

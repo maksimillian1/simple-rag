@@ -217,16 +217,18 @@ Decisions live on a board rather than in this list: **Red Pencil** —
 any edited wording of it, in the artifact's own store: collection `decisions`, one document per id
 with `choice`, `texts` and `resolved`. The board is the working surface, this list is the record.
 **A resolved item leaves the board and is ticked here** — `- [x]` plus
-`· решено <date>: <what was done>` at the end of its line. Resolved so far: **b3**.
+`· решено <date>: <what was done>` at the end of its line. Resolved so far: **b3**; the 2026-10-03 batch — b1, a1, a2, b2, b4, b5, b6, b7, b9, b13; and **b16** on 2026-10-04.
 
 #### a) Несостыковки — two places say different things
 
-- [ ] a1 **§3.4 denies the shape §3.1 prints.** "`$/1M docs` rises monotonically with N, N=10
+- [x] a1 **§3.4 denies the shape §3.1 prints.** "`$/1M docs` rises monotonically with N, N=10
   through 125, no U-shape" against 44,707 → 24,875 → 44,335 → 61,573 → 88,161, a V with its
   minimum at N=25. §1 and §3.2 repeat the wording. Defensible: "rises monotonically from N=25 upward"
-- [ ] a2 **§3.1 and §3.3 disagree on N=10.** §3.1: "its real cost is trusted". §3.3: "no N below it
+  · **решено 2026-10-03**: "rises monotonically from N=25 upward; N=10 is higher still" in §1, §3.2 and §3.4; the "no U-shape" claim is gone.
+- [x] a2 **§3.1 and §3.3 disagree on N=10.** §3.1: "its real cost is trusted". §3.3: "no N below it
   has a trustworthy cost read" and "the true floor may sit below N=25, untested", though N=10 was
   tested at a higher cost. † `01-ingestion` Sweet spot: "N=10 could already be past it and rising"
+  · **решено 2026-10-03**: §3.3 rewritten: N=25 is a measured local minimum, N=10's cost read is genuine and higher, and what stays untested is the gap between 10 and 25 rather than everything below 25. §1 follows.
 - [ ] a3 **N=100 is in neither the matrix nor the excluded list.** Ledger #04 `ingestion-n100` is a
   clean post-fix point (plus #03 `n50-test`, #04a `n100-sticky`); §3.1 excludes only N=4/12/24 and
   175, so the reader sees five runs of eight and a1's claim spans a hole at 100. Check
@@ -287,14 +289,16 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
 
 #### b) Нелогичности — the claim does not follow from the data
 
-- [ ] b1 **The retrieval-latency claim fails its arithmetic, on a disclaimed instrument.** §3.7:
+- [x] b1 **The retrieval-latency claim fails its arithmetic, on a disclaimed instrument.** §3.7:
   retrieval-only "would sit well inside 200ms", but 2425 − 2000 = 425 ms. p50 1672 ms sits *below*
   the 2000 ms stub, which `02-inference` calls impossible for a constant sleep (Envoy buckets jump
   1000 → 2500 ms, so p50/p95 are directional only). That caveat never reaches `report.md`, yet §1's
   "missed by ~2225ms, almost all of which is the stub" rests on it †
-- [ ] b2 **The knee threshold contradicts the knee.** 10% gain per step gives 50, but 75 → 125 is
+  · **решено 2026-10-03**: §3.7's Reference value rewritten around the generator's own per-request durations: successful responses at r050/r300 have p95 2.04s/2.06s, median 2.03s, so retrieval plus the internet round trip is ~40-60ms once the 2000ms stub comes off — measured, where "well inside 200ms" had been asserted. Also records that Envoy reads ~380ms higher than k6 at the same point (buckets 1000 → 2500), which is where §3.6's 2425ms comes from. §1 follows.
+- [x] b2 **The knee threshold contradicts the knee.** 10% gain per step gives 50, but 75 → 125 is
   2.33 → 2.60 = +11.6%. `01-ingestion` has the same gap, and also says "no saturation point exists
   to name as a knee", then names one
+  · **решено 2026-10-03**: The definition changes, and both numbers are printed: the stated 10%-per-step rule selects N=125, the top of the swept range, because the gains are not monotone (+113 / +40 / +2.6 / +11.6%), so the knee is **not identified** — a rule landing on the edge of the range has found no bend. N=50 keeps its role as the ceiling for a hurry and as what the Gap cost is measured against, under its own name. Same in `01-ingestion`'s Knee line.
 - [x] b3 **≥1000 req/s comes from a row the report's own rule excludes.** §3.6 excludes rows where
   served falls short of offered; r1000 served 828.3 (83%), r500 80%. "Once converged" is the way
   out, but only a converged p95 and error rate are published, no converged *served* rate
@@ -310,7 +314,7 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   use; `02-inference`'s Finding, Matrix note, both phase tables, #04/#06 Notes and the Retro
   follow. 17 figures registered as `figures.yaml` group `steady_state`; `check` clean at 263
   figures / 488 marks / 122-122 coverage
-- [ ] b4 **§4.2 decomposes a cash total with apportioned shares.** Reframed 2026-10-03, and the
+- [x] b4 **§4.2 decomposes a cash total with apportioned shares.** Reframed 2026-10-03, and the
   earlier reading of it ("33× discrepancy, may move the headline") was wrong: the rows sum to
   $24,875 by construction, so the headline cannot move. What the two numbers are: §3.1's `TEI $`
   = $0.0075/run is **cash** (serving-pool node bill for the hour minus the day's resting rate — at
@@ -324,21 +328,26 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   the difference, so the embedding row takes $2,490 of the headline where ~$75 of cash is
   attributable. About 10% of $24,875 is attributed to the wrong place, and Coverage calls the §4.2
   row `D23`, which is the other method
-- [ ] b5 **§2.3 says no run measured a ceiling** ("set out of reach"); §5 says the TEI cap of 30
+  · **решено 2026-10-03**: §4.2 now states the two currencies: the total is cash (`cur_marginal` + D23), the three component rows are split-cost apportionment that moves money between pods on a node whose bill did not change, and the residual carries the difference — with N=25's $0.01/run cash against its $0.249/run apportioned share as the worked example. Coverage's row repointed: cash reading and apportioned reading named separately.
+- [x] b5 **§2.3 says no run measured a ceiling** ("set out of reach"); §5 says the TEI cap of 30
   "was fully used at r1000 with zero margin"
-- [ ] b6 **"4 components … sum correctly" (§4.2)** is three plus a residual: the fourth ($19,790)
+  · **решено 2026-10-03**: §2.3 now says the ingestion ceilings stayed out of reach while the embedding tier reached its 30 at r1000, and keeps the point as the declared exception to `02-inference`'s exclusion rule, because the tier converged there and held the rate at ~0% errors. §5's embedding row points at §2.3.
+- [x] b6 **"4 components … sum correctly" (§4.2)** is three plus a residual: the fourth ($19,790)
   is the total minus the other three, and the same row says it doesn't reconcile with the Matrix
-- [ ] b7 **Defects-beat-sizing is computed with a defect inside the sizing.** §1: $175.85/month
+  · **решено 2026-10-03**: §4.2: "three components from the split-cost source plus a residual derived from the total".
+- [x] b7 **Defects-beat-sizing is computed with a defect inside the sizing.** §1: $175.85/month
   against "$139.80 ᴱ saved by right-sizing every line". Per `tech-debt` #5 sizing alone is
   $866.79 → $779.54 = $87.25; the other $52.56 is the two Bedrock endpoints, defects per §0.6 and
   the errors table. The finding gets *stronger* with the right number
+  · **решено 2026-10-03**: §1 keeps $139.80 and states that $52.56 of it is the two Bedrock endpoints, a defect rather than a size, so sizing alone accounts for $87.25.
 - [ ] b8 **The quantization argument runs at 12× the collection.** §4.1 reasons at 1M points
   (0.384 GB against 1.536 GB) for why "a `.large` node holds the collection at all"; the collection
   is 84,018 points, which any node holds. The real reason for the class is the 2-vCPU / 1.568-core
   peak, already in the section
-- [ ] b9 **"No constraint found" against "a real, momentary saturation".** §3.7 against
+- [x] b9 **"No constraint found" against "a real, momentary saturation".** §3.7 against
   `02-inference` Saturation (TEI at 87–97.5% of limit). The no-ceiling proof also rests on r1000,
   the only point at `cpu 6 / 8`; the five `3 / 4` rows publish no TEI CPU peak
+  · **решено 2026-10-03**: §3.7 narrowed to "no *sustained* ceiling": TEI's 87-97.5% during r1000's ramp is named as the momentary saturation `02-inference` calls it, and the claim is scoped to the `cpu 6 / 8` request, with the five `3 / 4` rows publishing no TEI CPU peak.
 - [ ] b10 **Two superlatives.** §1 Verdict: generation (`E18`) is "the largest number in the query
   path"; §3.8: contention is "the largest open item in this report", while the Verdict calls
   contention a scope boundary "and not a gap"
@@ -347,17 +356,25 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   Tier 2 …", in future tense, with no Tier 2 observed and 4/12/24 never run (a4)
 - [ ] b12 **§3.5's Tier 2 precondition names the wrong component.** Tier 1 is the indexer's
   sequential loop; the Tier 2 bullet reasons from "the chunker was never relieved by a resource fix"
-- [ ] b13 **N, `maxReplicaCount` and observed concurrency don't reconcile.** The live cap was 10
+- [x] b13 **N, `maxReplicaCount` and observed concurrency don't reconcile.** The live cap was 10
   through every run (20 from 2026-09-19), yet N ran to 125 with the indexer "at its full 125/125
   ceiling" and the chunker at ~20. Say once what N sets and what the cap limits, or §5's guardrail
   of 20 reads as a value the sweep already passed
+  · **решено 2026-10-03**: §3.1 defines N once — the `maxReplicaCount` set on both ScaledJobs before the run, recorded by `run-ingestion-point.py --n`, a cap and not an observed concurrency — and reconciles the three numbers: the indexer tracked N exactly, the chunker peaked at ~20 at every N because the corpus cannot keep more busy, the cap bound on it only at N=10, and the committed value between runs was 10. §5's guardrail row says why 20 sits below four of the five swept Ns.
 - [ ] b14 **§3.1 claims a second docs/min measurement** ("the derivative of queue depth … catches a
   run that stalled"), but §3 has no such result and §3.4's warm-up and tail columns are "not
   captured". Cite it or demote it to method
 - [ ] b15 **§3.4 retracts itself.** "Split cost allocation reports them directly", then the next
   paragraph: the number is fleet-wide and can't be separated from platform idle
-- [ ] b16 **Four rows share p95 = 2425 ms to the millisecond** (r200, r300, r500 and r1000
+- [x] b16 **Four rows share p95 = 2425 ms to the millisecond** (r200, r300, r500 and r1000
   converged) without remark; against Envoy's 1000 → 2500 gap that is one interpolation artifact
+  · **решено 2026-10-04**: двумя колонками, а не оговоркой. Пустая колонка `p99` заменена на
+  `p95 ms (k6)`, Envoy-колонка подписана как Envoy — в §3.6 и в матрице `02-inference`. k6 по
+  успешным ответам: 2040 / 2150 / 2060 ms на r050 / r200 / r300 и 10,630 / 4,730 за весь прогон
+  на r500 / r1000, где сводка k6 включает минуты масштабирования и hold из неё не вырезать.
+  Абзац под каждой таблицей показывает арифметику `1000 + 0.95 × 1500 = 2425`, из-за которой
+  четыре рейта совпадают, отмечает, что та же интерполяция кладёт p50 ниже стаба, и что k6 меряет
+  снаружи VPC — то есть должен читать выше, а читает на 300–400 ms ниже
 - [ ] b17 **§4.2's query table says "at the sustained rate"** for a campaign-wide marginal over
   50–1000 req/s, and §4.3 then puts the low rows outside the measured regime
 - [ ] b18 **§5 keeps rows with no committable value** (eight "not set" / "not revised"), against D5
@@ -389,6 +406,7 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   the two columns are the only unregistered numbers left in `report.md` · S
 - [ ] b22 Minor: "Article 1" (§4.1) is never identified; the header's "1000 is not a swept maximum"
   means *not a proven ceiling* (1000 is the top rate swept); §1 marks the sustained rate ᴿ where
-  `D15` is derived (fixed in §3.6 by 4.8); §4.3's "`api` held 2 replicas to ~300 requests a second"
-  against 3 at r300 in the matrix; §4's formula adds the two denominators the lead-in says are never
-  mixed
+  §4.3's "`api` held 2 replicas to ~300 requests a second"
+  against 3 at r300 in the matrix — the one item here that is a wrong number rather than a copy-edit;
+  §4's formula adds the two denominators the lead-in says are never mixed. (The ᴿ marker on the
+  sustained rate went with b3's rewrite of that bullet, 2026-10-03.)

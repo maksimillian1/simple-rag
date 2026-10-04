@@ -1,7 +1,7 @@
 <!--
 Vendored from report-kit — do not edit here.
 Source: src/report_kit/templates/methodology.md
-Version: v0.3 — the tag pinned in requirements.txt, so the cited section numbers and the
+Version: v0.3.1 — the tag pinned in requirements.txt, so the cited section numbers and the
 checker that enforces them name the same release. The body is byte-identical to that tag's
 template. No local divergence: the two subsections this report added, §2 "Data files hold
 readings, not results" and §9 "Cost calculation approach (AWS)", are in the template as of

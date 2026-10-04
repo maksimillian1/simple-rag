@@ -13,4 +13,4 @@
 # Only to render: `charts --check` draws nothing and needs nothing extra.
 #
 #   cd docs/report && report-kit charts --all && report-kit charts --check
-report-kit[charts] @ git+https://github.com/maksimillian1/report-kit@v0.3
+report-kit[charts] @ git+https://github.com/maksimillian1/report-kit@v0.3.1

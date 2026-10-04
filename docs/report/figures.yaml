@@ -2535,6 +2535,34 @@ figures:
     group: amortization
     appears_in: [report.md]
 
+  # --- added 2026-10-03 with the b4 and b7 fixes ---
+
+  rightsize_sizing_only_saving:
+    ref: FD152
+    kind: D
+    formula: c_fixed - c_fixed_rs_sizing_only
+    unit: usd_per_month
+    display: 2
+    source: >-
+      what right-sizing alone takes off the fixed floor, before the two Bedrock endpoints that
+      tech-debt #5 removes for a different reason (#12 calls the control-plane one a defect and
+      ADR-0018 withdraws the runtime one). The full gap, rightsize_fixed_saving, carries both
+    group: attribution
+    appears_in: [report.md]
+
+  tei_apportioned_above_min_per_run:
+    ref: FD153
+    kind: D
+    formula: tei_above_floor_per_1m / 10000
+    unit: usd
+    display: 3
+    source: >-
+      the same figure report 4.2 prints per 1M documents, expressed per run, so it can be set
+      beside D23's cash reading of the same tier at N=25 ($0.01/run). 100 documents per run
+    group: m12_split
+    appears_in: [report.md]
+
+
 allow:
   - pattern: "24,750"
     file: executions/01-ingestion/index.md
