@@ -2563,6 +2563,166 @@ figures:
     appears_in: [report.md]
 
 
+  # --- group memory_limits: added 2026-10-06 ---
+  # Peak container_memory_working_set_bytes per pod, max over the point's window, taken from each
+  # point's own export (01-ingestion M7, 02-inference Q8). Working set is what the kubelet reads
+  # for an OOM decision, so it is the metric a memory limit is set against. Ingestion peaks cover
+  # the five published points only; two off-plan runs (n100, n100-sticky) reach slightly higher.
+
+  api_ws_peak:
+    ref: FM76
+    kind: M
+    value: 165.0
+    unit: mib
+    display: 0
+    source: >-
+      highest per-pod working set across the inference sweep, at r500; the fleet reading, where
+      load is spread over the replicas the scaler produced
+    group: memory_limits
+    appears_in: [report.md]
+
+  api_ws_peak_single_pod:
+    ref: FM77
+    kind: M
+    value: 439.0
+    unit: mib
+    display: 0
+    source: >-
+      02-inference M6: 1000 rps offered against one pinned replica, a port-forward reading rather
+      than a fleet point. The binding case for the limit, reachable at scale-in and under the
+      imbalanced routing seen at n100-sticky
+    group: memory_limits
+    appears_in: [report.md]
+
+  tei_ws_peak:
+    ref: FM78
+    kind: M
+    value: 670.0
+    unit: mib
+    display: 0
+    source: >-
+      highest per-pod working set across the inference sweep, at r050 on 3 replicas - per-pod
+      memory is highest when fewest pods share the load
+    group: memory_limits
+    appears_in: [report.md]
+
+  chunker_ws_peak:
+    ref: FM79
+    kind: M
+    value: 445.0
+    unit: mib
+    display: 0
+    source: >-
+      highest per-pod working set over the five published ingestion points, at n25 (20 pods in the
+      export). The chunker is short-lived and the 15s scrape under-samples it at n50/n75/n125,
+      where 1-3 pods were caught
+    group: memory_limits
+    appears_in: [report.md]
+
+  indexer_ws_peak:
+    ref: FM80
+    kind: M
+    value: 2218.7
+    unit: mib
+    display: 0
+    source: highest per-pod working set over the five published ingestion points, at n75
+    group: memory_limits
+    appears_in: [report.md]
+
+  api_mem_limit:
+    ref: FR32
+    kind: R
+    value: 512
+    unit: mib
+    display: 0
+    source: deploy/k8s/apps/api/deployment.yaml limits.memory
+    group: memory_limits
+    appears_in: [report.md]
+
+  tei_mem_limit:
+    ref: FR33
+    kind: R
+    value: 1024
+    unit: mib
+    display: 0
+    source: deploy/k8s/platform/tei-embeddings/deployment.yaml limits.memory, 1Gi
+    group: memory_limits
+
+  tei_mem_request:
+    ref: FR34
+    kind: R
+    value: 768
+    unit: mib
+    display: 0
+    source: deploy/k8s/platform/tei-embeddings/deployment.yaml requests.memory
+    group: memory_limits
+    appears_in: [report.md]
+
+  chunker_mem_limit:
+    ref: FR35
+    kind: R
+    value: 1024
+    unit: mib
+    display: 0
+    source: deploy/k8s/apps/chunker/scaledjob.yaml limits.memory, 1Gi
+    group: memory_limits
+
+  indexer_mem_limit:
+    ref: FR36
+    kind: R
+    value: 4096
+    unit: mib
+    display: 0
+    source: deploy/k8s/apps/indexer/scaledjob.yaml limits.memory, 4Gi
+    group: memory_limits
+
+  indexer_mem_request:
+    ref: FR37
+    kind: R
+    value: 2048
+    unit: mib
+    display: 0
+    source: deploy/k8s/apps/indexer/scaledjob.yaml requests.memory, 2Gi
+    group: memory_limits
+    appears_in: [report.md]
+
+  api_mem_headroom:
+    ref: FD154
+    kind: D
+    formula: api_mem_limit / api_ws_peak
+    unit: ratio
+    display: 2
+    group: memory_limits
+    appears_in: [report.md]
+
+  tei_mem_headroom:
+    ref: FD155
+    kind: D
+    formula: tei_mem_limit / tei_ws_peak
+    unit: ratio
+    display: 2
+    group: memory_limits
+    appears_in: [report.md]
+
+  chunker_mem_headroom:
+    ref: FD156
+    kind: D
+    formula: chunker_mem_limit / chunker_ws_peak
+    unit: ratio
+    display: 2
+    group: memory_limits
+    appears_in: [report.md]
+
+  indexer_mem_headroom:
+    ref: FD157
+    kind: D
+    formula: indexer_mem_limit / indexer_ws_peak
+    unit: ratio
+    display: 2
+    group: memory_limits
+    appears_in: [report.md]
+
+
 allow:
   - pattern: "24,750"
     file: executions/01-ingestion/index.md
