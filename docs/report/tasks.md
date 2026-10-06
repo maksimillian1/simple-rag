@@ -134,6 +134,9 @@ count moves whenever a figure is added, so read it from the tool rather than fro
 
 ### The order
 
+- [ ] 0.7.0 §0.8's mapping, re-read against the report as it now stands. The 2026-10-03/04 batch
+  changed almost every section the mapping calls *verbatim*, so it currently points at text that
+  moved. Before the sense-read, and before any article prose exists · S
 - [ ] 0.7.1 `report.md` in full: read for sense first, then the `humanizer` pass, then re-read the
   four §1 findings aloud. One file, and the only one a reader acts on · M
 - [ ] 0.7.2 The cited sections of the execution documents only, listed below. `humanizer` on those
@@ -219,6 +222,40 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
 **A resolved item leaves the board and is ticked here** — `- [x]` plus
 `· решено <date>: <what was done>` at the end of its line. Resolved so far: **b3**; the 2026-10-03 batch — b1, a1, a2, b2, b4, b5, b6, b7, b9, b13; and **b16** on 2026-10-04.
 
+### Порядок перед вычиткой · оценки 2026-10-04
+
+⟨N⟩ у каждого открытого пункта — важность по одному вопросу: **испортит ли это вычитку, если не
+решить заранее.** Не «насколько неверно», а «потеряется ли работа». Для калибровки: из тринадцати
+закрытых на 8-10 тянут b3, b1, b9, b4, a1/a2, b16; b2, b13, b7 и a10 были 6-7; b5 и b6 — 4-5, они
+проехали прицепом к соседям.
+
+**Сначала, до чтения.** Каждый либо удаляет текст, который иначе будешь вычитывать, либо подаёт в
+проход неверное число.
+
+- **a3 ⟨9⟩** — решение, а не правка: если `n100` входит в матрицу, §3.1-§3.4 переписываются поверх
+  сегодняшних a1/a2
+- **b11 + b12 ⟨8⟩** — два абзаца §3.5 удаляются целиком, а §3.5 в мэппинге помечен *verbatim*
+- **b18 ⟨8⟩** — восемь строк §5 либо уходят, либо остаются; §5 в статье сжимается до выводов
+- **a8 ⟨7⟩** — дефект инструмента, а не отчёта: «Settled numbers» подсказывает снятые числа тому,
+  кто читает
+- **a9, a5 ⟨7⟩** — минута каждая, но кормят §4.2/§4.3 и штамп рендера
+
+**По ходу чтения, один проход.** a12 ⟨7⟩, затем b8, a15, b17, b21, b22, b15 ⟨6⟩ — фактические,
+ловятся на своём абзаце. b14, b19, b20, b10, a7, a16 ⟨5⟩ и a4, a6, a11, a14 ⟨4⟩ — формулировки.
+Одно решение внутри группы: **a7** закрывается одной строкой «D1 говорит right-sized, статья ведёт
+as-built, потому что это то, что реально заплачено».
+
+**После публикации ⟨2-3⟩.** a13, a17-a28 — внутри execution-файлов, читателю статьи невидимы, а его
+ссылки это permalink'и на коммит. b23 — правило для кита. b24 — нужна выгрузка CUR, и это
+единственное, что держит `orphans` непустым.
+
+**Чего в списке нет и что важнее всего ⟨9⟩.** Мэппинг §0.8 написан против старого отчёта: за
+2026-10-03/04 изменились §1, §2.3, §3.1, §3.2, §3.3, §3.4, §3.6, §3.7, §4.2 и §5 — почти каждая
+строка, помеченная *verbatim*. Перечитать до того, как появится проза статьи, иначе он указывает на
+текст, которого нет: это 0.7.0 в §0.7. И отдельно: отчёт правили десятком заходов, §3.7 переписан
+трижды, §3.3 дважды, целиком его после этого никто не читал — sense-read нужен сам по себе,
+независимо от списка.
+
 #### a) Несостыковки — two places say different things
 
 - [x] a1 **§3.4 denies the shape §3.1 prints.** "`$/1M docs` rises monotonically with N, N=10
@@ -229,63 +266,63 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   has a trustworthy cost read" and "the true floor may sit below N=25, untested", though N=10 was
   tested at a higher cost. † `01-ingestion` Sweet spot: "N=10 could already be past it and rising"
   · **решено 2026-10-03**: §3.3 rewritten: N=25 is a measured local minimum, N=10's cost read is genuine and higher, and what stays untested is the gap between 10 and 25 rather than everything below 25. §1 follows.
-- [ ] a3 **N=100 is in neither the matrix nor the excluded list.** Ledger #04 `ingestion-n100` is a
+- [ ] a3 ⟨9⟩ **N=100 is in neither the matrix nor the excluded list.** Ledger #04 `ingestion-n100` is a
   clean post-fix point (plus #03 `n50-test`, #04a `n100-sticky`); §3.1 excludes only N=4/12/24 and
   175, so the reader sees five runs of eight and a1's claim spans a hole at 100. Check
   `D24 ≈ $1.76/run` against the Matrix's `$/run` first
-- [ ] a4 **The planned grid is cited three ways.** §3.1 "4/12/24/refine/refine" against
+- [ ] a4 ⟨4⟩ **The planned grid is cited three ways.** §3.1 "4/12/24/refine/refine" against
   `01-ingestion` Plan: {4,24,50,100,125,175}, revised from {4,8,12,16,20,24}, swept as {4,50,175}
   plus refinements
-- [ ] a5 **The report's date precedes its content.** Header "v1.0 · 2026-09-09"; the text carries
+- [ ] a5 ⟨7⟩ **The report's date precedes its content.** Header "v1.0 · 2026-09-09"; the text carries
   the 2026-09-26 Gateway decision, `ADR-0018`, `vpc.tf` "as of 2026-09-28" and §5's 2026-09-19
   changes
-- [ ] a6 **Dead citations.** The header cites `tech-debt.md` #4, deleted by 1.2; §4.1 cites "§4.5",
+- [ ] a6 ⟨4⟩ **Dead citations.** The header cites `tech-debt.md` #4, deleted by 1.2; §4.1 cites "§4.5",
   which doesn't exist (4.1–4.4), and `tech-debt.md` #12 cites it back
-- [ ] a7 **§1 leads with the as-built floor, against D1.** It gives $534.12 and $877.54 and no
+- [ ] a7 ⟨5⟩ **§1 leads with the as-built floor, against D1.** It gives $534.12 and $877.54 and no
   right-sized figure
-- [ ] a8 **"Settled numbers" at the top of this file is stale**: B 553.83/457.30, A 323.71, C
+- [ ] a8 ⟨7⟩ **"Settled numbers" at the top of this file is stale**: B 553.83/457.30, A 323.71, C
   764.02, crossovers 22,265 / 147.8M, floor share 0.000211, alarm 775.37/640.22, against the
   report's 534.12 / 411.31 / 343.42 / 737.74 / 21,472 / 142.5M / 0.000203 / 747.77 / 575.84. Same
   for D1's and D5's thresholds and D6's text. Fix or delete before the read, or it seeds wrong
   corrections
-- [ ] a9 **The query crossover prints twice.** §4.2 "~148M queries/month" (the retired 147.8M)
+- [ ] a9 ⟨7⟩ **The query crossover prints twice.** §4.2 "~148M queries/month" (the retired 147.8M)
   against §4.3's 142,547,228
 - [x] a10 **A month is 730 h and 720 h.** Done 2026-10-03: always 730. `seconds_per_month` (FR28) is
   now `hours_per_month * 3600`, and §4.3's rates are registered and marked (FD146–FD151): crossover
   55 → 54 req/s, 500M 193 → 190, a billion 386 → 381
-- [ ] a11 **"Six points running"** for 84,018 (§2.1) against `01-ingestion` "the seventh time" and
+- [ ] a11 ⟨4⟩ **"Six points running"** for 84,018 (§2.1) against `01-ingestion` "the seventh time" and
   `00-baseline` Topology, `n50-test` through `n10` (eight) †
-- [ ] a12 **Qdrant node count.** §3.7 "one dedicated node", §4.1 "Qdrant node + gp3", against
+- [ ] a12 ⟨7⟩ **Qdrant node count.** §3.7 "one dedicated node", §4.1 "Qdrant node + gp3", against
   `00-baseline`: 2 × r7g.large, one shard replicated across both †
-- [ ] a13 **Waste boundary.** §3.1, §3.3 and the `01-ingestion` Matrix say "+39% cost"; the
+- [ ] a13 ⟨3⟩ **Waste boundary.** §3.1, §3.3 and the `01-ingestion` Matrix say "+39% cost"; the
   `01-ingestion` Waste boundary line says "rises 35%". 6.16/4.43 = +39%, so that line is stale ‡
-- [ ] a14 **$1.4787 carries two markers**: ᴿ in §3.4's table, unmarked (FM50) in §4.4
-- [ ] a15 **Printed tables don't add** (rounding at print per §0.6, which the report never states):
+- [ ] a14 ⟨4⟩ **$1.4787 carries two markers**: ᴿ in §3.4's table, unmarked (FM50) in §4.4
+- [ ] a15 ⟨6⟩ **Printed tables don't add** (rounding at print per §0.6, which the report never states):
   533.20 + 0.93 = 534.13 printed 534.12; 410.39 + 0.93 = 411.32 printed 411.31; 410.39 + 316.60 =
   726.99 printed 726.98; §3.1 N=25 1.09 + 0.01 + 1.38 = 2.48 printed 2.49. One footnote covers all four
-- [ ] a16 **Coverage's Status column mixes four kinds of value** (a status, a trust marker, a whole
+- [ ] a16 ⟨5⟩ **Coverage's Status column mixes four kinds of value** (a status, a trust marker, a whole
   method paragraph on the Idle-floor row), and "Since" means "measured since" on some rows and
   "targeted for" on the v1.1 ones
-- [ ] a17 **`00-baseline` untagged lines.** Retro: "8 non-zero untagged lines, $0.21163"; R5 now
+- [ ] a17 ⟨2⟩ **`00-baseline` untagged lines.** Retro: "8 non-zero untagged lines, $0.21163"; R5 now
   has 11 combos and $0.3758642 ‡
-- [ ] a18 **`00-baseline` right-sized endpoints.** The lead-in removes only the `bedrock` endpoint;
+- [ ] a18 ⟨2⟩ **`00-baseline` right-sized endpoints.** The lead-in removes only the `bedrock` endpoint;
   the table removes both (`ADR-0018`) ‡
-- [ ] a19 **`00-baseline` Retro cites "the worry in M2's own notes"**, which M2's notes don't
+- [ ] a19 ⟨2⟩ **`00-baseline` Retro cites "the worry in M2's own notes"**, which M2's notes don't
   contain ‡
-- [ ] a20 **`01-ingestion` N=25 NAT**: $1.44 in prose, $1.38 in the Matrix's `Other $` ‡
-- [ ] a21 **`01-ingestion` "monotonic downward"** (ledger #09, Retro), where cost rises with N ‡
-- [ ] a22 **`01-ingestion` Retro: "`D23` is still the unresolved rough estimate"**; Close says it
+- [ ] a20 ⟨3⟩ **`01-ingestion` N=25 NAT**: $1.44 in prose, $1.38 in the Matrix's `Other $` ‡
+- [ ] a21 ⟨3⟩ **`01-ingestion` "monotonic downward"** (ledger #09, Retro), where cost rises with N ‡
+- [ ] a22 ⟨2⟩ **`01-ingestion` Retro: "`D23` is still the unresolved rough estimate"**; Close says it
   was measured 2026-09-19 ‡
-- [ ] a23 **`02-inference` r050 served rate.** Notes keep it flagged "until the tighter re-read,
+- [ ] a23 ⟨3⟩ **`02-inference` r050 served rate.** Notes keep it flagged "until the tighter re-read,
   before it is used in §3's Matrix"; the Matrix already uses it ‡
-- [ ] a24 **`02-inference` #03 pod timing.** "Started at `13:38:52`, after the window closed at
+- [ ] a24 ⟨2⟩ **`02-inference` #03 pod timing.** "Started at `13:38:52`, after the window closed at
   `13:39:24`", but 13:38:52 is the earlier time ‡
-- [ ] a25 **`02-inference` #05 narrows the knee to (300, 500)**; #04 and the Finding say 500 is
+- [ ] a25 ⟨3⟩ **`02-inference` #05 narrows the knee to (300, 500)**; #04 and the Finding say 500 is
   sustainable and there is no ceiling ‡
-- [ ] a26 **`02-inference` contention pass at N=50**; the `01-ingestion` guardrail is now 20 ‡
-- [ ] a27 **`02-inference` TEI `maxReplicaCount` row** derives ~35-40 replicas from 6 cores per pod;
+- [ ] a26 ⟨2⟩ **`02-inference` contention pass at N=50**; the `01-ingestion` guardrail is now 20 ‡
+- [ ] a27 ⟨3⟩ **`02-inference` TEI `maxReplicaCount` row** derives ~35-40 replicas from 6 cores per pod;
   TEI is back at 3/4 since 2026-09-26 (4.7 fixed this in the report only) ‡
-- [ ] a28 Minor: `02-inference` Safeguards still holds the template placeholders `⟨wall time⟩ · ⟨$⟩` ‡
+- [ ] a28 ⟨2⟩ Minor: `02-inference` Safeguards still holds the template placeholders `⟨wall time⟩ · ⟨$⟩` ‡
 
 #### b) Нелогичности — the claim does not follow from the data
 
@@ -340,7 +377,7 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   $866.79 → $779.54 = $87.25; the other $52.56 is the two Bedrock endpoints, defects per §0.6 and
   the errors table. The finding gets *stronger* with the right number
   · **решено 2026-10-03**: §1 keeps $139.80 and states that $52.56 of it is the two Bedrock endpoints, a defect rather than a size, so sizing alone accounts for $87.25.
-- [ ] b8 **The quantization argument runs at 12× the collection.** §4.1 reasons at 1M points
+- [ ] b8 ⟨6⟩ **The quantization argument runs at 12× the collection.** §4.1 reasons at 1M points
   (0.384 GB against 1.536 GB) for why "a `.large` node holds the collection at all"; the collection
   is 84,018 points, which any node holds. The real reason for the class is the 2-vCPU / 1.568-core
   peak, already in the section
@@ -348,23 +385,23 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   `02-inference` Saturation (TEI at 87–97.5% of limit). The no-ceiling proof also rests on r1000,
   the only point at `cpu 6 / 8`; the five `3 / 4` rows publish no TEI CPU peak
   · **решено 2026-10-03**: §3.7 narrowed to "no *sustained* ceiling": TEI's 87-97.5% during r1000's ramp is named as the momentary saturation `02-inference` calls it, and the claim is scoped to the `cpu 6 / 8` request, with the five `3 / 4` rows publishing no TEI CPU peak.
-- [ ] b10 **Two superlatives.** §1 Verdict: generation (`E18`) is "the largest number in the query
+- [ ] b10 ⟨5⟩ **Two superlatives.** §1 Verdict: generation (`E18`) is "the largest number in the query
   path"; §3.8: contention is "the largest open item in this report", while the Verdict calls
   contention a scope boundary "and not a gap"
-- [ ] b11 **§3.5 carries plan text for a sweep that never ran**: the N=4 → N=24 chunker argument
+- [ ] b11 ⟨8⟩ **§3.5 carries plan text for a sweep that never ran**: the N=4 → N=24 chunker argument
   ("why the sweep runs to 24 rather than stopping at 12") and "If the embedding tier appears as
   Tier 2 …", in future tense, with no Tier 2 observed and 4/12/24 never run (a4)
-- [ ] b12 **§3.5's Tier 2 precondition names the wrong component.** Tier 1 is the indexer's
+- [ ] b12 ⟨8⟩ **§3.5's Tier 2 precondition names the wrong component.** Tier 1 is the indexer's
   sequential loop; the Tier 2 bullet reasons from "the chunker was never relieved by a resource fix"
 - [x] b13 **N, `maxReplicaCount` and observed concurrency don't reconcile.** The live cap was 10
   through every run (20 from 2026-09-19), yet N ran to 125 with the indexer "at its full 125/125
   ceiling" and the chunker at ~20. Say once what N sets and what the cap limits, or §5's guardrail
   of 20 reads as a value the sweep already passed
   · **решено 2026-10-03**: §3.1 defines N once — the `maxReplicaCount` set on both ScaledJobs before the run, recorded by `run-ingestion-point.py --n`, a cap and not an observed concurrency — and reconciles the three numbers: the indexer tracked N exactly, the chunker peaked at ~20 at every N because the corpus cannot keep more busy, the cap bound on it only at N=10, and the committed value between runs was 10. §5's guardrail row says why 20 sits below four of the five swept Ns.
-- [ ] b14 **§3.1 claims a second docs/min measurement** ("the derivative of queue depth … catches a
+- [ ] b14 ⟨5⟩ **§3.1 claims a second docs/min measurement** ("the derivative of queue depth … catches a
   run that stalled"), but §3 has no such result and §3.4's warm-up and tail columns are "not
   captured". Cite it or demote it to method
-- [ ] b15 **§3.4 retracts itself.** "Split cost allocation reports them directly", then the next
+- [ ] b15 ⟨6⟩ **§3.4 retracts itself.** "Split cost allocation reports them directly", then the next
   paragraph: the number is fleet-wide and can't be separated from platform idle
 - [x] b16 **Four rows share p95 = 2425 ms to the millisecond** (r200, r300, r500 and r1000
   converged) without remark; against Envoy's 1000 → 2500 gap that is one interpolation artifact
@@ -375,18 +412,18 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   Абзац под каждой таблицей показывает арифметику `1000 + 0.95 × 1500 = 2425`, из-за которой
   четыре рейта совпадают, отмечает, что та же интерполяция кладёт p50 ниже стаба, и что k6 меряет
   снаружи VPC — то есть должен читать выше, а читает на 300–400 ms ниже
-- [ ] b17 **§4.2's query table says "at the sustained rate"** for a campaign-wide marginal over
+- [ ] b17 ⟨6⟩ **§4.2's query table says "at the sustained rate"** for a campaign-wide marginal over
   50–1000 req/s, and §4.3 then puts the low rows outside the measured regime
-- [ ] b18 **§5 keeps rows with no committable value** (eight "not set" / "not revised"), against D5
+- [ ] b18 ⟨8⟩ **§5 keeps rows with no committable value** (eight "not set" / "not revised"), against D5
   and `methodology.md` §10, and keeps "Backfill concurrency during query hours", which D3 deleted
-- [ ] b19 **A condition nothing enforces.** §1 makes the $575.84 alarm one of three conditions; §5
+- [ ] b19 ⟨5⟩ **A condition nothing enforces.** §1 makes the $575.84 alarm one of three conditions; §5
   says `terraform/budgets.tf` doesn't exist. Make the condition "write it" (`tech-debt` #11) or drop it
-- [ ] b20 **Spurious precision on estimated crossovers**: 142,547,228 and 54,854,311 queries from
+- [ ] b20 ⟨5⟩ **Spurious precision on estimated crossovers**: 142,547,228 and 54,854,311 queries from
   three-significant-figure inputs, the second called "an order of magnitude" in its own paragraph
-- [ ] b21 **§5 citations that lead nowhere.** "Max input file size | §3.5 · ADR-0001" (§3.5 has no
+- [ ] b21 ⟨6⟩ **§5 citations that lead nowhere.** "Max input file size | §3.5 · ADR-0001" (§3.5 has no
   file-size content); "Chunks per SQS message | §4.2 SQS line" (§4.2 has no SQS line; SQS is in the
   residual row)
-- [ ] b23 **The generator's own counters are published nowhere, and on two points they are
+- [ ] b23 ⟨3⟩ **The generator's own counters are published nowhere, and on two points they are
   double-digit.** `dropped_iterations` — iterations k6 could not start because no VU was free —
   runs 56 / 377 / 0 / **32,045** / **30,985** across r050-r1000, i.e. 10.7% of what was scheduled
   at r500 and 5.2% at r1000, with the pool pinned at its ceiling both times. `02-inference` M1
@@ -398,13 +435,13 @@ with `choice`, `texts` and `resolved`. The board is the working surface, this li
   percent is a generator reading, not a system one. Written into `02-inference`'s Retro
   ("Back into the kit", item 3) on 2026-10-03; it belongs in the kit's point template, not only
   in this campaign's retro · S
-- [ ] b24 **§3.1's `Compute $` and `Other $` columns have no saved decomposition.** They split
+- [ ] b24 ⟨3⟩ **§3.1's `Compute $` and `Other $` columns have no saved decomposition.** They split
   `cur_marginal_nXX`, which is registered, but the split itself exists only as printed cents —
   `orphans` reports all eight cells and nothing in `executions/01-ingestion/data/` carries them,
   so they cannot be registered without inventing precision. One CUR pull over the five point hours
   settles it, and K3's month-close re-read is owed anyway now that 2026-09 has closed. Until then
   the two columns are the only unregistered numbers left in `report.md` · S
-- [ ] b22 Minor: "Article 1" (§4.1) is never identified; the header's "1000 is not a swept maximum"
+- [ ] b22 ⟨6⟩ Minor: "Article 1" (§4.1) is never identified; the header's "1000 is not a swept maximum"
   means *not a proven ceiling* (1000 is the top rate swept); §1 marks the sustained rate ᴿ where
   §4.3's "`api` held 2 replicas to ~300 requests a second"
   against 3 at r300 in the matrix — the one item here that is a wrong number rather than a copy-edit;

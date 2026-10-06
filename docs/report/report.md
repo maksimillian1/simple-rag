@@ -619,22 +619,161 @@ both by deletion rather than by repair, and the endpoints are gone from `vpc.tf`
 
 ## 5. Guardrails
 
-| Guardrail | Value | Derived from | Enforced in |
-| :--- | :--- | :--- | :--- |
-| Ingestion concurrency ceiling | recommend `maxReplicaCount: 20` ᴱ. This is below the N of four of the five points swept, which is the point: N is a cap, not an observed concurrency (§3.1), and the chunker never exceeded ~20 at any N. The sweet-spot run (N=25) held a time-weighted mean of 19.5, so its cap bound only at the peak. No point separates 20 from 25, so this is not a claim that 20 is cheaper, and it holds for this corpus only (the chunker's ~20-concurrent ceiling is corpus-driven). The live value was raised from 10 to 20 to match, 2026-09-19, on both ScaledJobs; it applies at the next cluster bootstrap | §3.3 sweet spot · `01-ingestion` Guardrails | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` |
-| Chunker memory limit | not revised. The live `limits.memory: 1Gi` already sits at ~2.3x the 433Mi peak observed (`n50-test` sample), well past the `peak+30%` (563Mi) this formula would suggest, and nothing argues for moving it either way | `01-ingestion/M7`, valid only where `M8` is zero | `deploy/k8s/apps/chunker` |
-| Indexer memory limit | not revised. `01-ingestion/M7`'s per-point peak memory isn't in this report at the precision needed, and `M8` (OOMKilled) never returned a confirmed zero (recurring GC-race gap), so ingestion data alone doesn't support a revision | `01-ingestion/M7`, valid only where `M8` is zero | `deploy/k8s/apps/indexer` |
-| Node consolidation delay | not revised; live `apps-compute: 5m` unchanged, `WhenEmpty`. §3.4's unoccupied-capacity number is fleet-wide and too coarse to argue for a different value | §3.4 unoccupied-capacity share | `apps-compute` NodePool |
-| Max input file size | `MAX_ALLOWED_SIZE_BYTES: 104857600` (100MB, code default, unchanged). The sample corpus's p95 (49.23MB) sits well under it, but the full corpus has an untested file of up to 124MB, above it | §3.5 · ADR-0001 | `apps/chunker` env |
-| Chunks per SQS message | `BATCH_SIZE: 30` (code default, unchanged) | §4.2 SQS line · ADR-0004 | `apps/chunker` env |
-| Go API replica ceiling | live `maxReplicaCount: 10`. 6 replicas were observed at r1000 (D15's lower bound), so some margin exists, but D15 is untested above 1000 req/s\* and the setting isn't confirmed sufficient at a higher rate | §3.7 replicas at the sustained rate, plus margin | `api-scaler` |
-| Embedding tier replica ceiling | keep live `maxReplicaCount: 30`. It was fully used at r1000 with zero margin, and it carried that rate: 30 replicas held 1000 req/s\* for 1m45s at the steady-state p95 and 0.02<!--FM62-->% errors (§3.7), which is the rate this deployment is sized for. §2.3 records why a point sitting at its ceiling is kept rather than excluded. No quota increase is requested. Above 1000 req/s the cap binds first, then this account's Spot vCPU quota (`L-34B43A08`=256). What that quota allows depends on the per-pod request, so it is not one number: ~35-40 replicas at the `cpu 6` request `r1000` ran on, and roughly twice that at the frozen `cpu 3` the code carries (`00-baseline` §2 Configuration freeze) | §3.7 replicas at the sustained rate | `tei-embeddings-scaler` |
-| Go API memory limit | not revised; no OOM or working-set warning surfaced in any point's Notes across the sweep | `02-inference/M6` | `deploy/k8s/apps/api` |
-| Embedding tier memory limit | not revised, for the same reason; CPU, not memory, was the driver at every rate | `02-inference/M6` | `deploy/k8s/apps/tei` |
-| Query rate alert | not set. `D15` is a lower bound (1000\*, untested above), so `D15 × 0.8` would alert on a number already known to be too low | §3.7 | `prometheus/rules.yaml` |
-| Latency SLO alert | not set. Every p95 in this campaign is dominated by the fixed 2000ms mock delay, and a threshold tuned against it wouldn't transfer to real Bedrock traffic without at least one real-generation calibration point, which this report never took | §3.7 | `prometheus/rules.yaml` |
-| Backfill concurrency during query hours | not set; the contention pass never ran (§3.8), so there is nothing to base it on | §3.8 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` |
-| Ingestion backlog alert | not set; `01-ingestion` never defined a drain-rate alert formula distinct from the point-close criterion already in use | §3.1 | `prometheus/rules.yaml` |
-| Do not move the query path to a VPC endpoint on a cost argument | crossover 54,854,311<!--FD50--> ᴱ queries/month, against a reference volume of 1,000,000<!--FE14-->. Below it the endpoint costs more than the NAT it replaces, so the decision rests on the privacy boundary in `ADR-0007` alone. The figure is estimated, not measured (`02-inference/K4`), so treat it as an order of magnitude | §4.4 | `terraform/` VPC endpoints, `ADR-0007` |
-| NAT topology | set `single_nat_gateway = false` ᴰ. A NAT gateway is zonal and does not fail over, so the single gateway the floor was measured on makes one zone a point of failure for node join (Cilium's image is pulled from a public registry, so a node without egress never leaves `NotReady`), for every image pull, and for the `ec2`, `ssm`, `sqs`, `s3` and `sts` APIs at once — the cluster freezes at its current size in all three zones, not just the lost one. Removing the dependency instead of duplicating the gateway costs more than duplicating it and is a project rather than a setting (`ADR-0017`), so this is the only available answer. One gateway per zone is $113.88<!--FD132--> against $37.96<!--FD5-->, plus two more Elastic IPs at $7.30<!--FD135-->, so **+$83.22<!--FD136-->/month**, 11.3<!--FD134-->% of the right-sized floor. That sits outside the floor rather than inside it: the right-sized column changes sizes and keeps the topology, and a gateway per zone is a topology change. `single_nat_gateway = true` stays available for development | §4.1 Floor · `ADR-0017` | `terraform/variables.tf` |
-| Budget alarm | recommend $575.84<!--FD56--> ᴱ/month (right-sized Block B × 1.4 = $411.31<!--FE9--> × 1.4). Set against the right-sized floor rather than the as-built one, so the alarm tracks the target the tech-debt items move toward instead of pinning today's defects in place; the as-built floor would put it at $747.77<!--FD57--> ᴰ (per D1, both columns are carried). `terraform/budgets.tf` does not exist, so nothing enforces this today (`docs/tech-debt.md` #11) | §4.1 | `terraform/budgets.tf` (not yet created) |
+- **Ingestion concurrency ceiling — recommend `maxReplicaCount: 20` ᴱ**
+
+  Derived from §3.3 sweet spot · `01-ingestion` Guardrails · enforced in
+  `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`
+
+  This is below the N of four of the five points swept, which is the point: N is a cap, not an
+  observed concurrency (§3.1), and the chunker never exceeded ~20 at any N. The sweet-spot run
+  (N=25) held a time-weighted mean of 19.5, so its cap bound only at the peak. No point separates
+  20 from 25, so this is not a claim that 20 is cheaper, and it holds for this corpus only (the
+  chunker's ~20-concurrent ceiling is corpus-driven). The live value was raised from 10 to 20 to
+  match, 2026-09-19, on both ScaledJobs; it applies at the next cluster bootstrap.
+
+- **Chunker memory limit — keep `1Gi`**
+
+  Derived from `01-ingestion/M7`, valid only where `M8` is zero · enforced in
+  `deploy/k8s/apps/chunker`
+
+  `M8` = 0 by live observation (`01-ingestion/metrics.md` M8). Peak working set over the five swept
+  points is 445<!--FM79--> MiB, at N=25, so the limit holds 2.30<!--FD156-->× the observed maximum.
+  `peak+30%` would put it at 579 MiB; the extra margin is deliberate and stated in the manifest —
+  the sample corpus's largest file is 78.8 MB while the full corpus has one up to 124 MB, and an
+  image-heavy PDF decodes to several times its file size. The chunker is short-lived, so the 15s
+  scrape under-samples it at N=50, 75 and 125, where 1-3 pods were caught against 20 at N=25.
+
+- **Indexer memory limit — keep `4Gi`; raise `requests.memory` to `2560Mi`**
+
+  Derived from `01-ingestion/M7`, valid only where `M8` is zero · enforced in
+  `deploy/k8s/apps/indexer`
+
+  `M8` = 0 by live observation (`01-ingestion/metrics.md` M8). Peak working set 2,219<!--FM80--> MiB,
+  at N=75, so the limit carries 1.85<!--FD157-->× headroom and holds. The request is the line that
+  moves: at 2,048<!--FR37--> MiB it sits *below* that peak, so the pod routinely uses more than it
+  asked for. That costs nothing in OOM terms, but it makes the indexer the first eviction candidate
+  under node memory pressure, and §2.3's packing density is computed from the request rather than
+  from what the pod uses, so the real density is lower than that range states.
+
+- **Node consolidation delay — `apps-compute: 5m`, `WhenEmpty`, not revised**
+
+  Derived from §3.4 unoccupied-capacity share · enforced in `apps-compute` NodePool
+
+  §3.4's unoccupied-capacity number is fleet-wide and too coarse to argue for a different value.
+
+- **Go API replica ceiling — live `maxReplicaCount: 10`**
+
+  Derived from §3.7 replicas at the sustained rate, plus margin · enforced in `api-scaler`
+
+  6 replicas were observed at r1000 (D15's lower bound), so some margin exists, but D15 is untested
+  above 1000 req/s\* and the setting isn't confirmed sufficient at a higher rate.
+
+- **Embedding tier replica ceiling — keep live `maxReplicaCount: 30`**
+
+  Derived from §3.7 replicas at the sustained rate · enforced in `tei-embeddings-scaler`
+
+  It was fully used at r1000 with zero margin, and it carried that rate: 30 replicas held
+  1000 req/s\* for 1m45s at the steady-state p95 and 0.02<!--FM62-->% errors (§3.7), which is the
+  rate this deployment is sized for. §2.3 records why a point sitting at its ceiling is kept rather
+  than excluded. No quota increase is requested. Above 1000 req/s the cap binds first, then this
+  account's Spot vCPU quota (`L-34B43A08`=256). What that quota allows depends on the per-pod
+  request, so it is not one number: ~35-40 replicas at the `cpu 6` request `r1000` ran on, and
+  roughly twice that at the frozen `cpu 3` the code carries (`00-baseline` §2 Configuration
+  freeze).
+
+- **Go API memory limit — keep `512<!--FR32-->Mi`**
+
+  Derived from `02-inference/M6` · `Q8` · enforced in `deploy/k8s/apps/api`
+
+  Across the sweep the fleet peak is 165<!--FM76--> MiB, 3.10<!--FD154-->× under the limit — but the
+  fleet is not the binding case. One replica taking the whole offered rate reached
+  439<!--FM77--> MiB, 86% of the limit (`M6`, a pinned-replica reading rather than a fleet point),
+  and that state is reachable at scale-in and under the imbalanced routing seen at `n100-sticky`.
+  The limit is sized for that case, not for the average.
+
+- **Embedding tier memory limit — keep `1Gi`**
+
+  Derived from `02-inference/Q8` · enforced in `deploy/k8s/apps/tei`
+
+  Peak working set 670<!--FM78--> MiB, at r050 on 3 replicas — per-pod memory runs highest when
+  fewest pods share the load — so 1.53<!--FD155-->× headroom. Memory decides nothing else here: at
+  `requests.cpu: 3000m` one pod fills an xlarge node's CPU, so packing is CPU-bound, and the memory
+  request of 768<!--FR34--> MiB, which sits tighter against the peak than the limit does, has no
+  effect on density.
+
+- **Query rate alert — fire at 1000 req/s\* served, or when `tei-embeddings` sits at
+  `maxReplicaCount: 30`**
+
+  Derived from §3.7 sustained rate · §2.3 · enforced in `prometheus/rules.yaml`
+
+  The alert marks the edge of the measured envelope, not a capacity limit. `D15` is a lower bound
+  on what the system can serve, so it says nothing about where the system fails. It is exactly
+  where the measured data ends: at r1000 the embedding tier used all 30 of its replicas, so above
+  that rate there is no autoscaling headroom left and no run that shows what happens. Either
+  condition means the deployment is running outside what this report proves. How long a condition
+  must hold before the alert fires is a choice, not a measurement.
+
+- **Latency SLO alert — retrieval p95 above 200ms**
+
+  Derived from §3.7 reference value · `architecture.md` design target · enforced in
+  `prometheus/rules.yaml`
+
+  The threshold is the design target, not a number fitted to this campaign. Every gateway p95 here
+  includes the fixed 2000ms Bedrock stub, and a threshold tuned against it would not transfer to
+  real traffic. The target is attainable: the generator's per-request durations put retrieval plus
+  the internet round trip at ~40-60ms once the stub is subtracted (§3.7). The rule needs two things
+  before it can fire meaningfully. The first is a retrieval-only latency series, because Envoy's
+  request latency includes generation. The second is histogram buckets around 200ms, because
+  Envoy's buckets jump 1000 → 2500ms and `histogram_quantile` interpolates inside one bucket
+  (§3.6). An end-to-end SLO that includes generation needs one real-Bedrock calibration run
+  (`docs/tech-debt.md` #9).
+
+- **Ingestion backlog alert — drain rate below 0.76 docs/min while the backlog is non-empty**
+
+  Derived from §3.1 run matrix (slowest measured point, N=10) · enforced in `prometheus/rules.yaml`
+
+  0.76 docs/min is the slowest drain any configuration in the sweep produced. The guardrail
+  concurrency sits above N=10, so the pipeline is expected to drain faster than that. A non-empty
+  backlog draining slower is running below every measured configuration: a stalled worker, a
+  throttled dependency, or a scaler that is not adding pods. The rate is read the way §3.1 reads
+  it, as the derivative of queue depth, which catches a run that stalls rather than draining
+  steadily. This alert detects a stall, not a missed deadline: a staleness SLO needs a stated
+  tolerance for ingestion delay, and no requirement in this project defines one. The evaluation
+  window is a choice; the sweep measured docs/min over whole runs of 38.5-132.5 min.
+
+- **Do not move the query path to a VPC endpoint on a cost argument — crossover
+  54,854,311<!--FD50--> ᴱ queries/month**
+
+  Derived from §4.4 · enforced in `terraform/` VPC endpoints, `ADR-0007`
+
+  The reference volume is 1,000,000<!--FE14--> queries/month. Below the crossover the endpoint
+  costs more than the NAT it replaces, so the decision rests on the privacy boundary in `ADR-0007`
+  alone. The figure is estimated, not measured (`02-inference/K4`), so treat it as an order of
+  magnitude.
+
+- **NAT topology — set `single_nat_gateway = false` ᴰ**
+
+  Derived from §4.1 Floor · `ADR-0017` · enforced in `terraform/variables.tf`
+
+  A NAT gateway is zonal and does not fail over, so the single gateway the floor was measured on
+  makes one zone a point of failure for node join (Cilium's image is pulled from a public
+  registry, so a node without egress never leaves `NotReady`), for every image pull, and for the
+  `ec2`, `ssm`, `sqs`, `s3` and `sts` APIs at once — the cluster freezes at its current size in
+  all three zones, not just the lost one. Removing the dependency instead of duplicating the
+  gateway costs more than duplicating it and is a project rather than a setting (`ADR-0017`), so
+  this is the only available answer. One gateway per zone is $113.88<!--FD132--> against
+  $37.96<!--FD5-->, plus two more Elastic IPs at $7.30<!--FD135-->, so
+  **+$83.22<!--FD136-->/month**, 11.3<!--FD134-->% of the right-sized floor. That sits outside the
+  floor rather than inside it: the right-sized column changes sizes and keeps the topology, and a
+  gateway per zone is a topology change. `single_nat_gateway = true` stays available for
+  development.
+
+- **Budget alarm — recommend $575.84<!--FD56--> ᴱ/month**
+
+  Derived from §4.1 · enforced in `terraform/budgets.tf` (not yet created)
+
+  Right-sized Block B × 1.4 = $411.31<!--FE9--> × 1.4. Set against the right-sized floor rather
+  than the as-built one, so the alarm tracks the target the tech-debt items move toward instead of
+  pinning today's defects in place; the as-built floor would put it at $747.77<!--FD57--> ᴰ (per
+  D1, both columns are carried). `terraform/budgets.tf` does not exist, so nothing enforces this
+  today (`docs/tech-debt.md` #11).

@@ -100,14 +100,14 @@ and the result is written to that point's `./data/⟨point⟩.cost-estimate.json
 | 01 | ingestion-n04      | not run: low end of the original grid, before the plan was revised to the 10/25/50/75/100/125 grid actually swept | | | | | |
 | 02 | ingestion-n24      | not run, same reason as `n04` | | | | | |
 | 03 | ingestion-n50-test | 2026-09-01T12:51:46Z → 13:43:14Z | `cacb7f5` (dirty) | ok; two node-loss warnings, reclassified benign (Notes) | indexer at ceiling, M5 50/50 concurrent · chunker headroom, 20/50 ᴿ | ✓ (recovered by hand, `export-metrics.py --force`) | — |
-| 04a | ingestion-n100-sticky | 2026-09-03T15:19:31Z → 15:57:48Z | `9c280655cea7` | superseded: sticky TEI routing (Notes); re-run after the fix | indexer at N ceiling (M5 100/100) but M6=0.146, not CPU-bound ᴱ | ✓ (8/9, M8 gap) | — |
-| 04 | ingestion-n100     | 2026-09-03T16:24:23Z → 17:05:31Z | `cfa0ab7` (dirty) | ok, post-fix; wall-clock and cost nuance in Notes | indexer at N ceiling, M5 100/100 · chunker headroom 20/100 · TEI peak ~23 replicas ᴿ | ✓ (8/9, M8 gap, same GC race as n100-sticky) | — |
-| 05 | ingestion-n125     | 2026-09-04T14:00:58Z → 14:39:25Z | `15d43d5` (dirty) | ok; closed by hand after the runner process was killed externally (Notes) | indexer at N ceiling, M5 125/125 · chunker headroom 20/125 · TEI peak 26 replicas ᴿ | ✓ (8/9, M8 gap) | ✓ CUR, see Notes under #08 |
-| 06 | ingestion-n75      | 2026-09-04T15:06:08Z → 15:48:59Z | `1b5ad91` (dirty) | ok; off-plan refinement point (Notes) | indexer at N ceiling, M5 75/75 · chunker headroom 20/75 · TEI peak 16 replicas ᴿ | ✓ (8/9, M8 gap) | ✓ CUR, see Notes under #08 |
-| 07 | ingestion-n50      | 2026-09-04T16:01:22Z → 16:45:23Z | `005914d` (dirty) | ok, post-fix, fresh cluster instance (Notes) | indexer at N ceiling, M5 50/50 · chunker headroom 20/50 | ✓ (8/9, M8 gap) | ✓ CUR, see Notes under #08 |
-| 08 | ingestion-n25      | 2026-09-04T17:00:55Z → 18:02:39Z | `1d87721` (dirty) | ok; the NAT methodology bug was found here (Notes) | indexer at N ceiling, M5 25/25 · chunker headroom 20/25 · TEI peak 4 replicas | ✓ (8/9, M8 gap) | ✓ CUR, see Notes under #08 |
+| 04a | ingestion-n100-sticky | 2026-09-03T15:19:31Z → 15:57:48Z | `9c280655cea7` | superseded: sticky TEI routing (Notes); re-run after the fix | indexer at N ceiling (M5 100/100) but M6=0.146, not CPU-bound ᴱ | ✓ (M8 observed) | — |
+| 04 | ingestion-n100     | 2026-09-03T16:24:23Z → 17:05:31Z | `cfa0ab7` (dirty) | ok, post-fix; wall-clock and cost nuance in Notes | indexer at N ceiling, M5 100/100 · chunker headroom 20/100 · TEI peak ~23 replicas ᴿ | ✓ (M8 observed) | — |
+| 05 | ingestion-n125     | 2026-09-04T14:00:58Z → 14:39:25Z | `15d43d5` (dirty) | ok; closed by hand after the runner process was killed externally (Notes) | indexer at N ceiling, M5 125/125 · chunker headroom 20/125 · TEI peak 26 replicas ᴿ | ✓ (M8 observed) | ✓ CUR, see Notes under #08 |
+| 06 | ingestion-n75      | 2026-09-04T15:06:08Z → 15:48:59Z | `1b5ad91` (dirty) | ok; off-plan refinement point (Notes) | indexer at N ceiling, M5 75/75 · chunker headroom 20/75 · TEI peak 16 replicas ᴿ | ✓ (M8 observed) | ✓ CUR, see Notes under #08 |
+| 07 | ingestion-n50      | 2026-09-04T16:01:22Z → 16:45:23Z | `005914d` (dirty) | ok, post-fix, fresh cluster instance (Notes) | indexer at N ceiling, M5 50/50 · chunker headroom 20/50 | ✓ (M8 observed) | ✓ CUR, see Notes under #08 |
+| 08 | ingestion-n25      | 2026-09-04T17:00:55Z → 18:02:39Z | `1d87721` (dirty) | ok; the NAT methodology bug was found here (Notes) | indexer at N ceiling, M5 25/25 · chunker headroom 20/25 · TEI peak 4 replicas | ✓ (M8 observed) | ✓ CUR, see Notes under #08 |
 | 09 | ingestion-n175     | not run: top of the original grid, dropped once the trend proved monotonic downward through n25 | | | | | |
-| 10 | ingestion-n10      | 2026-09-05T10:27:09Z → 12:39:36Z | `4e15a2c` (dirty) | non-standard: new cluster, corpus reloaded to repopulate Qdrant for `02-inference`. The script timed out (exit 4, 1h30m max wait), and the point was closed by hand after manual polling confirmed convergence + buffer (Notes) | indexer at N ceiling, M5 10/10 · **chunker also at N ceiling, 10/10** (first point where N < chunker's own ~20 corpus cap) · TEI peak 3 replicas | ✓ (8/9, M8 gap) | ᴰ, floor only; 5/11 nodes unpriced (Notes) |
+| 10 | ingestion-n10      | 2026-09-05T10:27:09Z → 12:39:36Z | `4e15a2c` (dirty) | non-standard: new cluster, corpus reloaded to repopulate Qdrant for `02-inference`. The script timed out (exit 4, 1h30m max wait), and the point was closed by hand after manual polling confirmed convergence + buffer (Notes) | indexer at N ceiling, M5 10/10 · **chunker also at N ceiling, 10/10** (first point where N < chunker's own ~20 corpus cap) · TEI peak 3 replicas | ✓ (M8 observed) | ᴰ, floor only; 5/11 nodes unpriced (Notes) |
 
 `Exported` is filled when the run ends. `Cost read` is filled by the cost pass, days later, and
 a blank there after the pass ran is a lost cost row rather than a lost point.
@@ -193,7 +193,7 @@ by hand by pointing `deploy/k8s/apps/indexer/.argocd-source-indexer.yaml` straig
 digest, the same workaround `postmortem.md` §11 used before. `ingestion-n100` was re-run under
 the fixed image.
 
-**M8 gap, same run** — the export also came back with `M8` (OOMKilled) empty
+**M8, same run** — the export also came back with `M8` (OOMKilled) empty
 (`export-metrics.py` exit 2, correctly not reported as a zero). Root cause: by the time export
 ran, all 6 retained Job objects (`successfulJobsHistoryLimit`/`failedJobsHistoryLimit` = 3+3) had
 no pods left. `kube_pod_container_status_last_terminated_reason` lives on the Pod object, and
@@ -201,9 +201,8 @@ orphaned-pod GC removes the Pod once its node is gone, regardless of the Job's h
 `apps-compute`'s `consolidateAfter` is 5m, which is short against the time this export takes, so
 nodes began tearing down well before it ran. Exported anyway with
 `export-metrics.py --force`, which writes the file despite the gap (`--force` means "overwrite",
-not "ignore the gap"). 8/9 refs are good. M8 is a documented instrumentation gap for this run,
-not a claimed zero, and worth revisiting before a point where an OOM signal matters. The same gap
-recurred on `#04 ingestion-n100` (the same GC race, not a new bug) and was also `--force`d.
+not "ignore the gap"). The same GC race recurred at every later point. M8 = 0 by live observation
+(`metrics.md` M8).
 
 Chasing this turned up two more instrumentation bugs, both fixed. The Qdrant checks in
 `run-ingestion-point.py` and `prepare-cluster-for-ingestion.py` treated `HTTP 404` (collection
@@ -300,8 +299,8 @@ below `n75`. R21 held at 84,018 for the sixth point running; the indexer reached
 ceiling and the chunker again stopped at 20/50. Also seen live: two `tei-embeddings` pods sat `Terminating` for 5–12 min mid-run. The cause
 was `apps-serving`'s `consolidationPolicy: WhenEmptyOrUnderutilized` evicting pods to repack
 nodes as TEI scaled down (`Evicted pod: Underutilized` in pod events); the pod object then stayed
-stuck until orphaned-pod GC caught up with the node's teardown. It is the same mechanism as the
-`M8` gap with a different symptom. No data was lost (SQS redelivers); it only added noise and
+stuck until orphaned-pod GC caught up with the node's teardown. It is the same GC race that empties
+`M8`'s export (`metrics.md` M8), with a different symptom. No data was lost (SQS redelivers); it only added noise and
 latency late in the window.
 
 **Cost trend, four points: the monotonic pattern holds down to N=50.**
@@ -665,13 +664,13 @@ slot for what was found here (Retro, last line).
   needs a re-check before this number transfers · live value raised 10 → 20 to match (2026-09-19,
   both ScaledJobs; never run at this value, the cluster is gone) ·
   `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml` → report §5
-- **chunker `limits.memory`** — not revised. `00-baseline`'s `500m`/`1Gi` limits already carry a
-  margin note (measured against a 78.8 MB sample; the corpus has untested files up to 124 MB), and
-  nothing in this campaign changes that number, since the chunker was never the constraint at any N
-- **indexer `limits.memory`** — not revised, for the same reason. The indexer's frozen `4Gi`
-  limit already has a documented margin in `00-baseline`, and M8 (OOMKilled) was an
-  instrumentation gap at every point rather than a confirmed zero, so ingestion data alone doesn't
-  support raising or lowering it
+- **chunker `limits.memory`** — not revised, `1Gi` ᴱ. `00-baseline`'s `500m`/`1Gi` limits already
+  carry a margin note (measured against a 78.8 MB sample; the corpus has untested files up to
+  124 MB), and nothing in this campaign changes that number, since the chunker was never the
+  constraint at any N. M8 = 0 by live observation (`metrics.md` M8)
+- **indexer `limits.memory`** — not revised, `4Gi` ᴱ. The frozen limit already has a documented
+  margin in `00-baseline`, and nothing was OOM-killed at any point. M8 = 0 by live observation
+  (`metrics.md` M8)
 - **`consolidateAfter`** — not revised. It was last moved for a reason that has nothing to do with
   cost: `30s` to `5m` on 2026-09-03 (`cfa0ab7`), to fix a scheduling deadlock (postmortem,
   2026-09-02), a day before this campaign began, so every point here ran on `5m`. This campaign's
