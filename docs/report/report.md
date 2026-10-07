@@ -9,9 +9,8 @@ what the system costs at rest, and how that cost spreads over volume.
   `cpu-1.6` · commit `1ef1f0a8`, 2026-09-05. That commit carries TEI at
   6 cores / 8 limit, which only `inference-r1000` ran on; every other point and the floor ran
   `cfa0ab79` at 3 / 4 (`docs/tech-debt.md` #4)
-- **Envelope** — text-layer PDF corpus, bulk drop · N ≤ 125 · R ≤ 1000 req/s\* · EKS + Karpenter
-  Spot, KEDA autoscaling from 2 replicas, self-hosted Qdrant, TEI `bge-small-en-v1.5` ·
-  `eu-central-1`
+- **Envelope** — text-layer PDF corpus, bulk drop · N ≤ 125 · R ≤ 1000 req/s\* · EKS + Karpenter,
+  KEDA (serving from 2 replicas, ingestion from zero), self-hosted Qdrant, TEI `bge-small-en-v1.5` · `eu-central-1`
 - **Executions** — `00-baseline` · `01-ingestion` · `02-inference`, raw data in
   `executions/*/data/`
 - **Cost source** — AWS Cost and Usage Report 2.0 · USD · method in `methodology.md` §9
@@ -32,7 +31,7 @@ what the system costs at rest, and how that cost spreads over volume.
 | Embedding tier cost caused by ingestion | measured, two readings | cash: §3.1 `TEI $` · `01-ingestion/D23` · apportioned: §4.2 · `01-ingestion/M12` |
 | Unused node capacity, fleet-wide | recorded ᴿ | §3.4 · `01-ingestion/M12` |
 | Ingestion constraint ladder — Tier 1 | measured | §3.5 · `01-ingestion/M6` |
-| Sustained query rate at the latency target | measured | §3.7 · `02-inference/D15` |
+| Sustained query rate | measured | §3.7 · `02-inference/D15` |
 | Replica count required at that rate | measured | §3.6 · `02-inference/M7` |
 | Query path constraint | measured | §3.7 · `02-inference/R14` |
 | Retrieval cost per 1k queries — marginal | derived ᴰ | §4.2 · `02-inference/D16` |
@@ -42,18 +41,14 @@ what the system costs at rest, and how that cost spreads over volume.
 | Untaggable billing lines, mapped to the Floor rows that price them | recorded ᴿ | §4.1 · `00-baseline/R5` |
 | Amortization across volumes | derived ᴰ | §4.3 |
 | Break-even against Fargate, ingestion | derived ᴰ | §4.4 · `01-ingestion/D29` |
-| Warm-up and consolidation-tail share | declared, not measured | would show how much of each run's bill is node boot and teardown; `01-ingestion/D26` was never computed |
-| Ingestion constraint ladder — Tier 2 | declared, not measured | would show which component caps ingestion once the indexer loop is relieved; `01-ingestion` M15–M17 were never scraped |
-| Ingest and query contention on shared Qdrant and TEI | declared, not measured | §3.8 · would show whether the latency target survives a backfill running underneath it |
-| Wire weight of a query, headers and framing included | declared, not measured | §4.4 · `02-inference/K4` · would turn the VPC endpoint crossover from an order of magnitude into a threshold; one real Bedrock run replaces all three estimates (`docs/tech-debt.md` #9) |
-| Scaler tuning — thresholds and cooldowns | declared, not measured | would show how much of convergence time is configuration rather than node provisioning |
-| Retrieval quality against quantization | declared, not measured | would show what INT8 compression costs in recall; INT8 SQ is a frozen given |
-| Behaviour above the sustained rate | out of scope | would show whether overload degrades or collapses the deployment; needs served-rate and status-code instruments and its own runs |
-| End-to-end latency including Bedrock generation | out of scope | would show the latency a user experiences; bounded by an external quota, so it measures the provider |
-| Reliability economics — Spot interruption under load | out of scope | would price the resilience mechanism: work lost, duplicates, recovery time |
-| Lambda as the build alternative | out of scope | the cluster exists regardless, so §4.4 compares compute modes on the same platform |
-| Reliability, cost levers, quality against cost | out of scope | no material at v1.0, so the report carries no section for them |
-
+| Warm-up and consolidation-tail share | declared, not measured | the share of each run's bill that is node boot and teardown |
+| Ingestion constraint ladder — Tier 2 | declared, not measured | which component caps ingestion once the indexer loop is relieved. `01-ingestion` M15–M17 were not scraped |
+| Ingest and query contention on shared Qdrant and TEI | declared, not measured | §3.8 · whether the latency target survives a backfill running underneath it |
+| Scaler tuning — thresholds and cooldowns | declared, not measured | how much of convergence time is configuration rather than node provisioning |
+| Retrieval quality against quantization | declared, not measured | what INT8 compression costs in recall. INT8 SQ is a frozen given here |
+| Behaviour above the sustained rate | out of scope | whether overload degrades or collapses the deployment. It needs served-rate and status-code instruments and its own runs |
+| End-to-end latency including Bedrock generation | out of scope | Latency is a user experience |
+| Reliability economics — Spot interruption under load | out of scope | the price of the resilience mechanism: work lost, duplicates, recovery time |
 ---
 
 ## 1. BLUF
@@ -567,7 +562,9 @@ crossover is an embedding replica.
 ### 4.4 Conditional alternatives
 
 Two alternatives to what was built, neither chosen: each pays off only above a condition this
-deployment sits below.
+deployment sits below. Both are other compute modes on the same platform rather than serverless,
+because the cluster exists regardless of this feature, so what a Lambda build would cost is not the
+counterfactual the bill poses.
 
 #### Fargate instead of Karpenter Spot, ingestion
 
@@ -630,7 +627,7 @@ Every value here is committable, and each one carries the measurement it came fr
 
 ### 5.1 Memory limits
 
-All four hold. The peaks are `container_memory_working_set_bytes`, the metric the kubelet reads for
+The peaks are `container_memory_working_set_bytes`, the metric the kubelet reads for
 an OOM decision, taken per pod at its maximum over each point's window (`01-ingestion/M7` ·
 `02-inference/Q8`, with `M8` = 0 by live observation).
 
