@@ -57,7 +57,7 @@ published.
 ## 1. BLUF
 
 * **Ingestion cost at optimum** — $24,875<!--FD37--> / 1M docs ᴰ at N=25 (CUR actual, `01-ingestion` sweet spot). Fargate for the same two workers costs 2.91<!--FD123-->× more at that point (D29, §4.4), computed at N=25 only. Cost rises monotonically from N=25 upward; N=10, the only point below it, is higher still ($44,707<!--FD76--> ᴰ), so N=25 is a measured local minimum rather than a boundary guess
-* **Sustained query rate** — 1000 req/s\*, held for 1m45s. From 14:57:16 to 14:59:01Z, with `tei-embeddings` at 30 replicas, the fleet served 998<!--FM60-->–1,001<!--FM61--> req/s at a flat p95 of 2425ms and 0.02<!--FM62-->% errors. Then the generator stalled — k6 silent from 08m30s to 11m28s elapsed, completions down to 43/s, the embedding tier scaling in 30 → 6 for want of traffic — and the second ramp carried this point's worst latency and errors. Over the full steady phase the point served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, against `D15`'s 0.1<!--FR29-->% bound: not met. The design target in `architecture.md` is p95 < 200ms, which the frozen 2000ms Bedrock stub puts out of reach by construction; read from the generator's own per-request durations instead, retrieval plus the internet round trip is ~40-60ms (§3.7)
+* **Sustained query rate** — 1000 req/s\*, held for 1m45s. From 14:57:16 to 14:59:01Z, with `tei-embeddings` at 30 replicas, the fleet served 998<!--FM60-->–1,001<!--FM61--> req/s at a flat p95 of 2425ms and 0.02<!--FM62-->% errors. Then the generator stalled — k6 silent from 08m30s to 11m28s elapsed, completions down to 43/s, the embedding tier scaling in 30 → 6 for want of traffic — and the second ramp carried this point's worst latency and errors. Over the full steady phase the point served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, against `D15`'s 0.1<!--FR29-->% bound: not met. Retrieval plus the internet round trip runs ~40-60ms, read from the generator's own per-request durations (§3.7)
 * **Retrieval cost** — $0.00375<!--FD65--> / 1k queries ᴰ marginal (CUR actual for the whole campaign, with the resting floor netted out once at campaign level; the per-point provisional `D16` figures understate it 1.5–4.3×, `02-inference` §3). On top of that: $0.000203<!--FD45--> ᴰ floor share at the sustained rate, a best case that assumes 1000 req/s continuously and grows far higher at realistic utilization (§4.3), and ~$0.51<!--FD39--> ᴱ for generation (1,800<!--FE1--> assumed input + up to 512<!--FR17--> output tokens × the real Bedrock rate). If generation is turned on, it would be ~136<!--FD115-->× the retrieval cost and dominate the total
 * **Idle floor, Block B** — $534.12<!--FD26--> / month ᴰ (Block C total: $877.54<!--FD29--> ᴰ). This is what the feature costs with zero traffic on a platform that exists anyway
 
@@ -324,7 +324,7 @@ The Matrix above carries offered rate against p95 and replicas.
 
 - **Sustained rate** — 1000 req/s\*, held for 1m45s: 14:57:16–14:59:01Z, `tei-embeddings` at 30 replicas, 998<!--FM60-->–1,001<!--FM61--> req/s served, p95 flat at 2425ms, 0.02<!--FM62-->% errors. Over the full steady phase around it, to 15:01:01Z, the point served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, which does not meet `D15`'s 0.1<!--FR29-->% bound; that phase ends in a generator stall rather than a system limit. r500 is the same shape and thinner: 499<!--FM66-->–501<!--FM67--> req/s held for one minute at the same p95 floor, but at 0.25<!--FM68-->% errors, and no stretch of it meets the bound for longer than 30s; across its own phase it served 457<!--FM69--> req/s at 0.49<!--FM70-->%. Untested above 1000, so a lower bound rather than a proven ceiling
 - **Capacity that rate required** — 6 API replicas and 30 embedding replicas at r1000, converged in ~4 min from the minimum of 2 each
-- **Reference value** — the `p95 < 200 ms` line in `architecture.md` is a design target the stub makes unmeasurable: every request pays the frozen 2000ms Bedrock delay, so no p95 here can approach it. The retrieval-only path can still be read, from the generator's own per-request durations rather than from Envoy. Successful responses at the clean points have p95 2.04s (r050) and 2.06s (r300) with a median of 2.03s, measured from outside the VPC, so **retrieval plus the internet round trip is ~40-60ms** once the stub is subtracted — inside the target, though never isolated inside the cluster. Those are also the honest p95s: Envoy reads ~380ms higher at the same point because its buckets jump 1000 → 2500ms and `histogram_quantile` interpolates across the gap (`02-inference` M2), which is the same artefact that gives four rates an identical 2425ms in §3.6
+- **Retrieval latency** — read from the generator's own per-request durations rather than from Envoy. Successful responses at the clean points have p95 2.04s (r050) and 2.06s (r300) with a median of 2.03s, measured from outside the VPC, so **retrieval plus the internet round trip is ~40-60ms** once the stub is subtracted. It is a component reading, never isolated inside the cluster. Those are also the honest p95s: Envoy reads ~380ms higher at the same point because its buckets jump 1000 → 2500ms and `histogram_quantile` interpolates across the gap (`02-inference` M2), the same artefact that gives four rates an identical 2425ms in §3.6
 - **Constraint** — no *sustained* ceiling found, by resource signature, up to 1000 req/s\*. `tei-embeddings` did reach 87-97.5% of its CPU limit (7.0-7.8 of 8 cores) during r1000's ramp, which `02-inference` Saturation calls a real momentary saturation; replicas relieved it and it did not return in the hold. `api` never exceeded 0.268 of its 0.5-core limit; Qdrant never exceeded 1.568 cores. Two limits on the claim: it is proven at the `cpu 6 / 8` request r1000 ran on, and the five rows at the frozen `3 / 4` publish no TEI CPU peak at all, where the same absolute usage would have been past the limit. With no sustained ceiling found there is nothing to relieve and no next scaling step to price
 
 Retrieval is one gRPC round trip per query: dense, sparse and payload-text prefetch fused by
@@ -619,140 +619,59 @@ both by deletion rather than by repair, and the endpoints are gone from `vpc.tf`
 
 ## 5. Guardrails
 
-- **Ingestion concurrency ceiling — `maxReplicaCount: 20` ᴱ on both ScaledJobs**
+Each guardrail is a committable value with the measurement behind it. Memory limits and replica
+caps are tabled against the peak each run reached; the rest are single settings, each with its own
+reasoning.
 
-  Derived from §3.3 sweet spot · `01-ingestion` Guardrails · enforced in
-  `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`, committed 2026-09-19, applies at the next
-  cluster bootstrap
+### 5.1 Memory limits
 
-  N is a cap, not an observed concurrency (§3.1). The chunker never exceeded ~20 at any N, and the
-  N=25 sweet spot held a time-weighted mean of 19.5, so its cap bound only at the peak. No point
-  separates 20 from 25, so 20 is not claimed to be cheaper. The ~20 ceiling is set by this corpus,
-  and so is the guardrail.
+All four hold. Peaks are `container_memory_working_set_bytes`, the metric the kubelet reads for an
+OOM decision, per pod at its maximum over each point's window (`01-ingestion/M7` ·
+`02-inference/Q8`, with `M8` = 0 by live observation).
 
-- **Chunker memory limit — keep `1Gi`**
+| Component | Keep | Peak working set | Limit ÷ peak | Enforced in | Comment |
+| :--- | :--- | ---: | ---: | :--- | :--- |
+| Chunker | `1Gi` | 445<!--FM79--> MiB (N=25) | 2.30<!--FD156-->× | `deploy/k8s/apps/chunker` | Margin is deliberate, well past `peak+30%`: the full corpus holds a 124 MB file against the fixture's 78.8 MB, and an image-heavy PDF decodes to several times its file size |
+| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | Raise `requests.memory` to `2560Mi`: at 2,048<!--FR37--> MiB it sits below the peak, so §2.3's packing density overstates the real one — and at 2560Mi fewer indexers fit a node, with the effect on `$/1M docs` unmeasured |
+| Go API | `512<!--FR32-->Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | Sized for one replica carrying the whole rate rather than for the fleet: a pinned replica reached 439<!--FM77--> MiB, 86% of the limit, a state reachable at scale-in and under imbalanced routing |
+| Embedding tier | `1Gi` | 670<!--FM78--> MiB (r050) | 1.53<!--FD155-->× | `deploy/k8s/apps/tei` | Memory decides nothing here: at `requests.cpu: 3000m` packing is CPU-bound, so the 768<!--FR34--> MiB request does not affect density |
 
-  Derived from `01-ingestion/M7`, with `M8` = 0 by live observation (`01-ingestion/metrics.md`) ·
-  enforced in `deploy/k8s/apps/chunker`
+### 5.2 Ceilings
 
-  Peak working set is 445<!--FM79--> MiB at N=25, so the limit is 2.30<!--FD156-->× the observed
-  maximum, well above `peak+30%`. The extra margin is deliberate and stated in the manifest: the
-  fixture's largest file is 78.8 MB, the full corpus holds one up to 124 MB, and an image-heavy PDF
-  decodes to several times its file size. The peak comes from N=25 because the chunker is
-  short-lived: the 15s scrape caught 20 pods there against 1-3 at N=50, 75 and 125.
+Replica caps. None bound on the ingestion path; the embedding tier reached its own at r1000 and the
+point is kept as the declared exception (§2.3).
 
-- **Indexer memory limit — keep `4Gi`; raise `requests.memory` to `2560Mi`**
+| Setting | Keep | Observed | Enforced in | Comment |
+| :--- | :--- | :--- | :--- | :--- |
+| Ingestion concurrency, both ScaledJobs | `maxReplicaCount: 20` ᴱ | chunker never above ~20 at any N; the N=25 sweet spot held a time-weighted mean of 19.5 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`, committed 2026-09-19, applies at the next cluster bootstrap | N is a cap, not an observed concurrency (§3.1), no point separates 20 from 25, and both the ~20 ceiling and this guardrail are set by the corpus rather than by the hardware |
+| Go API replicas | `maxReplicaCount: 10` | 6 at r1000 | `api-scaler` | Sufficiency above 1000 req/s\* is untested |
+| Embedding tier replicas | `maxReplicaCount: 30` | 30 at r1000, the cap full | `tei-embeddings-scaler` | Full and sufficient — 30 replicas held 1000 req/s\* for 1m45s at the steady-state p95 and 0.02<!--FM62-->% errors (§3.7); above 1000 req/s the cap binds first, then the account's Spot vCPU quota (`L-34B43A08`=256), whose ceiling depends on the per-pod request (`00-baseline` §2) |
 
-  Derived from `01-ingestion/M7`, with `M8` = 0 by live observation · enforced in
-  `deploy/k8s/apps/indexer`
+### 5.3 Alerts, topology and spend
 
-  Peak working set is 2,219<!--FM80--> MiB at N=75, so the limit holds with 1.85<!--FD157-->×
-  headroom. The request, 2,048<!--FR37--> MiB, sits below that peak. That risks no OOM, but it makes
-  the indexer the first eviction candidate under node memory pressure, and §2.3's packing density,
-  computed from the request, overstates the real one. ⟨basis for 2560Mi⟩. Every ingestion figure in
-  §3 was measured at the old request; at 2560Mi fewer indexers fit per node, and the effect on
-  `$/1M docs` is unmeasured.
+- **Karpenter Node consolidation delay — keep `consolidateAfter: 5m` under `WhenEmpty`; do not lower it for cost**
 
-- **Node consolidation delay — keep `apps-compute: 5m`, `WhenEmpty`**
+  Karpenter's default, `0s` under `WhenEmptyOrUnderutilized`, removes ingestion nodes in the gaps
+  between short-lived Job pods, and a shorter delay, like 30s — the obvious lever against §3.4's consolidation
+  tail — broke scheduling here, so every point ran on `5m`.
 
-  Derived from §3.4 unoccupied-capacity share · enforced in `apps-compute` NodePool
+- **Embedding tier at its cap — alert when `tei-embeddings` replicas equal `maxReplicaCount: 30`**
+  §3.7 · §2.3 → `prometheus/rules.yaml`
 
-  §3.4's unoccupied-capacity figure is fleet-wide and too coarse to argue for another value.
-
-- **Go API replica ceiling — keep `maxReplicaCount: 10`**
-
-  Derived from §3.7 replicas at the sustained rate · enforced in `api-scaler`
-
-  r1000 needed 6 replicas. Sufficiency above 1000 req/s\* is untested.
-
-- **Embedding tier replica ceiling — keep `maxReplicaCount: 30`**
-
-  Derived from §3.7 replicas at the sustained rate · enforced in `tei-embeddings-scaler`
-
-  The cap was full and sufficient: 30 replicas held 1000 req/s\* for 1m45s at the steady-state p95
-  and 0.02<!--FM62-->% errors (§3.7). §2.3 records why a point at its ceiling is kept. No quota
-  increase is requested. Above 1000 req/s the cap binds first, then the account's Spot vCPU quota
-  (`L-34B43A08`=256): ~35-40 replicas at the `cpu 6` request r1000 ran on, roughly twice that at
-  the frozen `cpu 3` (`00-baseline` §2 Configuration freeze).
-
-- **Go API memory limit — keep `512<!--FR32-->Mi`**
-
-  Derived from `02-inference/M6` · `Q8` · enforced in `deploy/k8s/apps/api`
-
-  The limit is sized for one replica carrying the whole offered rate, not for the fleet average.
-  The fleet peaked at 165<!--FM76--> MiB, 3.10<!--FD154-->× under the limit. A single pinned replica
-  reached 439<!--FM77--> MiB, 86% of the limit (`M6`, a pinned-replica reading, not a fleet point).
-  That state is reachable at scale-in and under imbalanced routing (`n100-sticky`).
-
-- **Embedding tier memory limit — keep `1Gi`**
-
-  Derived from `02-inference/Q8` · enforced in `deploy/k8s/apps/tei`
-
-  Peak working set is 670<!--FM78--> MiB at r050 on 3 replicas, where the fewest pods share the
-  load, so headroom is 1.53<!--FD155-->×. Memory decides nothing else: at `requests.cpu: 3000m` one
-  pod fills an xlarge node's CPU, so packing is CPU-bound and the 768<!--FR34--> MiB memory request
-  does not affect density.
-
-- **Query rate alert — fire at 1000 req/s\* served, or when `tei-embeddings` sits at
-  `maxReplicaCount: 30`**
-
-  Derived from §3.7 sustained rate · §2.3 · enforced in `prometheus/rules.yaml`
-
-  The alert marks where the measured envelope ends, not where the system fails; `D15` is a lower
-  bound and cannot say the latter. At r1000 the embedding tier used all 30 replicas, so above that
-  rate no autoscaling headroom and no run remain. How long a condition must hold before firing is a
-  choice, not a measurement.
-
-- **Latency SLO alert — retrieval p95 above 200ms**
-
-  Derived from §3.7 reference value · `architecture.md` design target · enforced in
-  `prometheus/rules.yaml`
-
-  The threshold is the design target; no campaign number can set it, because every gateway p95 here
-  includes the 2000ms Bedrock stub. The target is reachable: retrieval plus the internet round trip
-  runs ~40-60ms (§3.7). The rule needs two things first: a retrieval-only latency series, since
-  Envoy's includes generation, and buckets around 200ms, since Envoy's jump 1000 → 2500ms (§3.6).
-  An end-to-end SLO needs one real-Bedrock calibration run (`docs/tech-debt.md` #9).
-
-- **Ingestion backlog alert — drain below 0.76 docs/min while at least 20 documents are queued**
-
-  Derived from §3.1 run matrix (slowest measured point, N=10) · enforced in `prometheus/rules.yaml`
-
-  0.76 docs/min is the slowest drain in the sweep, measured with 10 workers and a 100-document bulk
-  drop. With at least 20 documents queued, every worker under the cap is busy, so a slower drain
-  means a stalled worker, a throttled dependency or a scaler not adding pods. A smaller backlog is
-  excluded because one document alone takes minutes and would fire the alert falsely. The rate is
-  the derivative of the per-document queue depth, as in §3.1. The alert detects a stall, not a
-  missed deadline: no requirement defines a tolerance for ingestion delay. The evaluation window is
-  a choice; the sweep measured whole runs of 38.5-132.5 min.
+  At r1000 the tier needed all 30 replicas, so at the cap the next increase in load cannot scale
+  and no run has measured it; the response is a higher cap and Spot vCPU quota.
 
 - **No interface VPC endpoints for Bedrock — revisit above 54,854,311<!--FD50--> ᴱ queries/month**
+  §4.4 · `ADR-0018` → `terraform/vpc.tf`, removed 2026-09-28
 
-  Derived from §4.4 · `ADR-0018` · enforced in `terraform/vpc.tf`, removed 2026-09-28
-
-  Below that volume an endpoint costs more than the NAT it replaces; the reference volume is
-  1,000,000<!--FE14-->. The figure is estimated (`02-inference/K4`), so read it as an order of
-  magnitude. The privacy argument in `ADR-0007` does not reopen the question: that boundary was
-  never in effect (§4.4).
-
-- **NAT topology — set `single_nat_gateway = false` ᴰ in production**
-
-  Derived from §4.1 Floor · `ADR-0017` · enforced in `terraform/variables.tf`
-
-  A NAT gateway is zonal and does not fail over. With one gateway, losing its zone stops node join
-  (Cilium's image comes from a public registry, so a node without egress never leaves `NotReady`),
-  every image pull, and the `ec2`, `ssm`, `sqs`, `s3` and `sts` APIs at once: the cluster freezes at
-  its current size in all three zones. One gateway per zone costs $113.88<!--FD132--> against
-  $37.96<!--FD5-->, plus $7.30<!--FD135--> for two more Elastic IPs: **+$83.22<!--FD136-->/month**,
-  11.3<!--FD134-->% of the right-sized floor. It sits outside the floor because it changes topology,
-  not size. Removing the dependency instead costs more and is a project, not a setting
-  (`ADR-0017`). `single_nat_gateway = true` stays available for development.
+  Below that volume an endpoint costs more than the NAT it replaces, against a reference volume of
+  1,000,000<!--FE14-->; the crossover is estimated (`02-inference/K4`), so read it as an order of
+  magnitude. `ADR-0007`'s privacy argument does not reopen it: that boundary was never in effect
+  (§4.4).
 
 - **Budget alarm — $575.84<!--FD56--> ᴱ/month**
-
-  Derived from §4.1 · enforced in `terraform/budgets.tf`, not yet created
-  (`docs/tech-debt.md` #11)
+  §4.1 → `terraform/budgets.tf`, not yet created (`docs/tech-debt.md` #11)
 
   Right-sized Block B, $411.31<!--FE9--> ᴱ, × 1.4. The base is the right-sized floor so the alarm
   tracks the target rather than today's defects; on the as-built floor it would be
-  $747.77<!--FD57--> ᴰ. Nothing enforces it today.
+  $747.77<!--FD57--> ᴰ.
