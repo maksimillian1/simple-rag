@@ -5,11 +5,6 @@ Date: 2026-05-26
 ## Status
 Accepted
 
-The absolute latency bound this ADR was written against is withdrawn (2026-10-06): with generation
-in the response the user-facing number is time to first token, which no run has measured. The
-retrieval path this ADR decides is measured in `docs/report/report.md` §3.7, and the Decision below
-is unaffected.
-
 ## Context
 To achieve Enterprise-grade RAG precision, the query layer (`apps/api/` in Go) must retrieve documents that are both keyword-accurate and semantically relevant. Single-vector search often fails on exact keyword matches (IDs, product codes, specific terminology), while pure BM25 fails on conceptual intent.
 

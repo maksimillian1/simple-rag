@@ -842,7 +842,12 @@ figures:
   budget_alarm:
     ref: FD56
     kind: D
-    formula: block_b_total_rs * 1.4
+    formula: c_total_rs * 1.4
+    source: >-
+      the whole right-sized floor, A + B, times 1.4. An AWS budget is account-level, so a threshold
+      taken from Block B alone would be breached the day it is written: the account pays A as well,
+      plus the errors the Floor excludes. Scoping a budget to Block B needs a tag that marks the
+      block, or a cost category - docs/tech-debt.md #13
     unit: usd_per_month
     group: guardrails
     appears_in: [report.md]
@@ -850,7 +855,7 @@ figures:
   budget_alarm_as_built:
     ref: FD57
     kind: D
-    formula: block_b_total * 1.4
+    formula: c_total * 1.4
     unit: usd_per_month
     group: guardrails
     appears_in: [report.md]
@@ -2089,7 +2094,7 @@ figures:
       false` provisions. A NAT gateway is zonal and does not fail over, so a single one makes its
       zone a point of failure for node join, image pulls and every AWS API the runtime uses (ADR-0017)
     group: guardrails
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-07: the NAT topology guardrail is no longer printed in report.md
 
   nat_ha_delta:
     ref: FD133
@@ -2106,7 +2111,7 @@ figures:
     unit: usd_per_month
     source: a gateway per zone needs an Elastic IP per zone, two more than the single gateway the floor was measured on
     group: guardrails
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-07: the NAT topology guardrail is no longer printed in report.md
 
   nat_ha_total:
     ref: FD136
@@ -2115,7 +2120,7 @@ figures:
     unit: usd_per_month
     source: what per-AZ egress costs in full, gateways plus their addresses
     group: guardrails
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-07: the NAT topology guardrail is no longer printed in report.md
 
   nat_ha_share_of_c_rs:
     ref: FD134
@@ -2723,6 +2728,19 @@ figures:
     appears_in: [report.md]
 
 
+  account_at_rest_as_built:
+    ref: FD158
+    kind: D
+    formula: c_total + errors_recurring
+    unit: usd_per_month
+    display: 2
+    source: >-
+      what the account actually pays at rest today: the as-built floor plus the errors the Floor
+      excludes by definition, which an AWS budget nonetheless sees. The reference the budget alarm's
+      threshold has to be read against
+    group: guardrails
+    appears_in: [report.md]
+
 allow:
   - pattern: "24,750"
     file: executions/01-ingestion/index.md
@@ -2790,6 +2808,12 @@ retired:
   - pattern: "296.89"
     replaced_by: block_a_fixed_rs
     why: right-sized Block A fixed before the load balancer moved to A
+  - pattern: "575.84"
+    replaced_by: budget_alarm
+    why: budget alarm based on right-sized Block B, before the base moved to Block C (an AWS budget is account-level)
+  - pattern: "747.77"
+    replaced_by: budget_alarm_as_built
+    why: as-built budget alarm based on Block B, before the base moved to Block C
   - pattern: "640.22"
     replaced_by: budget_alarm
     why: budget alarm from the right-sized Block B that still carried the load balancer

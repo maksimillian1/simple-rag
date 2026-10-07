@@ -92,7 +92,7 @@ Every later use of the figure carries the asterisk back to this qualification an
 **Verdict** — **ship with guardrails.** The system is cheap to run at the volumes tested and has
 headroom on both paths, and nothing found here blocks release. The guardrails are §5's committable
 values, and three of them are conditions rather than suggestions: `single_nat_gateway = false` in
-production (`ADR-0017`), the budget alarm at $575.84<!--FD56--> ᴱ/month, and the ingestion
+production (`ADR-0017`), the budget alarm at $1,032.84<!--FD56--> ᴱ/month, and the ingestion
 concurrency ceiling at 20 ᴱ. What ships with a declared gap is the generation cost: `E18` at
 ~$0.51<!--FD39--> ᴱ/1k queries is an estimate, no run has called Bedrock, and it is
 136<!--FD115--> ᴱ times the measured retrieval cost, so the largest number in the query path is
@@ -390,9 +390,14 @@ NAT and cross-AZ transfer move at rest.
 | A · Shared | $316.60<!--FE7--> | $9.83<!--FD22--> ᴰ | $326.43<!--FE16--> |
 | **C · Total** | $726.98<!--FE10--> | $10.76<!--FD28--> ᴰ | **$737.74<!--FE11-->** |
 
-Block B right-sized, $411.31<!--FE9--> ᴱ, is the number §5's budget alarm is set against. That is a floor the
-system is not running at today, chosen deliberately so the alarm tracks the target rather than
-the defect.
+The right-sized column is what §5's budget alarm is set against — at Block C, $737.74<!--FE11--> ᴱ,
+not at Block B. Block B is the right answer to "what does this feature cost", but an AWS budget is
+account-level: it sees A as well, and the errors this Floor excludes, so a threshold taken from B
+alone would be breached the day it is written. Scoping spend to one block needs a tag that marks the
+block or a cost category, which this deployment has neither of — `feature` is on every resource in
+both blocks alike, and the Qdrant PVCs carry no resource tag at all (`00-baseline` `R5`). That is
+`docs/tech-debt.md` #13. Right-sized rather than as-built is deliberate either way: the alarm should
+track the target, not pin today's defects in place.
 
 The bill agrees that the headroom is there. In the resting hour the six nodes cost
 $0.8298<!--FD129--> ᴰ, and CUR's split cost allocation assigns only part of that to pods: the rest,
@@ -669,9 +674,10 @@ point is kept as the declared exception (§2.3).
   magnitude. `ADR-0007`'s privacy argument does not reopen it: that boundary was never in effect
   (§4.4).
 
-- **Budget alarm — $575.84<!--FD56--> ᴱ/month**
-  §4.1 → `terraform/budgets.tf`, not yet created (`docs/tech-debt.md` #11)
+- **Budget alarm — $1,032.84<!--FD56--> ᴱ/month**
 
-  Right-sized Block B, $411.31<!--FE9--> ᴱ, × 1.4. The base is the right-sized floor so the alarm
-  tracks the target rather than today's defects; on the as-built floor it would be
-  $747.77<!--FD57--> ᴰ.
+  Right-sized Block C, $737.74<!--FE11--> ᴱ, × 1.4 for headroom.
+
+  - Creating the alarm in Terraform is tracked as `docs/tech-debt.md` #11.
+  - Block B is the better base, but scoping a budget to it needs a block tag or cost category
+    (`docs/tech-debt.md` #13); until then the alarm watches Block C.
