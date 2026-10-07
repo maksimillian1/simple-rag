@@ -1,56 +1,58 @@
 # Executive Engineering Report — simple-rag
 
-What asynchronous document ingestion costs, how many queries per second the deployment sustains,
-and at what monthly volume the design pays for itself.
+This report shows what asynchronous document ingestion costs per document, 
+how many queries per second the deployment sustains, 
+what the system costs at rest, and how that cost spreads over volume.
 
 - **Report** — `simple-rag` · v1.0 · 2026-09-09
-- **System under test** — chunker `sha-404a267` · indexer `sha-32365dc` · api `sha-bafdc1f` · tei `cpu-1.6` (tag, no digest pin) · commit `1ef1f0a8` · 2026-09-05 (the last cluster-identity capture before teardown; tags, not `sha256:` manifest digests, per `00-baseline`). That commit carries TEI at 6 cores / 8 limit, which only `inference-r1000` ran on; every other point, and the whole floor, ran `cfa0ab79` at 3 / 4 (`docs/tech-debt.md` #4)
-- **Envelope** — text-layer PDF corpus, bulk drop · N ≤ 125 · R ≤ 1000 req/s\* (untested above; no ceiling was found, and 1000 is not a swept maximum) · EKS + Karpenter Spot, KEDA autoscaling from 2 replicas, self-hosted Qdrant, TEI `bge-small-en-v1.5` · `eu-central-1`
-- **Executions** — `00-baseline` · `01-ingestion` · `02-inference`
-- **Cost source** — `docs/report/methodology.md` §9 "Cost calculation approach (AWS)", basis in `00-baseline` §2 · AWS Cost and Usage Report 2.0 · `eu-central-1` · USD
-- **Raw data** — `executions/{00-baseline,01-ingestion,02-inference}/data/`
+- **System under test** — chunker `sha-404a267` · indexer `sha-32365dc` · api `sha-bafdc1f` · tei
+  `cpu-1.6` · commit `1ef1f0a8`, 2026-09-05. That commit carries TEI at
+  6 cores / 8 limit, which only `inference-r1000` ran on; every other point and the floor ran
+  `cfa0ab79` at 3 / 4 (`docs/tech-debt.md` #4)
+- **Envelope** — text-layer PDF corpus, bulk drop · N ≤ 125 · R ≤ 1000 req/s\* · EKS + Karpenter
+  Spot, KEDA autoscaling from 2 replicas, self-hosted Qdrant, TEI `bge-small-en-v1.5` ·
+  `eu-central-1`
+- **Executions** — `00-baseline` · `01-ingestion` · `02-inference`, raw data in
+  `executions/*/data/`
+- **Cost source** — AWS Cost and Usage Report 2.0 · USD · method in `methodology.md` §9
 - **Figures** — measured unless marked: ᴰ derived · ᴿ recorded · ᴱ estimated
 - **Supersedes** — —
 - **Changes** — first revision
-
-The two paths have separate denominators: ingestion is priced per document, retrieval per query.
-No table, chart or headline row in this report mixes them, and no conversion between the two is
-published.
 
 ---
 
 ## Coverage
 
-| Area | Status | Evidence | Cost of absence | Since |
-| :--- | :--- | :--- | :--- | :--- |
-| Ingestion throughput against concurrency | measured | §3.1 · `01-ingestion` | — | v1.0 |
-| Ingestion cost per run | measured | §3.1 · `01-ingestion/M10` | — | v1.0 |
-| Ingestion unit cost per 1M documents | derived ᴰ | §3.1 · `01-ingestion/D25` | — | v1.0 |
-| Per-component share of ingestion cost | derived ᴰ | §4.2 · `01-ingestion/M12` | — | v1.0 |
-| Embedding tier cost caused by ingestion | measured, two readings | cash: §3.1 `TEI $` · `01-ingestion/D23` · apportioned: §4.2 · `01-ingestion/M12` | — | v1.0 |
-| Warm-up and unused-capacity share | measured | §3.4 · `01-ingestion/D26` | — | v1.0 |
-| Ingestion constraint ladder — Tier 1 | measured | §3.5 · `01-ingestion/M6` | — | v1.0 |
-| Ingestion constraint ladder — Tier 2 | declared, not measured | §3.5, conditional on `01-ingestion` M15–M17 | which component becomes the ceiling once the chunker is relieved, and the price of the next step | v1.0 |
-| Sustained query rate at the latency target | measured | §3.7 · `02-inference/D15` | — | v1.0 |
-| Replica count required at that rate | measured | §3.6 · `02-inference/M7` | — | v1.0 |
-| Query path constraint | measured | §3.7 · `02-inference/R14` | — | v1.0 |
-| Retrieval cost per 1k queries — marginal | derived ᴰ | §4.2 · `02-inference/D16` | — | v1.0 |
-| Generation cost per 1k queries — Bedrock | estimated ᴱ | §4.2 · `02-inference/E18` | — | v1.0 |
-| Behaviour above the sustained rate | out of scope | — | whether the deployment degrades or collapses under overload. Latency past capacity measures the generator's backlog, so it needs served-rate and status-code instruments and its own runs | v1.1 |
-| Scaler tuning — thresholds and cooldowns | declared, not measured | — | how much of the convergence time is configuration rather than node provisioning, and what a faster trigger would cost in replica churn | v1.1 |
-| Idle floor, split A / B / C | one resting hour's inventory × published unit rate × 730 ᴰ (`docs/report/methodology.md` §9). The hour was revised down from a planned 24 h because no cluster ever sat idle that long (`00-baseline` Preflight), so the projection carries that hour's prices, Spot included | §4.1 · `00-baseline` §2 Floor | — | v1.0 |
-| Errors found at rest, excluded from the floor | measured, itemised, not amortised ᴰ | `00-baseline` §2 Floor errors table | $175.85<!--FD35-->/month recurring and $78.31<!--FD36--> already spent sit outside every Floor figure here, being defects rather than sizing. The one exception is the `bedrock` control-plane endpoint, which was provisioned and billed and so stays inside the as-built floor (`docs/tech-debt.md` #12) | v1.0 |
-| Untaggable billing lines, mapped to the Floor rows that price them | recorded ᴿ | §4.1 · `00-baseline/R5` | — | v1.0 |
-| Amortization across volumes | derived ᴰ | §4.3 | — | v1.0 |
-| Break-even against Fargate, ingestion | derived ᴰ | §4.4 · `01-ingestion/D29` | — | v1.0 |
-| Ingest and query contention on shared Qdrant and TEI | declared, not measured | §3.8 · `02-inference` contention pass | whether the latency target survives a bulk ingest running underneath it, which is the state the system is actually in during a backfill | v1.0 |
-| End-to-end latency including Bedrock generation | out of scope | — | the number a user experiences. It is bounded by an external quota, so it measures the provider rather than this configuration | — |
-| Wire weight of a query, headers and framing included | declared, not measured | §4.4 · `02-inference/K4` | every byte figure on the query path rests on three estimates whose biases run in opposite directions, so the VPC endpoint crossover is an order of magnitude and not a threshold. One run that actually calls Bedrock replaces all three at once, from `EUC1-NatGateway-Bytes` over its own window (`docs/tech-debt.md` #9) | v1.0 |
-| Retrieval quality against quantization | declared, not measured | — | what INT8 compression costs in recall, and which retrieval configuration to run. INT8 SQ is a frozen given here, chosen for memory footprint | v1.1 |
-| Reliability economics — Spot interruption injected under load | out of scope | — | the price of the resilience mechanism: work lost, duplicates, recovery time. Idempotency is designed in and verifiable by count comparison; pricing it needs its own run | — |
-| Lambda as the build alternative | out of scope | — | a more dramatic §4.4. The cluster exists regardless, so the honest alternative is a different compute mode on the same platform | — |
-| Reliability, levers and quality/cost sections | out of scope | — | template §6–§8 have no material at v1.0 and are absent rather than blank | — |
-| Regression against a previous revision | out of scope | no predecessor | — | v1.1 |
+| Area | Status | Evidence |
+| :--- | :--- | :--- |
+| Ingestion throughput against concurrency | measured | §3.1 · `01-ingestion` |
+| Ingestion cost per run | measured | §3.1 · `01-ingestion/M10` |
+| Ingestion unit cost per 1M documents | derived ᴰ | §3.1 · `01-ingestion/D25` |
+| Per-component share of ingestion cost | derived ᴰ | §4.2 · `01-ingestion/M12` |
+| Embedding tier cost caused by ingestion | measured, two readings | cash: §3.1 `TEI $` · `01-ingestion/D23` · apportioned: §4.2 · `01-ingestion/M12` |
+| Unused node capacity, fleet-wide | recorded ᴿ | §3.4 · `01-ingestion/M12` |
+| Ingestion constraint ladder — Tier 1 | measured | §3.5 · `01-ingestion/M6` |
+| Sustained query rate at the latency target | measured | §3.7 · `02-inference/D15` |
+| Replica count required at that rate | measured | §3.6 · `02-inference/M7` |
+| Query path constraint | measured | §3.7 · `02-inference/R14` |
+| Retrieval cost per 1k queries — marginal | derived ᴰ | §4.2 · `02-inference/D16` |
+| Generation cost per 1k queries — Bedrock | estimated ᴱ | §4.2 · `02-inference/E18` |
+| Idle floor, split A / B / C | derived ᴰ | §4.1 · `00-baseline` §2 Floor |
+| Errors found at rest, excluded from the floor | derived ᴰ | `00-baseline` §2 Floor errors table |
+| Untaggable billing lines, mapped to the Floor rows that price them | recorded ᴿ | §4.1 · `00-baseline/R5` |
+| Amortization across volumes | derived ᴰ | §4.3 |
+| Break-even against Fargate, ingestion | derived ᴰ | §4.4 · `01-ingestion/D29` |
+| Warm-up and consolidation-tail share | declared, not measured | would show how much of each run's bill is node boot and teardown; `01-ingestion/D26` was never computed |
+| Ingestion constraint ladder — Tier 2 | declared, not measured | would show which component caps ingestion once the indexer loop is relieved; `01-ingestion` M15–M17 were never scraped |
+| Ingest and query contention on shared Qdrant and TEI | declared, not measured | §3.8 · would show whether the latency target survives a backfill running underneath it |
+| Wire weight of a query, headers and framing included | declared, not measured | §4.4 · `02-inference/K4` · would turn the VPC endpoint crossover from an order of magnitude into a threshold; one real Bedrock run replaces all three estimates (`docs/tech-debt.md` #9) |
+| Scaler tuning — thresholds and cooldowns | declared, not measured | would show how much of convergence time is configuration rather than node provisioning |
+| Retrieval quality against quantization | declared, not measured | would show what INT8 compression costs in recall; INT8 SQ is a frozen given |
+| Behaviour above the sustained rate | out of scope | would show whether overload degrades or collapses the deployment; needs served-rate and status-code instruments and its own runs |
+| End-to-end latency including Bedrock generation | out of scope | would show the latency a user experiences; bounded by an external quota, so it measures the provider |
+| Reliability economics — Spot interruption under load | out of scope | would price the resilience mechanism: work lost, duplicates, recovery time |
+| Lambda as the build alternative | out of scope | the cluster exists regardless, so §4.4 compares compute modes on the same platform |
+| Reliability, cost levers, quality against cost | out of scope | no material at v1.0, so the report carries no section for them |
 
 ---
 
@@ -624,53 +626,51 @@ both by deletion rather than by repair, and the endpoints are gone from `vpc.tf`
 
 ## 5. Guardrails
 
-Each guardrail is a committable value with the measurement behind it. Memory limits and replica
-caps are tabled against the peak each run reached; the rest are single settings, each with its own
-reasoning.
+Every value here is committable, and each one carries the measurement it came from.
 
 ### 5.1 Memory limits
 
-All four hold. Peaks are `container_memory_working_set_bytes`, the metric the kubelet reads for an
-OOM decision, per pod at its maximum over each point's window (`01-ingestion/M7` ·
+All four hold. The peaks are `container_memory_working_set_bytes`, the metric the kubelet reads for
+an OOM decision, taken per pod at its maximum over each point's window (`01-ingestion/M7` ·
 `02-inference/Q8`, with `M8` = 0 by live observation).
 
 | Component | Keep | Peak working set | Limit ÷ peak | Enforced in | Comment |
 | :--- | :--- | ---: | ---: | :--- | :--- |
-| Chunker | `1Gi` | 445<!--FM79--> MiB (N=25) | 2.30<!--FD156-->× | `deploy/k8s/apps/chunker` | Margin is deliberate, well past `peak+30%`: the full corpus holds a 124 MB file against the fixture's 78.8 MB, and an image-heavy PDF decodes to several times its file size |
-| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | Raise `requests.memory` to `2560Mi`: at 2,048<!--FR37--> MiB it sits below the peak, so §2.3's packing density overstates the real one — and at 2560Mi fewer indexers fit a node, with the effect on `$/1M docs` unmeasured |
-| Go API | `512<!--FR32-->Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | Sized for one replica carrying the whole rate rather than for the fleet: a pinned replica reached 439<!--FM77--> MiB, 86% of the limit, a state reachable at scale-in and under imbalanced routing |
+| Chunker | `1Gi` | 445<!--FM79--> MiB (N=25) | 2.30<!--FD156-->× | `deploy/k8s/apps/chunker` | The margin is deliberate, well past `peak+30%`: the full corpus holds a 124 MB file against the fixture's 78.8 MB, and an image-heavy PDF decodes to several times its file size |
+| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | Raise `requests.memory` to `2560Mi`: at 2,048<!--FR37--> MiB it sits below the peak, so §2.3's packing density overstates the real one. At 2560Mi fewer indexers fit a node, and the effect on `$/1M docs` is unmeasured |
+| Go API | `512<!--FR32-->Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | Sized for one replica carrying the whole rate: a pinned replica reached 439<!--FM77--> MiB, 86% of the limit, a state reachable at scale-in and under imbalanced routing |
 | Embedding tier | `1Gi` | 670<!--FM78--> MiB (r050) | 1.53<!--FD155-->× | `deploy/k8s/apps/tei` | Memory decides nothing here: at `requests.cpu: 3000m` packing is CPU-bound, so the 768<!--FR34--> MiB request does not affect density |
 
 ### 5.2 Ceilings
 
-Replica caps. None bound on the ingestion path; the embedding tier reached its own at r1000 and the
-point is kept as the declared exception (§2.3).
+All three are replica caps. None bound on the ingestion path. The embedding tier reached its own at
+r1000, and that point is kept as the declared exception (§2.3).
 
 | Setting | Keep | Observed | Enforced in | Comment |
 | :--- | :--- | :--- | :--- | :--- |
-| Ingestion concurrency, both ScaledJobs | `maxReplicaCount: 20` ᴱ | chunker never above ~20 at any N; the N=25 sweet spot held a time-weighted mean of 19.5 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`, committed 2026-09-19, applies at the next cluster bootstrap | N is a cap, not an observed concurrency (§3.1), no point separates 20 from 25, and both the ~20 ceiling and this guardrail are set by the corpus rather than by the hardware |
+| Ingestion concurrency, both ScaledJobs | `maxReplicaCount: 20` ᴱ | chunker never above ~20 at any N; the N=25 sweet spot held a time-weighted mean of 19.5 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`, committed 2026-09-19, applies at the next cluster bootstrap | N is a cap, not an observed concurrency (§3.1). No point separates 20 from 25, and the corpus sets both the ~20 ceiling and this guardrail |
 | Go API replicas | `maxReplicaCount: 10` | 6 at r1000 | `api-scaler` | Sufficiency above 1000 req/s\* is untested |
-| Embedding tier replicas | `maxReplicaCount: 30` | 30 at r1000, the cap full | `tei-embeddings-scaler` | Full and sufficient — 30 replicas held 1000 req/s\* for 1m45s at the steady-state p95 and 0.02<!--FM62-->% errors (§3.7); above 1000 req/s the cap binds first, then the account's Spot vCPU quota (`L-34B43A08`=256), whose ceiling depends on the per-pod request (`00-baseline` §2) |
+| Embedding tier replicas | `maxReplicaCount: 30` | 30 at r1000, the cap full | `tei-embeddings-scaler` | Full and sufficient: 30 replicas held 1000 req/s\* for 1m45s at the steady-state p95 and 0.02<!--FM62-->% errors (§3.7). Above 1000 req/s the cap binds first, then the account's Spot vCPU quota (`L-34B43A08`=256), whose ceiling depends on the per-pod request (`00-baseline` §2) |
 
 ### 5.3 Alerts, topology and spend
 
-- **Karpenter Node consolidation delay — keep `consolidateAfter: 5m` under `WhenEmpty`; do not lower it for cost**
+- **Karpenter node consolidation delay — keep `consolidateAfter: 5m` under `WhenEmpty`; do not lower it for cost**
 
   Karpenter's default, `0s` under `WhenEmptyOrUnderutilized`, removes ingestion nodes in the gaps
-  between short-lived Job pods, and a shorter delay, like 30s — the obvious lever against §3.4's consolidation
-  tail — broke scheduling here, so every point ran on `5m`.
+  between short-lived Job pods. A shorter delay is the obvious lever against §3.4's consolidation
+  tail, but 30s broke scheduling here, so every point ran on `5m`.
 
 - **Embedding tier at its cap — alert when `tei-embeddings` replicas equal `maxReplicaCount: 30`**
   §3.7 · §2.3 → `prometheus/rules.yaml`
 
-  At r1000 the tier needed all 30 replicas, so at the cap the next increase in load cannot scale
-  and no run has measured it; the response is a higher cap and Spot vCPU quota.
+  At r1000 the tier needed all 30 replicas, so at the cap it cannot absorb more load, and no run has
+  measured what happens past that point. The response is a higher cap and more Spot vCPU quota.
 
 - **No interface VPC endpoints for Bedrock — revisit above 54,854,311<!--FD50--> ᴱ queries/month**
   §4.4 · `ADR-0018` → `terraform/vpc.tf`, removed 2026-09-28
 
   Below that volume an endpoint costs more than the NAT it replaces, against a reference volume of
-  1,000,000<!--FE14-->; the crossover is estimated (`02-inference/K4`), so read it as an order of
+  1,000,000<!--FE14-->. The crossover is estimated (`02-inference/K4`), so read it as an order of
   magnitude. `ADR-0007`'s privacy argument does not reopen it: that boundary was never in effect
   (§4.4).
 

@@ -428,8 +428,8 @@ answer half a question. An execution that ran and proved insignificant is a row 
 with its finding: "measured, contributed under n % of cost, omitted" is a result, and it
 stops the question being asked again next revision.
 
-Each row names what the omission would have supported. A reader who sees a deliberate
-boundary trusts the inside of it; a reader who discovers an accidental one trusts nothing.
+One structure that works: `Area | Status | Evidence`, where for an uncovered row's, evidence would say in
+one clause why it could be important.
 
 ---
 
