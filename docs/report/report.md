@@ -257,97 +257,64 @@ component nor the predicted *kind* of ceiling (a capacity limit) held.
 
 ### 3.6 Query path — run matrix
 
-The swept axis is arrival rate. Replicas are what the autoscaler produced, not a setting. Grid
-actually run: 50, 200, 300, 500, 1000, in place of the 5/50/200/refine/refine originally planned.
-r005 was never run. r300 was an off-plan point added after r500 to test whether 1000rps was worth
-trying with more TEI headroom, not one of the two planned refinement points. p99 was never
-queried.
+Each row is one offered arrival rate: the replicas the autoscaler chose, the latency and errors
+served, and the cost. The sweep ran 50, 200, 300, 500 and 1000 req/s and stopped at the 1000
+target. It did not push past it to find a ceiling.
 
-| Offered req/s | Served req/s | api / tei replicas | Converge | p50 ms ᴿ | p95 ms ᴿ (Envoy) | p95 ms (k6) | Error % | $/1k queries (gross) ᴰ | Saturation signal |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 50 | 45.5 (91%) | 2 / 3 | not timed, window avg already clean | 1672 | 2418 | **2040** | 0% | $0.00250<!--FD78--> | none |
-| 200 | 192.5 (96%) | 2 / 7 | not timed, window avg already clean | 1750 | 2425 | **2150** | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> | none |
-| 300 | 296.4 (99%) | 3 / 11 | not timed, window avg already clean | 1749 | 2425 | **2060** | 0.20% avg / 2.75% peak | $0.00098<!--FD80--> | none |
-| 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | ~7 min to 13 replicas, then clean | 2973 | 7934 (window avg) / **2425 once converged** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
-| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | ~4 min to 30 replicas, then clean | 2092 | 6378 (window avg) / **2425 once converged** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
+Column notes:
 
-`$/1k queries` is gross: it is each point's own serving cost over its own queries, floor included,
-so it falls with rate mostly because the always-on pair is spread over more traffic. It is not what
-a query costs. That number is the campaign marginal in §4.2, $0.00375<!--FD65--> ᴰ/1k, netted once
-against the day's resting inventory (D2) and 1.5<!--FD90-->–4.3<!--FD91-->× larger than any row here.
+- **Served req/s.** At r500 and r1000 part of the gap to the offered rate is the load generator,
+  not the system. During the scale-out ramp k6 ran out of virtual users and dropped
+  10.7<!--FD145-->% of scheduled requests at r500 and 5.2<!--FD144-->% at r1000. r1000 also had a
+  three-minute generator stall. The bold figures are the converged hold (§3.7).
+- **p95, two instruments.** Each is wrong in a different way. Envoy's histogram buckets jump from
+  1000 to 2500ms, so its p95 is interpolated, not measured: 2425ms at every converged point,
+  300-400ms above k6. k6 is exact per request but reports one figure per run, so at r500 and r1000
+  it includes the scale-out minutes. Read k6 for 50-300 req/s and Envoy's converged 2425ms as an
+  upper bound for 500 and 1000.
+- **$/1k queries (gross).** Not a unit cost. Each row divides its own serving cost, floor
+  included, by its own queries, so it falls with rate as the always-on pair spreads over more
+  traffic. It also misses NAT. Compare rows only. The real marginal is $0.00375<!--FD65--> ᴰ/1k
+  (§4.2), 1.5<!--FD90-->–4.3<!--FD91-->× higher.
 
-The 1000 row ran on a different configuration: `tei-embeddings` at `cpu 6 / 8` against the frozen
-`3 / 4` every other row used (`02-inference` Matrix · `00-baseline` §2). It changed nothing about
-the shape — the scaler's target is far below either limit — but the row is not a sixth point of
-one series. Its `$/1k queries` carries the same divergence and is not bounded the same way: a
-doubled per-pod request fits fewer pods per node, and this is the only point whose node mix is
-dominated by `4xlarge`. Direction and magnitude are unmeasured.
+| Offered req/s | Served req/s | api / tei replicas | Converge | p95 ms ᴿ (Envoy) | p95 ms (k6) | Error % | $/1k queries (gross) ᴰ | Saturation signal |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 50 | 45.5 (91%) | 2 / 3 | not timed, window avg already clean | 2418 | **2040** | 0% | $0.00250<!--FD78--> | none |
+| 200 | 192.5 (96%) | 2 / 7 | not timed, window avg already clean | 2425 | **2150** | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> | none |
+| 300 | 296.4 (99%) | 3 / 11 | not timed, window avg already clean | 2425 | **2060** | 0.20% avg / 2.75% peak | $0.00098<!--FD80--> | none |
+| 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | ~7 min to 13 replicas, then clean | 7934 (window avg) / **2425 once converged** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
+| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | ~4 min to 30 replicas, then clean | 6378 (window avg) / **2425 once converged** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
 
-Offered rate and served rate are reported separately, and at r500 and r1000 part of the gap is
-the generator's. k6 schedules by the clock, but each scheduled iteration needs a free virtual
-user, and the pool is sized off the 2000ms stub (rate × 2.5s, doubled). When the ramp pushed p95
-to 25s, demand for slots ran several times over that cap and k6 dropped what it could not start:
-32,045<!--FM71--> of 300,000 scheduled at r500 (10.7<!--FD145-->%) and 30,985<!--FM65--> of
-600,000 at r1000 (5.2<!--FD144-->%), both with the pool pinned at its ceiling
-(2,500<!--FR31--> and 5,000<!--FR30--> VUs). So neither window average reads the system: each
-mixes the scale-out ramp, the generator's own shortfall and, at r1000, a three-minute stall.
-What the two points held once converged is in §3.7; the ramp itself is convergence speed rather
-than a ceiling (`02-inference` §3 Notes). The real campaign cost ($0.00375<!--FD65-->/1k queries,
-CUR actual, `02-inference` §3) runs 1.5–4.3× higher than every `$/1k queries` figure in this table.
-Those are per-point provisional reads that miss NAT entirely, along with the floor and settle
-time between points. They are kept only to compare rates with each other, not as absolute costs.
+Limits of the sweep:
 
-**Two latency columns, because neither instrument answers the question alone.** Envoy's figures
-are read at the gateway over any window asked for, but its buckets jump 1000 → 2500ms and every
-response in this campaign lands inside that one bucket, so `histogram_quantile` interpolates:
-`1000 + 0.95 × 1500 = 2425`. That is the printed number, arithmetic rather than measurement, which
-is why four rates share it to the millisecond. The same interpolation puts p50 at 1672ms, below
-the 2000ms stub every request pays, which is impossible for a constant delay. The k6 column is per
-request and exact, measured from outside the VPC, so it also carries the internet round trip and
-the load balancer and should read *higher* — it reads 300-400ms lower, which is the size of
-Envoy's overstatement. It has one limit of its own: k6 summarises a whole run, so for r500 and
-r1000 its p95 is dominated by the minutes of scale-out and the hold cannot be cut out of it. For
-those two rows the honest reading is Envoy's converged figure, with the overstatement understood.
-p99 was never queried at either instrument.
+- **The grid differs from the plan.** The plan was 5/50/200/refine/refine. r005 was never run.
+  r300 was added after r500 to check whether 1000 req/s needed more TEI headroom.
+- **The 1000 row ran a different TEI config.** `cpu 6 / 8` against the frozen `3 / 4` of every
+  other row (`02-inference` Matrix · `00-baseline` §2). The latency shape is unaffected. Its cost
+  is not comparable: a doubled request fits fewer pods per node, and this is the only point
+  dominated by `4xlarge` nodes. Direction and size of the effect are unmeasured.
+- **The ramp is convergence speed, not a ceiling.** The Converge column times it.
+- **p99 was not queried** at either instrument.
 
-The sweep climbs from below and stops at the target rather than pushing to a throughput ceiling.
-Past capacity an open-loop generator queues its own excess, and the measured p95 then grows with
-the length of the run instead of describing the system. What the system does above the sustained
-rate is a coverage row, not a number here.
+### 3.7 Query path — sustained rate and bottleneck
 
-The Matrix above carries offered rate against p95 and replicas.
+The query path holds 1000 req/s\*, and no component hit a ceiling on the way there.
 
-### 3.7 Query capacity and constraint
+For 1m45s (14:57:16–14:59:01Z) it served 998<!--FM60-->–1,001<!--FM61--> req/s at 6 `api` / 30
+`tei-embeddings` replicas, p95 2425ms, 0.02<!--FM62-->% errors. The full steady phase served
+955<!--FM63--> req/s at 0.28<!--FM64-->% errors and misses `D15`'s 0.1<!--FR29-->% bound. r500 never
+held the bound longer than 30s. Nothing above 1000 was run, so 1000 is a lower bound, not a ceiling.
 
-- **Sustained rate** — 1000 req/s\*, held for 1m45s: 14:57:16–14:59:01Z, `tei-embeddings` at 30 replicas, 998<!--FM60-->–1,001<!--FM61--> req/s served, p95 flat at 2425ms, 0.02<!--FM62-->% errors. Over the full steady phase around it, to 15:01:01Z, the point served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, which does not meet `D15`'s 0.1<!--FR29-->% bound; that phase ends in a generator stall rather than a system limit. r500 is the same shape and thinner: 499<!--FM66-->–501<!--FM67--> req/s held for one minute at the same p95 floor, but at 0.25<!--FM68-->% errors, and no stretch of it meets the bound for longer than 30s; across its own phase it served 457<!--FM69--> req/s at 0.49<!--FM70-->%. Untested above 1000, so a lower bound rather than a proven ceiling
-- **Capacity that rate required** — 6 API replicas and 30 embedding replicas at r1000, converged in ~4 min from the minimum of 2 each
-- **Retrieval latency** — read from the generator's own per-request durations rather than from Envoy. Successful responses at the clean points have p95 2.04s (r050) and 2.06s (r300) with a median of 2.03s, measured from outside the VPC, so **retrieval plus the internet round trip is ~40-60ms** once the stub is subtracted. It is a component reading, never isolated inside the cluster. Those are also the honest p95s: Envoy reads ~380ms higher at the same point because its buckets jump 1000 → 2500ms and `histogram_quantile` interpolates across the gap (`02-inference` M2), the same artefact that gives four rates an identical 2425ms in §3.6
-- **Constraint** — no *sustained* ceiling found, by resource signature, up to 1000 req/s\*. `tei-embeddings` did reach 87-97.5% of its CPU limit (7.0-7.8 of 8 cores) during r1000's ramp, which `02-inference` Saturation calls a real momentary saturation; replicas relieved it and it did not return in the hold. `api` never exceeded 0.268 of its 0.5-core limit; Qdrant never exceeded 1.568 cores. Two limits on the claim: it is proven at the `cpu 6 / 8` request r1000 ran on, and the five rows at the frozen `3 / 4` publish no TEI CPU peak at all, where the same absolute usage would have been past the limit. With no sustained ceiling found there is nothing to relieve and no next scaling step to price
+Without generation, a query returns in ~40-60ms at p95. Every request has a fixed 2000ms stub in
+place of the Bedrock call. k6 measured 2.04s at r050 and 2.06s at r300. The rest is the internet
+round trip, the gateway, one embedding call and the Qdrant search. Bedrock time comes on top and
+is not measured.
 
-Retrieval is one gRPC round trip per query: dense, sparse and payload-text prefetch fused by
-Qdrant with RRF, plus one embedding call. There is no cross-encoder and no GPU on the path, so
-the ceiling is CPU on either the embedding tier or Qdrant rather than inference hardware.
-
-The two are not equally relievable. The embedding tier scales horizontally, so a ceiling there
-is priced in replicas. Qdrant runs on one dedicated node and does not, so a ceiling there is a
-node-class decision and a larger change.
-
-### 3.8 Contention — both paths on shared Qdrant and TEI
-
-Qdrant serves ingestion writes and query reads from one node, and one embedding deployment
-serves both paths, so a query-load run against an idle ingestion path measures a system nobody
-runs during a backfill.
-
-| Condition | Sustained req/s | p95 ms | api / tei replicas | Δ against §3.7 |
-| :--- | :--- | :--- | :--- | :--- |
-| query load only | 1000\* (§3.7) | 2425 | 6 / 30 (at r1000) | — |
-| query load with ingestion at the §5 guardrail | not run | not run | not run | not run |
-
-Not attempted: the cluster was torn down before this pass was scheduled (`02-inference` §3
-Close checklist). Declared, not measured, for v1.0 (Coverage table). Every §3.7 finding is
-conditional on an idle ingestion path. Whether a concurrent backfill degrades the query path by
-competing for the same TEI replicas, or whether the scaler simply adds more, is the largest open
-item in this report.
+Qdrant is the closest to a ceiling, because it cannot scale out: it peaked at 1.568<!--FM59--> of
+2<!--FR27--> cores, and its next step is a larger node, not another replica. `tei-embeddings` touched
+97.5% of its CPU limit during r1000's ramp, and added replicas relieved it. `api` peaked at 0.268 of
+0.5 cores. The TEI reading holds for the `cpu 6 / 8` request r1000 ran on. The five `3 / 4` points
+publish no TEI CPU peak.
 
 ---
 

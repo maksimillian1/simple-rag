@@ -447,3 +447,9 @@ as-built, потому что это то, что реально заплаче�
   against 3 at r300 in the matrix — the one item here that is a wrong number rather than a copy-edit;
   §4's formula adds the two denominators the lead-in says are never mixed. (The ᴿ marker on the
   sustained rate went with b3's rewrite of that bullet, 2026-10-03.)
+
+Порядок вычитки
+§3 и §4, источники цифр.
+§5, потребитель цифр.
+§2.
+BLUF последним. Начинай с теста: прочитай только первые предложения абзацев. Если по ним история не складывается, сначала чини структуру, а не фразы.
