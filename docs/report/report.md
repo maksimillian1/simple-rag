@@ -129,133 +129,65 @@ holds for an idle ingestion path only.
 
 ## 3. Efficiency Frontier
 
-### 3.1 Ingestion — run matrix
+### 3.1 Ingestion — throughput, cost and constraint
 
-**N is the `maxReplicaCount` set on both ScaledJobs for that run** — the chunker's and the
-indexer's — edited in the manifests before the point opened and recorded by
-`run-ingestion-point.py --n`, which reports it rather than setting it. It is a cap on concurrent
-pods, not an observed concurrency: the indexer tracked it exactly at every point (`M5` 125/125 at
-N=125), while the chunker peaked at ~20 regardless of N because the 100-file corpus cannot keep
-more busy. The cap bound on the chunker only at N=10, where 10 is stricter than that ~20. Between
-runs the committed value was 10, raised to 20 on 2026-09-19 to match the observed ceiling (D6,
-§5); no run was made at that value.
+N=25 is the cheapest operating point, at $24,875<!--FD75--> ᴰ per 1M docs. Throughput is capped by
+the indexer's code, not by any resource.
 
-Grid actually swept: 10, 25, 50, 75, 125, in place of the 4/12/24/refine/refine originally
-planned (`01-ingestion` §1 Notes explains why). N=10 is off-plan (added to reload Qdrant for
-`02-inference`) and non-standard (fresh-cluster run, 2h12m wall time against 40-70min for the
-rest), but its real cost is trusted (`01-ingestion` §3).
+N is the `maxReplicaCount` set on both ScaledJobs, so it is a cap on concurrent pods, not observed
+concurrency. The indexer filled the cap at every point (`M5` 125/125 at N=125). The chunker peaked
+at ~20 whatever the N, because the 100-file corpus cannot keep more busy. The sweep ran N = 10, 25,
+50, 75 and 125.
 
-| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ | Other $ | $/run | $/1M docs | Saturation signal |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 10 | 0.76 | 132.5 min | 3 | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | **$44,707<!--FD76-->** ᴰ | none; chunker *also* at N ceiling (the only point below its ~20-concurrent corpus cap) |
-| 25 | 1.62 | 61.7 min | 4 | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | **$24,875<!--FD75-->** ᴰ (sweet spot) | none; indexer at ceiling, no resource pegged |
-| 50 | 2.27 | 44.0 min | 10 | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴰ (knee) | none |
-| 75 | 2.33 | 42.9 min | 16 | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴰ (waste boundary) | none; +39% cost for +2.6% docs/min over N=50 |
-| 125 | 2.60 | 38.5 min | 26 | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴰ | none |
+Cost per document is V-shaped with its floor at N=25. It rises at every step above 25, and N=10
+below it is higher too ($44,707<!--FD76--> ᴰ): it ran 132.5 min against 61.7 min, and the fixed
+per-hour costs ran with it.
 
-Excluded points: N=4/12/24 (never run, plan revised before the sweep started) and N=175 (planned
-top, never run; dropped once the trend proved monotonic downward through N=25). Config commits
-and per-point validity decisions are audit trail and stay in `01-ingestion` §2.
+Throughput rises with N and never flattens, so no knee was found: per-step gains run +113%, +40%,
++2.6%, then +11.6% again. N=50 is the ceiling for a hurry. It buys +40% docs/min over N=25 for
+$19,460<!--FD77--> ᴰ more per 1M docs. N=75 is the waste boundary: +39% cost for +2.6% docs/min
+over N=50.
 
-Docs/min is measured twice from independent sources. Wall clock against the known corpus size
-gives the point value; the derivative of queue depth gives the shape over time and catches a run
-that stalled and recovered rather than draining steadily.
+Nothing saturated. Neither worker reached its CPU or memory limit at any N (`01-ingestion/M6`). The
+sequential loop in `apps/indexer/src/main.py` holds one TEI call in flight per pod, so throughput
+follows replica count. Relief is a rewrite for intra-pod parallelism, not a bigger pod, and its
+cost is not measured.
 
-`$/run` is billed rather than computed. The cost and usage report carries hourly line items with
-sub-hour usage amounts and resource identifiers, so a twenty-minute run inside one clock hour
-resolves exactly, including the minutes a node was billed before its first pod started and
-after its last one exited, which no cluster-side metric covers. Spot rows carry the price
-actually charged in that hour, so no historical average is assumed anywhere in this report. Two
-consequences shaped the campaign: runs are spaced one per clock hour, because two runs inside
-one hour arrive as one summed row; and cost figures were read days after the runs, because the
-report is delivered daily and revised until the month closes.
+The recorded hypothesis expected the chunker to cap throughput, with warm-up driving cost. The
+chunker kept CPU headroom at every N, and the cap turned out to be code, not capacity.
 
-### 3.2 Ingestion — frontier
+![Cost per 1M docs against throughput, one point per N](charts/tradeoff-jobs-navy.svg)
 
-§3.1's Matrix is the frontier: docs/min against N, which rises monotonically and never flattens,
-and `$/1M docs` against N, which rises monotonically from N=25 upward rather than dipping to a
-minimum somewhere in the middle. A frontier is expected to bend; this one does not, and §3.3 names
-what stands in for the knee.
+Column notes:
 
-### 3.3 Ingestion — knee · sweet spot · waste boundary
+- **$/run** is billed, not computed. It sums the run's CUR hourly line items, including node
+  minutes before the first pod and after the last (`docs/report/methodology.md` §9). Runs were
+  spaced one per clock hour, so each lands in its own CUR row.
+- **TEI $** is the cash the run caused above the always-on pair (`01-ingestion/D23`). §4.2
+  apportions the same tier by pod requests and gets a larger number.
+- **Unused $ ᴿ** is node capacity billed to no pod (`01-ingestion/M12`). It covers every EKS node,
+  platform pools included, so it tracks run duration more than N and cannot isolate the
+  ingestion pool's warm-up.
 
-| Point | How it is identified | N | Evidence |
-| :--- | :--- | :--- | :--- |
-| Knee | **not identified.** The stated rule — last N whose step still gained 10% docs/min — selects 125, the top of the swept range, because the per-step gains are not monotone: +113%, +40%, +2.6%, then +11.6% again. A rule that lands on the edge of the range has found no bend | — | §3.1 |
-| Sweet spot | lowest `$/1M docs` | 25 | §3.1 |
-| Waste boundary | first N where `$/run` rises substantially for under 10 % throughput | 75: +39% cost for +2.6% docs/min over N=50 | §3.1 |
+| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ | Other $ | $/run | $/1M docs | Unused $ ᴿ | Saturation signal |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 10 | 0.76 | 132.5 min | 3 | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | $44,707<!--FD76--> ᴰ | $1.8478<!--FM72--> | none, chunker also at the cap (the only point below its ~20) |
+| 25 | 1.62 | 61.7 min | 4 | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | **$24,875<!--FD75-->** ᴰ (sweet spot) | $1.4787<!--FM50--> | none |
+| 50 | 2.27 | 44.0 min | 10 | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴰ (hurry ceiling) | $1.1984<!--FM73--> | none |
+| 75 | 2.33 | 42.9 min | 16 | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴰ (waste boundary) | $1.4556<!--FM74--> | none |
+| 125 | 2.60 | 38.5 min | 26 | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴰ | $1.8122<!--FM75--> | none |
 
-Running at N=50 instead of the sweet spot (N=25) costs $19,460<!--FD77--> extra per 1M docs
-(Gap cost, `01-ingestion` §3) to buy +40% docs/min (1.62→2.27). N=50 is the documented ceiling for
-a hurry — the last step before gains first stalled, which is not the same thing as a knee, since
-the step after it gained again. The guardrail in §5 is set at the sweet spot's observed
-concurrency (20 ᴱ: N=25's cap bound only at the peak, and the run held a time-weighted mean of
-19.5).
+Limits of the sweep:
 
-N=25 is a measured local minimum, not a boundary artefact. The one point below it, N=10, is
-off-plan and non-standard (fresh cluster, 2h12m against 40-70min) but its cost read is a genuine
-one, and it is higher: $44,707<!--FD76--> ᴰ against $24,875<!--FD75--> ᴰ, which low throughput
-holding the fixed per-hour costs open for twice as long accounts for. So the curve descends into
-N=25 and climbs out of it on both sides of the swept range. What stays untested is the gap between
-10 and 25, where no point was placed.
+- **N=10 is off-plan.** It was added to reload Qdrant for `02-inference` and ran on a fresh
+  cluster. Its cost read is trusted (`01-ingestion` §3).
+- **The minimum is bracketed, not pinned.** Nothing ran between N=10 and N=25.
+- **The grid was revised before the sweep.** Its planned top, N=175, was never run
+  (`01-ingestion` §1 Notes).
+- **Two readings were not taken.** Warm-up and consolidation tail per point, and Tier 2 of the
+  constraint ladder: `M15`–`M17` never got a ServiceMonitor. Both are Coverage rows.
 
-### 3.4 Shape of the ingestion cost curve
-
-Every node is billed from provisioning but produces work only after boot, image pull and runtime
-init. It is billed again for a tail after the last document, until consolidation removes it.
-Both windows produce zero units at full price, and split cost allocation reports them directly:
-capacity the bill charged for and no pod occupied.
-
-This mechanism was the original hypothesis, and it did not dominate.
-`01-ingestion`'s finding (§3): `$/1M docs` rises monotonically from N=25 up to N=125, and N=10 —
-the only point below the minimum — is higher still, so the curve is a V with its floor at the
-second-lowest N swept rather than a warm-up bowl with a turn at each end. The constraint is
-architectural (§3.5: the indexer's sequential one-in-flight design)
-rather than warm-up amortization. Every node does pay for boot and teardown around its real work;
-that cost just isn't what drives the monotonic curve.
-
-| N | Unused capacity $ ᴿ (fleet-wide) | Warm-up interval | Consolidation tail |
-| :--- | :--- | :--- | :--- |
-| 10 | $1.8478<!--FM72--> | not captured; no per-point `M3`→`M4` node/pod timestamps were pulled | not captured |
-| 25 | $1.4787 | not captured | not captured |
-| 50 | $1.1984<!--FM73--> | not captured | not captured |
-| 75 | $1.4556<!--FM74--> | not captured | not captured |
-| 125 | $1.8122<!--FM75--> | not captured | not captured |
-
-Unused-capacity `$` (`M12`, pulled 2026-09-09, `01-ingestion` §3) is fleet-wide: it covers every
-EKS node in the cluster that hour, not just `apps-compute`. There is no "share of compute $"
-column, because it would mislead. `core-on-demand`'s and `database-on-demand`'s idle capacity
-sits in every row regardless of ingestion load, so such a column can't separate the ingestion
-pool's warm-up waste from platform-wide background idle. The shape (higher at N=10 and N=125,
-lower in the middle) more plausibly tracks each point's wall-clock duration than N itself. N=10
-ran 132.5min and N=125 ran 38.5min, and this is fleet-wide spend that accrues for as long as the
-point's window lasts rather than a per-node effect.
-
-### 3.5 Ingestion constraint ladder
-
-* **Tier 1** — none, by resource signature. Proof: neither chunker nor indexer CPU or memory hit its frozen limit at any tested N (`01-ingestion/M6`). The ceiling is the indexer's architecture: the fully sequential `for msg in messages: process_sqs_message(...)` loop in `apps/indexer/src/main.py` holds exactly one in-flight TEI call per pod, so downstream concurrency is 1:1 with replica count regardless of CPU headroom. Cost to relieve: not measured. Relief means re-architecting the indexer for intra-pod parallelism; a resource bump won't do it.
-* **Tier 2** — not measured. `01-ingestion/M15`–`M17` (TEI queue depth, TEI inference duration, Qdrant latency) never left "pending ServiceMonitor". The chunker was never relieved by a resource fix (Tier 1 isn't resource-shaped), so the precondition for naming a Tier 2 was never met.
-
-Sweeping concurrency relieves tiers on its own: if chunker CPU is the ceiling at N=4, at N=24
-there are six times as many chunkers and that ceiling is gone. Whatever saturates instead is a
-proven second tier. This is why the sweep runs to 24 rather than stopping at 12.
-
-If the embedding tier appears as Tier 2, its replica count decides what the finding means. A
-tier still adding replicas when the queue grew was scaling too slowly; a converged tier at its
-CPU limit was out of capacity. The two take different remedies and the report names which was
-observed.
-
-The hypothesis recorded before the first run: the ceiling was expected to be the Stage-1 chunker
-rather than the embedding tier, because PyMuPDF extraction on a 300-page PDF is single-threaded
-CPU work and may dominate embedding time by an order of magnitude, while the original design
-assumed inference would saturate first. Outcome: the hypothesis was inverted. The chunker held CPU headroom at
-every tested N (peak ~20 concurrent regardless of N ∈ [50,125]); its ceiling never bound, and it
-is set by the corpus rather than by resources. The constraint is the indexer's architecture
-rather than a resource on either worker: one sequential in-flight TEI call per pod, so
-throughput is capped by replica count rather than by CPU on any stage. Neither the predicted
-component nor the predicted *kind* of ceiling (a capacity limit) held.
-
-### 3.6 Query path — sustained rate, latency and bottleneck
+### 3.2 Query path — sustained rate, latency and bottleneck
 
 The sweep offered 50, 200, 300, 500 and 1000 req/s and stopped at the 1000 target. The query path
 held 1000 req/s\* and no component hit a ceiling, so 1000 is a lower bound, not a ceiling.
@@ -307,8 +239,6 @@ Limits of the sweep:
   only row with a TEI CPU peak, so the TEI reading above holds for `6 / 8` only.
 - **The ramp is convergence speed, not a ceiling.** The Converge column times it.
 - **p99 was not queried** at either instrument.
-
----
 
 ## 4. Cost Structure
 
