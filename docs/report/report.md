@@ -62,12 +62,12 @@ what the system costs at rest, and how that cost spreads over volume.
 \* **1000 req/s** means the 1m45s hold above, not the r1000 window and not a proven ceiling.
 Every later use of the figure carries the asterisk back to this qualification and to §3.7.
 
-**What the sweep settled**
+**What the measurements settled**
 
 * **Ingestion is capped by code, not by hardware.** Nothing saturated at any N. Throughput scales
   with replica count because the sequential loop in `apps/indexer/src/main.py` holds one TEI call in
   flight per pod, so 26 embedding replicas were needed to reach 2.60 docs/min at N=125, and docs/min
-  was still climbing when the sweep stopped on cost rather than on a ceiling. Sizing cannot move
+  was still climbing when testing stopped on cost rather than on a ceiling. Sizing cannot move
   this line. The loop can.
 * **On the query path the component closest to a hard ceiling is the one that cannot scale.** TEI
   touched 97.5% of its CPU limit during r1000's ramp, which more replicas relieved and did. Qdrant
@@ -137,7 +137,7 @@ the indexer's code, not by any resource.
 
 N is the `maxReplicaCount` set on both ScaledJobs, so it is a cap on concurrent pods, not observed
 concurrency. The indexer filled the cap at every point (`M5` 125/125 at N=125). The chunker peaked
-at ~20 whatever the N, because the 100-file corpus cannot keep more busy. The sweep ran N = 10, 25,
+at ~20 whatever the N, because the 100-file corpus cannot keep more busy. Tested at N = 10, 25,
 50, 75 and 125.
 
 Cost per document is V-shaped with its floor at N=25. It rises at every step above 25, and N=10
@@ -169,7 +169,7 @@ every N, and the cap turned out to be code, not capacity.
 
 ### 3.2 Query path — sustained rate, latency and bottleneck
 
-The sweep offered 50, 200, 300, 500 and 1000 req/s and stopped at the 1000 target. The query path
+Tested at 50, 200, 300, 500 and 1000 req/s, stopping at the 1000 target. The query path
 held 1000 req/s\* and no component hit a ceiling, so 1000 is a lower bound, not a ceiling.
 
 The hold lasted 1m45s at r1000 (14:57:16–14:59:01Z), bold in the table. The full steady phase
@@ -356,8 +356,8 @@ understate it 1.5–4.3× because they miss NAT entirely and the floor and settl
 The floor share assumes the tier runs at the sustained rate (1000 req/s\*) continuously, which
 makes it an extreme best case: it is negligible only because 1000 req/s continuously serves
 2,628,000,000<!--FD116--> queries/month. At every volume in the §4.3 table the floor dominates
-instead; the crossover there is ~148M queries/month, far above anything swept. The generation line is a vendor
-rate applied to a token count nobody swept, derived from the real prompt template
+instead; the crossover there is ~148M queries/month, far above anything tested. The generation line is a vendor
+rate applied to a token count nobody tested, derived from the real prompt template
 (`apps/api/core/llm.go`, `02-inference/E18`). No run called the provider. If generation is turned
 on, it would be ~136<!--FD115-->× the marginal retrieval cost, the largest line in the query-path
 cost and the one this report can least confirm.
@@ -462,7 +462,7 @@ wire:
 The endpoint's three ENIs cost $26.28<!--FD48-->/month whatever the traffic, and its data rate is
 $0.01<!--FR15-->/GB where the NAT charges $0.052<!--FR4-->. It repays that fixed cost at
 625.71<!--FD49--> GB/month, which at 12,248<!--FD40--> bytes a query is 54,854,311<!--FD50--> ᴱ
-queries per month — **55x the reference volume**, and a volume the sweep never approached. Below
+queries per month — **55x the reference volume**, and a volume no measured point approached. Below
 it the endpoint costs more than the NAT it replaces.
 
 `ADR-0007` chose the endpoint on a privacy boundary and on "slashes NAT Gateway data processing

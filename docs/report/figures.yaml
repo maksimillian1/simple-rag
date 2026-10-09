@@ -2581,7 +2581,7 @@ figures:
     unit: mib
     display: 0
     source: >-
-      highest per-pod working set across the inference sweep, at r500; the fleet reading, where
+      highest per-pod working set across the inference points, at r500; the fleet reading, where
       load is spread over the replicas the scaler produced
     group: memory_limits
     appears_in: [report.md]
@@ -2606,7 +2606,7 @@ figures:
     unit: mib
     display: 0
     source: >-
-      highest per-pod working set across the inference sweep, at r050 on 3 replicas - per-pod
+      highest per-pod working set across the inference points, at r050 on 3 replicas - per-pod
       memory is highest when fewest pods share the load
     group: memory_limits
     appears_in: [report.md]

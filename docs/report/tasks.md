@@ -163,7 +163,7 @@ deck are where they are used.
 | Header block | conclusion — one line: what was measured, where, when, and a link to the report | — |
 | Coverage, 54 rows | conclusion — one paragraph: what is measured, what is declared, what is out of scope | dropped |
 | §1 BLUF | verbatim, four figures | — |
-| §1 What the sweep settled | verbatim — this is the article's spine | `tradeoff-jobs` for the fourth finding |
+| §1 What the measurements settled | verbatim — this is the article's spine | `tradeoff-jobs` for the fourth finding |
 | §1 Verdict | conclusion — the three conditions, not the row-by-row reasoning | — |
 | §2.1, §2.2 | conclusion — fixture, denominator, window | — |
 | §2.3 | dropped, except the shared embedding tier and packing density | — |
