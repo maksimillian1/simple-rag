@@ -45,6 +45,7 @@ what the system costs at rest, and how that cost spreads over volume.
 | Ingestion constraint ladder — Tier 2 | declared, not measured | which component caps ingestion once the indexer loop is relieved. `01-ingestion` M15–M17 were not scraped |
 | Ingest and query contention on shared Qdrant and TEI | declared, not measured | §3.8 · whether the latency target survives a backfill running underneath it |
 | Scaler tuning — thresholds and cooldowns | declared, not measured | how much of convergence time is configuration rather than node provisioning |
+| Query tail latency, p99 | declared, not measured | whether the slowest 1% of queries stays inside the latency target |
 | Retrieval quality against quantization | declared, not measured | what INT8 compression costs in recall. INT8 SQ is a frozen given here |
 | Behaviour above the sustained rate | out of scope | whether overload degrades or collapses the deployment. It needs served-rate and status-code instruments and its own runs |
 | End-to-end latency including Bedrock generation | out of scope | Latency is a user experience |
@@ -153,39 +154,18 @@ sequential loop in `apps/indexer/src/main.py` holds one TEI call in flight per p
 follows replica count. Relief is a rewrite for intra-pod parallelism, not a bigger pod, and its
 cost is not measured.
 
-The recorded hypothesis expected the chunker to cap throughput, with warm-up driving cost. The
-chunker kept CPU headroom at every N, and the cap turned out to be code, not capacity.
+The recorded hypothesis expected the chunker to cap throughput. The chunker kept CPU headroom at
+every N, and the cap turned out to be code, not capacity.
 
 ![Cost per 1M docs against throughput, one point per N](charts/tradeoff-jobs-navy.svg)
 
-Column notes:
-
-- **$/run** is billed, not computed. It sums the run's CUR hourly line items, including node
-  minutes before the first pod and after the last (`docs/report/methodology.md` §9). Runs were
-  spaced one per clock hour, so each lands in its own CUR row.
-- **TEI $** is the cash the run caused above the always-on pair (`01-ingestion/D23`). §4.2
-  apportions the same tier by pod requests and gets a larger number.
-- **Unused $ ᴿ** is node capacity billed to no pod (`01-ingestion/M12`). It covers every EKS node,
-  platform pools included, so it tracks run duration more than N and cannot isolate the
-  ingestion pool's warm-up.
-
-| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ | Other $ | $/run | $/1M docs | Unused $ ᴿ | Saturation signal |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 10 | 0.76 | 132.5 min | 3 | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | $44,707<!--FD76--> ᴰ | $1.8478<!--FM72--> | none, chunker also at the cap (the only point below its ~20) |
-| 25 | 1.62 | 61.7 min | 4 | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | **$24,875<!--FD75-->** ᴰ (sweet spot) | $1.4787<!--FM50--> | none |
-| 50 | 2.27 | 44.0 min | 10 | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴰ (hurry ceiling) | $1.1984<!--FM73--> | none |
-| 75 | 2.33 | 42.9 min | 16 | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴰ (waste boundary) | $1.4556<!--FM74--> | none |
-| 125 | 2.60 | 38.5 min | 26 | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴰ | $1.8122<!--FM75--> | none |
-
-Limits of the sweep:
-
-- **N=10 is off-plan.** It was added to reload Qdrant for `02-inference` and ran on a fresh
-  cluster. Its cost read is trusted (`01-ingestion` §3).
-- **The minimum is bracketed, not pinned.** Nothing ran between N=10 and N=25.
-- **The grid was revised before the sweep.** Its planned top, N=175, was never run
-  (`01-ingestion` §1 Notes).
-- **Two readings were not taken.** Warm-up and consolidation tail per point, and Tier 2 of the
-  constraint ladder: `M15`–`M17` never got a ServiceMonitor. Both are Coverage rows.
+| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ (cash) | Other $ | $/run | $/1M docs | Saturation signal |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 10 | 0.76 | 132.5 min | 3 | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | $44,707<!--FD76--> ᴰ | none, chunker also at the cap (the only point below its ~20) |
+| 25 | 1.62 | 61.7 min | 4 | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | **$24,875<!--FD75-->** ᴰ | none |
+| 50 | 2.27 | 44.0 min | 10 | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴰ | none |
+| 75 | 2.33 | 42.9 min | 16 | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴰ | none |
+| 125 | 2.60 | 38.5 min | 26 | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴰ | none |
 
 ### 3.2 Query path — sustained rate, latency and bottleneck
 
@@ -194,33 +174,31 @@ held 1000 req/s\* and no component hit a ceiling, so 1000 is a lower bound, not 
 
 The hold lasted 1m45s at r1000 (14:57:16–14:59:01Z), bold in the table. The full steady phase
 around it served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors and misses `D15`'s
-0.1<!--FR29-->% bound. r500 never held the bound longer than 30s.
+0.1<!--FR29-->% bound. r500 never held the bound longer than 30s. The window averages at r500 and
+r1000 serve less, and part of that gap is the load generator: during scale-out k6 ran out of
+virtual users and dropped 10.7<!--FD145-->% and 5.2<!--FD144-->% of scheduled requests, and r1000
+also had a three-minute generator stall. The remainder is scale-out lag.
 
 Without generation, a query returns in ~40-60ms at p95. Every request carries a fixed 2000ms stub
 in place of the Bedrock call, and k6 measured 2.04s at r050 and 2.06s at r300. The rest is the
 internet round trip, the gateway, one embedding call and the Qdrant search. Bedrock time comes on
 top and is not measured.
 
+The table carries two p95 readings. Envoy's is interpolated between its 1000 and 2500ms buckets,
+so it reads 2425ms at every converged point, 300-400ms above k6. k6 is exact per request but
+reports one figure per run, so at r500 and r1000 it includes the scale-out minutes.
+
 Qdrant is the closest to a ceiling, because it cannot scale out: it peaked at 1.568<!--FM59--> of
 2<!--FR27--> cores, and its next step is a larger node, not another replica. `tei-embeddings`
 touched 97.5% of its CPU limit during r1000's ramp, and added replicas relieved it. `api` peaked
-at 0.268 of 0.5 cores.
+at 0.268 of 0.5 cores. r1000 ran `tei-embeddings` at `cpu 6 / 8` against the frozen `3 / 4` of
+every other row, so the TEI reading holds for `6 / 8` only, and r1000's cost is not comparable
+with the other rows.
 
-Column notes:
-
-- **Served req/s.** At r500 and r1000 part of the gap to the offered rate is the load generator,
-  not the system. During the scale-out ramp k6 ran out of virtual users and dropped
-  10.7<!--FD145-->% of scheduled requests at r500 and 5.2<!--FD144-->% at r1000. r1000 also had a
-  three-minute generator stall. The bold figures are the converged hold.
-- **p95, two instruments.** Each is wrong in a different way. Envoy's histogram buckets jump from
-  1000 to 2500ms, so its p95 is interpolated, not measured: 2425ms at every converged point,
-  300-400ms above k6. k6 is exact per request but reports one figure per run, so at r500 and r1000
-  it includes the scale-out minutes. Read k6 for 50-300 req/s and Envoy's converged 2425ms as an
-  upper bound for 500 and 1000.
-- **$/1k queries (gross).** Not a unit cost. Each row divides its own serving cost, floor
-  included, by its own queries, so it falls with rate as the always-on pair spreads over more
-  traffic. It also misses NAT. Compare rows only. The real marginal is $0.00375<!--FD65--> ᴰ/1k
-  (§4.2), 1.5<!--FD90-->–4.3<!--FD91-->× higher.
+`$/1k queries` in the table is gross: each row's serving cost, floor included, over its own
+queries. It falls with rate as the always-on pair spreads over more traffic, and it misses NAT. The
+marginal cost of a query is $0.00375<!--FD65--> ᴰ/1k (§4.2), 1.5<!--FD90-->–4.3<!--FD91-->× above
+any row.
 
 | Offered req/s | Served req/s | api / tei replicas | Converge | p95 ms ᴿ (Envoy) | p95 ms (k6) | Error % | $/1k queries (gross) ᴰ | Saturation signal |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -230,15 +208,7 @@ Column notes:
 | 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | ~7 min to 13 replicas, then clean | 7934 (window avg) / **2425 once converged** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
 | 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | ~4 min to 30 replicas, then clean | 6378 (window avg) / **2425 once converged** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
 
-Limits of the sweep:
-
-- **The 1000 row ran a different TEI config.** `cpu 6 / 8` against the frozen `3 / 4` of every
-  other row (`02-inference` Matrix · `00-baseline` §2). The latency shape is unaffected. Its cost
-  is not comparable: a doubled request fits fewer pods per node, and this is the only point
-  dominated by `4xlarge` nodes. Direction and size of the effect are unmeasured. It is also the
-  only row with a TEI CPU peak, so the TEI reading above holds for `6 / 8` only.
-- **The ramp is convergence speed, not a ceiling.** The Converge column times it.
-- **p99 was not queried** at either instrument.
+---
 
 ## 4. Cost Structure
 
