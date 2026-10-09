@@ -255,18 +255,31 @@ rather than a resource on either worker: one sequential in-flight TEI call per p
 throughput is capped by replica count rather than by CPU on any stage. Neither the predicted
 component nor the predicted *kind* of ceiling (a capacity limit) held.
 
-### 3.6 Query path — run matrix
+### 3.6 Query path — sustained rate, latency and bottleneck
 
-Each row is one offered arrival rate: the replicas the autoscaler chose, the latency and errors
-served, and the cost. The sweep ran 50, 200, 300, 500 and 1000 req/s and stopped at the 1000
-target. It did not push past it to find a ceiling.
+The sweep offered 50, 200, 300, 500 and 1000 req/s and stopped at the 1000 target. The query path
+held 1000 req/s\* and no component hit a ceiling, so 1000 is a lower bound, not a ceiling.
+
+The hold lasted 1m45s at r1000 (14:57:16–14:59:01Z), bold in the table. The full steady phase
+around it served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors and misses `D15`'s
+0.1<!--FR29-->% bound. r500 never held the bound longer than 30s.
+
+Without generation, a query returns in ~40-60ms at p95. Every request carries a fixed 2000ms stub
+in place of the Bedrock call, and k6 measured 2.04s at r050 and 2.06s at r300. The rest is the
+internet round trip, the gateway, one embedding call and the Qdrant search. Bedrock time comes on
+top and is not measured.
+
+Qdrant is the closest to a ceiling, because it cannot scale out: it peaked at 1.568<!--FM59--> of
+2<!--FR27--> cores, and its next step is a larger node, not another replica. `tei-embeddings`
+touched 97.5% of its CPU limit during r1000's ramp, and added replicas relieved it. `api` peaked
+at 0.268 of 0.5 cores.
 
 Column notes:
 
 - **Served req/s.** At r500 and r1000 part of the gap to the offered rate is the load generator,
   not the system. During the scale-out ramp k6 ran out of virtual users and dropped
   10.7<!--FD145-->% of scheduled requests at r500 and 5.2<!--FD144-->% at r1000. r1000 also had a
-  three-minute generator stall. The bold figures are the converged hold (§3.7).
+  three-minute generator stall. The bold figures are the converged hold.
 - **p95, two instruments.** Each is wrong in a different way. Envoy's histogram buckets jump from
   1000 to 2500ms, so its p95 is interpolated, not measured: 2425ms at every converged point,
   300-400ms above k6. k6 is exact per request but reports one figure per run, so at r500 and r1000
@@ -287,34 +300,13 @@ Column notes:
 
 Limits of the sweep:
 
-- **The grid differs from the plan.** The plan was 5/50/200/refine/refine. r005 was never run.
-  r300 was added after r500 to check whether 1000 req/s needed more TEI headroom.
 - **The 1000 row ran a different TEI config.** `cpu 6 / 8` against the frozen `3 / 4` of every
   other row (`02-inference` Matrix · `00-baseline` §2). The latency shape is unaffected. Its cost
   is not comparable: a doubled request fits fewer pods per node, and this is the only point
-  dominated by `4xlarge` nodes. Direction and size of the effect are unmeasured.
+  dominated by `4xlarge` nodes. Direction and size of the effect are unmeasured. It is also the
+  only row with a TEI CPU peak, so the TEI reading above holds for `6 / 8` only.
 - **The ramp is convergence speed, not a ceiling.** The Converge column times it.
 - **p99 was not queried** at either instrument.
-
-### 3.7 Query path — sustained rate and bottleneck
-
-The query path holds 1000 req/s\*, and no component hit a ceiling on the way there.
-
-For 1m45s (14:57:16–14:59:01Z) it served 998<!--FM60-->–1,001<!--FM61--> req/s at 6 `api` / 30
-`tei-embeddings` replicas, p95 2425ms, 0.02<!--FM62-->% errors. The full steady phase served
-955<!--FM63--> req/s at 0.28<!--FM64-->% errors and misses `D15`'s 0.1<!--FR29-->% bound. r500 never
-held the bound longer than 30s. Nothing above 1000 was run, so 1000 is a lower bound, not a ceiling.
-
-Without generation, a query returns in ~40-60ms at p95. Every request has a fixed 2000ms stub in
-place of the Bedrock call. k6 measured 2.04s at r050 and 2.06s at r300. The rest is the internet
-round trip, the gateway, one embedding call and the Qdrant search. Bedrock time comes on top and
-is not measured.
-
-Qdrant is the closest to a ceiling, because it cannot scale out: it peaked at 1.568<!--FM59--> of
-2<!--FR27--> cores, and its next step is a larger node, not another replica. `tei-embeddings` touched
-97.5% of its CPU limit during r1000's ramp, and added replicas relieved it. `api` peaked at 0.268 of
-0.5 cores. The TEI reading holds for the `cpu 6 / 8` request r1000 ran on. The five `3 / 4` points
-publish no TEI CPU peak.
 
 ---
 
