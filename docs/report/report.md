@@ -185,19 +185,16 @@ TEI touched 97.5% of its CPU limit in r1000 while it was still scaling out, and 
 `api` peaked at 0.268 of 0.5 cores. r1000 is the only row where TEI ran with more CPU, `6 / 8` cores
 instead of `3 / 4`, so its cost is not part of the same trend as the other rows.
 
-**Run $/1k (gross)** — derived from node lifetimes in each run. It contains the baseline but
+**Run $/1k (gross)** — derived from node lifetimes in each run. It contains 2 baseline nodes but
   doesn't count NAT.
-**Effective $/1k** — what 1k queries would cost if the system served that rate for a whole
-  month: the baseline spread over that month's queries, plus the marginal
-  $0.00375<!--FD65--> ᴰ/1k (§4.2).
 
-| Offered req/s | Served req/s | api / tei replicas | p95 ms ᴿ (Envoy) | p95 ms (k6) | Error % | Run $/1k (gross) ᴰ | Effective $/1k ᴰ |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 50 | 45.5 (91%) | 2 / 3 | 2418 | **2040** | 0% | $0.00250<!--FD78--> | $0.00781 |
-| 200 | 192.5 (96%) | 2 / 7 | 2425 | **2150** | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> | $0.00477 |
-| 300 | 296.4 (99%) | 3 / 11 | 2425 | **2060** | 0.20% avg / 2.75% peak | $0.00098<!--FD80--> | $0.00443 |
-| 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | 7934 (window avg) / **2425 once scaled out** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> | $0.00416 |
-| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | 6378 (window avg) / **2425 once scaled out** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> | $0.00395 |
+| Offered req/s | Served req/s | api / tei replicas | p95 ms ᴿ (Envoy) | p95 ms (k6) | Error % | Run $/1k (gross) ᴰ |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 50 | 45.5 (91%) | 2 / 3 | 2418 | **2040** | 0% | $0.00250<!--FD78--> |
+| 200 | 192.5 (96%) | 2 / 7 | 2425 | **2150** | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> |
+| 300 | 296.4 (99%) | 3 / 11 | 2425 | **2060** | 0.20% avg / 2.75% peak | $0.00098<!--FD80--> |
+| 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | 7934 (window avg) / **2425 once scaled out** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> |
+| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | 6378 (window avg) / **2425 once scaled out** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> |
 
 ---
 
@@ -209,14 +206,13 @@ Monthly cost = Floor + ( Marginal_per_doc × Docs ) + ( Marginal_per_query × Qu
                §4.1              §4.2                          §4.2
 ```
 
-Every marginal figure below excludes floor lines by construction. The two serving deployments
-never scale below two replicas each, so that permanently-on capacity is subtracted from every
-run window before any per-unit number is computed.
 
 ### 4.1 Floor
 
-One resting hour of a running, unloaded system, projected to a month at the published unit rates
-(`docs/report/methodology.md` §9 · line-by-line audit in `00-baseline` §2 Floor).
+The floor was calculated by one hour of the running system with no load and almost zero traffic, projected to a month
+at AWS list rates (`docs/report/methodology.md` §9 · line-by-line audit in `00-baseline` §2 Floor).
+The floor has three blocks. Block B is how much RAG as a feature costs, Block A is
+the shared platform and Block C is A + B.
 
 **As built** ᴰ
 
@@ -226,9 +222,9 @@ One resting hour of a running, unloaded system, projected to a month at the publ
 | A · Shared | EKS control plane · core node group · Karpenter on Fargate · NAT hourly · monitoring stack · the Gateway's load balancer | $333.59<!--FD21--> | $9.83<!--FD22--> | $343.42<!--FD25--> |
 | **C · Total** | `A + B` | $866.79<!--FD27--> | $10.76<!--FD28--> | **$877.54<!--FD29-->** |
 
-**Right-sized, same HA topology** ᴱ — `00-baseline` Right-sized floor · `docs/tech-debt.md` #5
-and #12. The variable column is carried over unchanged: nothing in the right-size touches what
-NAT and cross-AZ transfer move at rest.
+**Right-sized, same HA topology** ᴱ — each line sized to its observed use, with the Bedrock
+endpoints removed (`00-baseline` Right-sized floor · `docs/tech-debt.md` #5 and #12). The variable
+column is unchanged: right-sizing moves no NAT or cross-AZ traffic at rest.
 
 | Block | Fixed | Variable at rest | Total |
 | :--- | ---: | ---: | ---: |
@@ -236,76 +232,81 @@ NAT and cross-AZ transfer move at rest.
 | A · Shared | $316.60<!--FE7--> | $9.83<!--FD22--> ᴰ | $326.43<!--FE16--> |
 | **C · Total** | $726.98<!--FE10--> | $10.76<!--FD28--> ᴰ | **$737.74<!--FE11-->** |
 
-§5's budget alarm is set on the right-sized Block C, so it tracks the target rather than today's
-defects (§5.3). Errors found at rest, excluded from both tables, recur at $175.85<!--FD35-->/month
+Errors found at rest are in neither table. They recur at $175.85<!--FD35-->/month
 (`00-baseline` §2 Floor errors table).
 
-The bill shows the same headroom. In the resting hour CUR assigned no pod to $0.4938<!--FM58--> of
-the $0.8298<!--FD129--> ᴰ the six nodes cost, **59.5<!--FD130-->%**. That is a lower bound on idle
-capacity, because AWS splits an instance by pod requests, not usage. The right-sized column was
-built from observed working sets, the opposite direction, and points the same way.
+At least 59.5<!--FD130-->% of node cost at rest is idle. CUR splits a node's cost between its pods
+by their requests. This report calls that **allocation**. In the resting hour, CUR allocated
+$0.4938<!--FM58--> of the $0.8298<!--FD129--> ᴰ the six nodes cost to no pod. This report calls
+that **unallocated capacity**. It is a lower bound on idle, because allocation follows requests,
+not usage. The right-sized column comes from observed memory use and shows the same headroom.
 
-Block B is what leaves the bill if the feature is deleted. That criterion puts the Gateway's load
-balancer in A: it serves every namespace and stays if the feature goes. Lines with no
-resource-level tag are mapped by hand to the Floor row that prices them (`R5`, ᴿ), so they move no
-total. They are 25.6<!--FD126-->% of the resting hour's bill, AWS-managed flat charges rather than a
-tagging gap, and 17.9<!--FD127-->% once the CloudWatch vended-log defect is set aside
-(`00-baseline` §2).
+INT8 quantization is why a `.large` node fits the Qdrant collection: 0.384 GB in memory against
+1.536 GB for float32 ᴰ at 1M points. Qdrant's working set peaked at 379 MiB ᴿ of r7g.large's
+16 GB. The right-size moves it to c7g.large and drops that unused memory (`docs/tech-debt.md` #5).
 
-The NAT gateway bills twice: hourly, which is floor, and per gigabyte processed, including image
-pulls, which §4.2 counts as marginal.
+Lines without a resource tag are 25.6<!--FD126-->% of the resting hour's bill, and
+17.9<!--FD127-->% without the CloudWatch vended-log defect (`00-baseline` §2). Most are untaggable
+AWS-managed flat charges. They are mapped by hand to the Floor row that prices them (`R5`, ᴿ), so
+they change no total.
 
-INT8 quantization is why a `.large` node holds the collection: 0.384 GB resident against 1.536 GB
-for float32 ᴰ at 1M points. The measured working set peaked at 379 MiB ᴿ of r7g.large's 16 GB, and
-that unused memory is what the right-size removes by moving to c7g.large (`docs/tech-debt.md` #5).
+The NAT gateway bills in two ways. Its hourly charge is floor. Its per-GB charge, image pulls
+included, is marginal and is counted in §4.2.
 
 ### 4.2 Marginal
 
-At the sweet spot (N=25, `01-ingestion/M12`, pulled 2026-09-09), three components are AWS
-split-cost rows per pod and the fourth is the residual of the $24,875<!--FD37--> total.
+#### Per 1M documents
 
-The total is **cash**, money that left the account (`cur_marginal` plus `D23`). The pod rows are
-**allocation**: AWS divides one node bill among the pods on it by their requests and a fixed
-CPU-to-memory weighting, which moves money between pods without changing the bill. At N=25 TEI
-grew from 2 to 4 replicas on nodes already running, so it caused $0.01<!--FM24-->/run
-of cash (§3.1 `TEI $ (cash)`) and occupied $0.249<!--FD153-->/run of allocated capacity. The
-residual row absorbs the difference, and Share is a share of the total, not of cash.
+All figures are at N=25, the sweet spot (`01-ingestion/M12`, pulled 2026-09-09). The first three
+rows are CUR rows per pod. The fourth row is the rest of the $24,875<!--FD37--> total.
 
-**Per 1M documents ingested, at N=25 (the sweet spot)**
+The total is **cash**: money that left the account (`cur_marginal` plus `D23`). The pod rows are
+allocation (§4.1), with a fixed CPU-to-memory weighting. Allocation moves money between pods and
+leaves the bill unchanged. At N=25, TEI grew from 2 to 4 replicas on nodes that were already
+running. It added $0.01<!--FM24-->/run of cash (§3.1 `TEI $ (cash)`) and took
+$0.249<!--FD153-->/run of allocated capacity. The fourth row absorbs that gap. Share is a share of
+the total, not of cash.
 
 | Component | $/1M docs | Share |
 | :--- | :--- | :--- |
 | Stage-1 chunker pods | $21<!--FM42--> | 0.1<!--FD111-->% |
 | Stage-2 indexer pods | $2,574<!--FM43--> | 10.3<!--FD112-->% |
-| TEI above its always-on minimum | $2,490<!--FD109--> ᴰ ($3,256<!--FM44--> total allocated − $766<!--FM45--> idle-floor share for this window) | 10.0<!--FD113-->% |
-| NAT, SQS, S3, and node capacity billed to no pod, combined | $19,790<!--FD110--> ᴰ (does not split further: `M12`'s unused capacity is fleet-wide) | 79.6<!--FD114-->% |
+| TEI above its always-on minimum | $2,490<!--FD109--> ᴰ ($3,256<!--FM44--> allocated − $766<!--FM45--> floor share for this window) | 10.0<!--FD113-->% |
+| NAT, SQS, S3 and unallocated capacity, combined | $19,790<!--FD110--> ᴰ (cannot be split: `M12` reports unallocated capacity fleet-wide) | 79.6<!--FD114-->% |
 | **Total** | $24,875<!--FD37--> ᴰ | 100% |
 
-**Per 1k queries served, at the sustained rate**
+The two worker rows are a tenth of the total.
+
+#### Per 1k queries
 
 | Component | $/1k queries | Share |
 | :--- | :--- | :--- |
-| Serving capacity above the always-on minimum (marginal) | $0.00375<!--FD65--> ᴰ (campaign CUR, floor netted once) | 100% |
+| Serving capacity above the always-on minimum (marginal) | $0.00375<!--FD65--> ᴰ (CUR for the whole `02-inference` campaign, floor subtracted once) | 100% |
 | Floor share at the sustained rate | $0.000203<!--FD45--> ᴰ (at 1000 req/s\* continuously) | — |
 | Bedrock generation, at ~1,800<!--FE1--> input and up to 512<!--FR17--> output tokens | ~$0.51<!--FD39--> ᴱ | — |
 
-The three lines answer different questions and are not summed. The marginal is what one more
-query costs once TEI is scaled, read from the campaign CUR (`02-inference` §3), not from the
-per-point figures in §3.2. The floor share assumes 1000 req/s\* continuously,
-2,628,000,000<!--FD116--> queries a month. At every volume in §4.3 the floor dominates instead. The
-generation line is a vendor rate on a token count derived from the prompt template
-(`apps/api/core/llm.go`, `02-inference/E18`). No run called the provider. Turned on, it would be
-~136<!--FD115-->× the retrieval marginal, the largest line in the query path and the one this
-report can least confirm.
+The three rows are not summed. Each answers a different question.
+
+- **Marginal** — the cost of one more query after TEI has scaled. It comes from the CUR for the
+  whole campaign (`02-inference` §3), not from `Run $/1k (gross)` in §3.2. Most replicas it pays
+  for are TEI (§3.2).
+- **Floor share** — the floor spread over 2,628,000,000<!--FD116--> queries, one month at
+  1000 req/s\*. §4.3 covers lower volumes.
+- **Generation** — a vendor price on a token count from the prompt template
+  (`apps/api/core/llm.go`, `02-inference/E18`). No run called Bedrock. It is ~136<!--FD115-->× the
+  marginal.
 
 ### 4.3 Amortization
 
-`Effective $/unit = ( Block B + Marginal × V ) ÷ V`. Arithmetic on §4.1 and §4.2, no run.
+`Effective $/unit = ( Block B + Marginal × V ) ÷ V`
 
-Each table charges the whole of Block B, so the two are not addends: adding a `$/doc` row to a
-`$/query` row counts the same floor twice.
+Effective cost is the floor spread over the month's volume, plus the marginal. It is arithmetic on
+§4.1 and §4.2. No run measured it.
 
-Uses Block B = $534.12<!--FD26-->/month and the sweet-spot marginal rate, $24,875<!--FD37-->/1M docs = $0.02488<!--FD38-->/doc.
+Both tables use Block B = $534.12<!--FD26-->/month. Each table carries all of Block B. Adding a
+`$/doc` row to a `$/query` row counts the floor twice.
+
+Documents use the N=25 marginal, $24,875<!--FD37-->/1M docs = $0.02488<!--FD38-->/doc.
 
 | Monthly documents | Effective $/doc ᴰ | Floor share |
 | :--- | :--- | :--- |
@@ -314,7 +315,7 @@ Uses Block B = $534.12<!--FD26-->/month and the sweet-spot marginal rate, $24,87
 | 100 000 | $0.0302<!--FD94--> | 17.7<!--FD98-->% |
 | 1 000 000 | $0.0254<!--FD95--> | 2.1<!--FD99-->% |
 
-Uses Block B = $534.12<!--FD26-->/month and the real campaign marginal rate, $0.00375<!--FD65-->/1k queries = $0.00000375<!--FD100-->/query.
+Queries use the campaign marginal, $0.00375<!--FD65-->/1k = $0.00000375<!--FD100-->/query.
 
 ![Effective cost per query and floor share against monthly query volume, log scale](charts/amortization-queries.svg)
 
@@ -327,37 +328,32 @@ Uses Block B = $534.12<!--FD26-->/month and the real campaign marginal rate, $0.
 | 500 000 000 | $0.0000048<!--FD139--> | 22.2<!--FD141-->% |
 | 1 000 000 000 | $0.0000043<!--FD140--> | 12.5<!--FD142-->% |
 
-Below ~21,472<!--FD41--> documents and ~142,547,228<!--FD43--> queries per month, the volumes where floor share drops
-under half, you pay mostly for the feature to exist rather than for work done. Those two volumes
-are the lower bound of where this design makes economic sense. Ingestion crosses 50% floor share
-at a modest volume because its marginal cost per unit is comparatively large. The query path's
-marginal cost per unit is three orders of magnitude smaller, so it needs ~54<!--FD143--> req/s
-sustained before work outweighs the floor.
+Floor share falls below 50% at ~21,472<!--FD41--> documents and ~142,547,228<!--FD43--> queries
+per month. This report calls that volume the **crossover**. Below it, the floor is most of the
+bill, so the crossover is the lower bound where this design makes economic sense. Documents reach
+it early because one document costs a lot. One query costs three orders of magnitude less, so the
+query path reaches it only at ~54<!--FD143--> req/s sustained.
 
-**The low query rows sit outside the measured regime.** A month holds 2,628,000<!--FR28--> seconds,
-so the four smallest rows are 0.004<!--FD146-->, 0.04<!--FD147-->, 0.4<!--FD148--> and
-3.8<!--FD149--> requests a second. The marginal was measured at 50 to 1000, where TEI
-scaled from 2 replicas to 30 and paid for the nodes under them. At 0.4 requests a second the
-always-on minimum answers everything and the only marginal left is NAT bytes. Those rows overstate the
-marginal, so their floor share is a lower bound. The rows inside the measured range are the
-crossover at 54<!--FD143--> requests a second, 500M a month at 190<!--FD150--> (r200 served 192.5)
-and a billion at 381<!--FD151--> (between r300 and r500).
+**The four smallest query rows are outside the measured range.** A month has
+2,628,000<!--FR28--> seconds, so these rows are 0.004<!--FD146-->, 0.04<!--FD147-->,
+0.4<!--FD148--> and 3.8<!--FD149--> req/s. The marginal was measured at 50 to 1000 req/s, where TEI
+added replicas and the nodes under them. At 0.4 req/s the always-on minimum serves every query, and
+the only marginal cost left is NAT bytes. These rows overstate the marginal, so their floor share
+is a lower bound.
 
-`api` does not drive the marginal. It held 2 replicas through r200, 3 at r300 and r500 and 6 at
-r1000, never passing 54% of its CPU limit (§3.2). Above the crossover most replicas the marginal
-pays for are TEI replicas.
+Three volumes are inside the measured range: the crossover at 54<!--FD143--> req/s, 500M a month
+at 190<!--FD150--> req/s (r200 served 192.5) and a billion at 381<!--FD151--> req/s (between r300
+and r500).
 
 ### 4.4 Conditional alternatives
 
-Two alternatives, neither chosen: each pays off only above a condition this deployment sits
-below. Both are other compute modes on the same platform, because the cluster exists regardless of
-this feature.
+Two alternatives were calculated as possible . Each pays off only above a condition this deployment
+does not reach. Both run on the Block A cluster.
 
 #### Fargate instead of Karpenter Spot, ingestion
 
-The same two ingestion Jobs, billed per vCPU-second instead of per node, at the N=25 sweet spot.
-Pod-hours, cell sizing and rates are in `01-ingestion/D29`. Shared TEI stays
-outside it.
+The same two ingestion Jobs at N=25, billed per vCPU-second instead of per node. Pod-hours, task
+sizing and rates are in `01-ingestion/D29`. Shared TEI is not included.
 
 | | Karpenter Spot ᴰ | Fargate ᴰ |
 | :--- | ---: | ---: |
@@ -365,20 +361,22 @@ outside it.
 | Indexer | $0.2574<!--FM49--> | $0.7387<!--FD120--> |
 | **Both workers, one run** | **$0.2595<!--FD122-->** | **$0.7562<!--FD121-->** |
 
-Fargate's 2.91<!--FD123-->× premium removes node provisioning, the per-node image pull and the
-Spot interruption path in the workers. Whether that is worth three times a worker bill that is a
-small part of the floor is a judgement about operational load. The multiple understates Fargate's
-cost: it meters image pull per task and has no Spot capacity type on EKS.
+Fargate costs 2.91<!--FD123-->× more. In return it removes node provisioning, the image pull per
+node and Spot interruptions in the workers. The multiple understates the gap: Fargate pays for the
+image pull on every task, and EKS has no Spot option for Fargate.
 
-**Condition:** ingestion owning more than 34<!--FD124-->% of the $1.4787<!--FM50--> of
-provisioned-but-unoccupied capacity the Spot side carries at N=25. That figure is fleet-wide and
-cannot be split by workload (`01-ingestion/M12`). Above that share Spot costs what Fargate does.
+The workers are a tenth of the ingestion bill (§4.2). So the decision rests on operational load:
+whether removing nodes and interruptions is worth tripling that tenth.
+
+**Condition.** The Spot column counts pod cost only. At N=25 the Spot nodes also carried
+$1.4787<!--FM50--> of unallocated capacity, which `01-ingestion/M12` reports fleet-wide only. If
+ingestion owns more than 34<!--FD124-->% of it, Spot costs as much as Fargate.
 
 #### VPC endpoint instead of the NAT gateway, query path
 
-The baseline is the NAT gateway §4.1 already pays for. At a reference 1,000,000<!--FE14--> queries
-per month, `02-inference/E18`'s 2,312<!--FD117--> tokens per query weigh 11.4<!--FD52--> GB on the
-wire:
+Today Bedrock traffic leaves through the NAT gateway, which §4.1 already pays for. At a reference
+1,000,000<!--FE14--> queries a month and 2,312<!--FD117--> tokens per query (`02-inference/E18`),
+that traffic is 11.4<!--FD52--> GB.
 
 | | Via NAT | Via the endpoint |
 | :--- | ---: | ---: |
@@ -386,21 +384,20 @@ wire:
 | Generation | $508.64<!--FD51--> ᴱ | $508.64<!--FD51--> ᴱ |
 | Network as a share of generation | 0.12<!--FD55-->% ᴱ | — |
 
-The endpoint's three ENIs cost $26.28<!--FD48-->/month whatever the traffic, and its data rate is
-$0.01<!--FR15-->/GB where the NAT charges $0.052<!--FR4-->. It repays that fixed cost at
-625.71<!--FD49--> GB/month, which at 12,248<!--FD40--> bytes a query is 54,854,311<!--FD50--> ᴱ
-queries per month — **55x the reference volume**, and a volume no measured point approached. Below
-it the endpoint costs more than the NAT it replaces.
+The endpoint trades a fixed cost for a cheaper data rate. Its three ENIs cost
+$26.28<!--FD48-->/month at zero traffic. It charges $0.01<!--FR15-->/GB, against the NAT's
+$0.052<!--FR4-->. The fixed cost pays back at 625.71<!--FD49--> GB/month. At 12,248<!--FD40-->
+bytes a query, that is 54,854,311<!--FD50--> ᴱ queries a month, **55× the reference volume**. No
+measured point came close. Below that volume the endpoint costs more than the NAT.
 
-**`ADR-0018` removes both endpoints.** `ADR-0007` had chosen them for cost, which the margin above
-disproves, and for a privacy boundary that was never in effect: both endpoints sit in
-`eu-central-1` while the client calls `us-east-1`. Generation egresses through NAT under TLS and
-IAM. Every byte figure is estimated (`02-inference/K4`), and one real generation run replaces them.
-The deletion also closes two defects (`docs/tech-debt.md` #12): the `bedrock` control-plane
-endpoint, $26.28<!--FD47-->/month reachable by nothing, and a runtime endpoint whose private DNS
-never matched the client's hostname.
+**`ADR-0018` removes both endpoints.** `ADR-0007` chose them for cost and for privacy. The cost
+case fails on the numbers above. The privacy boundary never existed: both endpoints sit in
+`eu-central-1`, and the client calls `us-east-1`. Generation traffic leaves through NAT under TLS
+and IAM. The removal also closes two defects (`docs/tech-debt.md` #12): the `bedrock`
+control-plane endpoint, $26.28<!--FD47-->/month that nothing reached, and a runtime endpoint whose
+private DNS never matched the client's hostname.
 
----
+Every byte figure here is estimated (`02-inference/K4`). One real generation run replaces them.
 
 ## 5. Guardrails
 
