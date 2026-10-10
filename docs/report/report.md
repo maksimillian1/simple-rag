@@ -71,8 +71,8 @@ how that cost spreads over volume.
   still climbing when testing stopped on cost. Raising it takes a rewrite of that loop, not larger
   pods.
 * **Qdrant is the query path's nearest ceiling, and it cannot scale out.** It reached 1.568<!--FM59--> of its 2<!--FR27-->-core limit, 78<!--FD137-->%, and two replicas
-  hold one shard at every rate. TEI touched 97.5% of its CPU limit during r1000's ramp, and more
-  replicas relieved it.
+  hold one shard at every rate. TEI touched 97.5% of its CPU limit in r1000 while it was still
+  scaling out, and more replicas relieved it.
 * **The defects cost more than the sizing.** Errors found at rest recur at $175.85<!--FD35-->/month
   (§4.1). Right-sizing every line in the floor saves $139.80<!--FD138--> ᴱ, and $52.56 of that is
   the two Bedrock endpoints, which count as defects, so sizing alone saves $87.24<!--FD152--> ᴱ.
@@ -108,7 +108,7 @@ query-path finding holds for an idle ingestion path, because contention was not 
 - **Unit of work** — one search request, complete when the retrieved context is written to the response. Generation in Bedrock is outside the unit
 - **Workload fixture** — 5 fixed query strings (`docs/report/scripts/load.js:57-63`), selected uniformly at random per request, replayed at a constant arrival rate against the collection produced by `01-ingestion`
 - **Denominator** — queries served inside the steady phase, produced by each run rather than frozen
-- **Window** — the whole generator run. It opens with both deployments at their always-on minimum, so it includes the scale-out ramp. The designed 60s stability check was not enforced: the preflight checks one instant (`02-inference` §2)
+- **Window** — the whole generator run. It opens with both deployments at their always-on minimum, so it includes the scale-out. The designed 60s stability check was not enforced: the preflight checks one instant (`02-inference` §2)
 - **Steady phase** — the part of the window after replicas converge
 - **Hold** — the longest stretch of the steady phase that serves the offered rate at a flat p95
 - **Run names** — `rN` is the run offered N req/s, as in r1000
@@ -128,77 +128,76 @@ query-path finding holds for an idle ingestion path, because contention was not 
 
 ### 3.1 Ingestion — throughput, cost and constraint
 
-N=25 is the sweet spot, the cheapest operating point at $24,875<!--FD75--> ᴰ per 1M docs. Throughput is limited by
-the indexer's code, not by any resource.
+Tested at N = 10, 25, 50, 75 and 125. N=25 was the nearest to sweet spot, the cheapest operating point
+at $24,875<!--FD75--> ᴰ per 1M docs. Throughput is limited by the indexer's code, not by any resource. 
 
 N is the max replicas setting (`maxReplicaCount`) on both ScaledJobs, a limit on concurrent pods,
-not observed concurrency. The indexer ran at max replicas at every point (125 of 125 at N=125, `M5`). The chunker peaked
-at ~20 whatever the N, because the 100-file corpus cannot keep more busy. Tested at N = 10, 25,
-50, 75 and 125.
+not observed concurrency. The indexer ran at max replicas at every point (125 of 125 at N=125, `M5`).
+The `chunker` peaked at ~20 whatever the N, technically because 100-file corpus was same.
 
-Cost per document is V-shaped with its floor at N=25. It rises at every step above 25, and N=10
-below it is higher too ($44,707<!--FD76--> ᴰ): it ran 132.5 min against 61.7 min, and the fixed
-per-hour costs ran with it.
+Cost per document has V-shape, the cheapest at N=25 and both sides neighbors points are higher. N=10 costs
+$44,707<!--FD76--> ᴰ per 1M docs against $24,875<!--FD75--> ᴰ at N=25, because it runs twice as
+long (132.5 min against 61.7 min) while fixed per-hour costs keep billing.
 
-Throughput rises with N and never flattens, so no knee was found: per-step gains run +113%, +40%,
-+2.6%, then +11.6% again. If speed matters, stop at N=50: it buys +40% docs/min over N=25 for
-$19,460<!--FD77--> ᴰ more per 1M docs. N=75 is the waste boundary: +39% cost for +2.6% docs/min
-over N=50.
+Throughput rises at every step and never levels off. Per step, it gains +113%, +40%, +2.6%, then
++11.6%. If speed matters, stop at N=50: it buys +40% docs/min over N=25 for $19,460<!--FD77--> ᴰ
+more per 1M docs.
 
-Nothing saturated, against the recorded hypothesis that the chunker would limit throughput. Neither
-worker reached its CPU or memory limit at any N (`01-ingestion/M6`). The sequential loop in
-`apps/indexer/src/main.py` holds one TEI call in flight per pod, so throughput follows replica
-count. Raising it needs intra-pod parallelism in the indexer, and that cost is not measured.
+Ingestion is limited only how the indexer calls TEI, not by any resource. No worker reached
+its CPU or memory limit at any N (`01-ingestion/M6`). Each indexer pod sends one TEI request at a time and
+waits for the answer before sending the next (`apps/indexer/src/main.py`). Its throughput depends mostly on how
+long that call takes, so the only way to go faster today is more pods.
 
 ![Cost per 1M docs against throughput, one point per N](charts/tradeoff-jobs-navy.svg)
 
-| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ (cash) | Other $ | $/run | $/1M docs | Saturation signal |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 10 | 0.76 | 132.5 min | 3 | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | $44,707<!--FD76--> ᴰ | none, chunker also at max replicas (the only point below its ~20) |
-| 25 | 1.62 | 61.7 min | 4 | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | **$24,875<!--FD75-->** ᴰ | none |
-| 50 | 2.27 | 44.0 min | 10 | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴰ | none |
-| 75 | 2.33 | 42.9 min | 16 | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴰ | none |
-| 125 | 2.60 | 38.5 min | 26 | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴰ | none |
+| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ (cash) | Other $ | $/run | $/1M docs |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 10 | 0.76 | 132.5 min | 3 | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | $44,707<!--FD76--> ᴰ |
+| 25 | 1.62 | 61.7 min | 4 | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | **$24,875<!--FD75-->** ᴰ |
+| 50 | 2.27 | 44.0 min | 10 | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴰ |
+| 75 | 2.33 | 42.9 min | 16 | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴰ |
+| 125 | 2.60 | 38.5 min | 26 | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴰ |
 
 ### 3.2 Query path — sustained rate, latency and bottleneck
 
-Tested at 50, 200, 300, 500 and 1000 req/s, stopping at the 1000 target. The query path
-held 1000 req/s\* and no component hit a ceiling, so 1000 is a lower bound, not a ceiling.
+Tested at 50, 200, 300, 500 and 1000 req/s. The query path held 1000 req/s\* for 1m45s at r1000
+(14:57:16–14:59:01Z, bold in the table), and no component hit a ceiling. Over the full steady
+phase it served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, which misses the
+0.1<!--FR29-->% error bound (`D15`).
 
-The hold lasted 1m45s at r1000 (14:57:16–14:59:01Z), bold in the table. The full steady phase
-around it served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors and misses the
-0.1<!--FR29-->% error bound (`D15`). r500 never held the bound longer than 30s. The window averages at r500 and
-r1000 serve less, and part of that gap is the load generator: during scale-out k6 ran out of
-virtual users and dropped 10.7<!--FD145-->% and 5.2<!--FD144-->% of scheduled requests, and r1000
-also had a three-minute generator stall. The remainder is scale-out lag.
+r500 and r1000 has on average 0.78% and 4.97% errors over the whole run. Most of them
+during scale-out, while TEI was still adding replicas. After replicas caught up, errors
+settled at 0.49<!--FM70-->% and 0.28<!--FM64-->%, close to r200 and r300 (0.24% and 0.20%). That
+residual is not explained by scale-out, and its cause is not confirmed. Part of the requests weren't
+sent, as k6 skipped 10.7<!--FD145-->% and 5.2<!--FD144-->% of them during scale-out
+([dropped iterations](https://grafana.com/docs/k6/v2.2.x/using-k6/scenarios/concepts/dropped-iterations/)),
+and at r1000 it stopped sending for three minutes. Skipped requests lower the served rate but do
+not count as errors.
 
-Without generation, a query returns in ~40-60ms at p95. Every request carries a fixed 2000ms stub
-in place of the Bedrock call, and k6 measured 2.04s at r050 and 2.06s at r300. The rest is the
-internet round trip, the gateway, one embedding call and the Qdrant search. Bedrock time comes on
-top and is not measured.
-
+Without generation, a query returns in ~40-60ms at p95. Every request has a fixed 2000ms stub
+instead of the Bedrock call, and k6 measured 2.04s at r050 and 2.06s at r300 from outside the VPC.
 The table carries two p95 readings. Envoy's is interpolated between its 1000 and 2500ms buckets,
-so it reads 2425ms at every converged point, 300-400ms above k6. k6 is exact per request but
-reports one figure per run, so at r500 and r1000 it includes the scale-out minutes.
+so it reads 2425ms at every converged point, 300-400ms above k6. k6 is exact per request but reports
+one figure per run, so at r500 and r1000 it includes the scale-out minutes.
 
-Qdrant is the one to watch. It peaked at 1.568<!--FM59--> of 2<!--FR27--> cores and cannot scale
-out, so its next step is a larger node, not another replica. TEI touched 97.5% of its CPU limit
-during r1000's ramp, and added replicas relieved it. `api` peaked at 0.268 of 0.5 cores. r1000 ran
-TEI at `cpu 6 / 8` against the frozen `3 / 4` of every other row, so the TEI reading holds for `6 / 8` only, and r1000's cost is not comparable
-with the other rows.
+Qdrant was the closest to the saturation point, it peaked at 1.568<!--FM59--> of 2<!--FR27--> cores.
+TEI touched 97.5% of its CPU limit in r1000 while it was still scaling out, and the added replicas relieved it.
+`api` peaked at 0.268 of 0.5 cores. r1000 is the only row where TEI ran with more CPU, `6 / 8` cores
+instead of `3 / 4`, so its cost is not part of the same trend as the other rows.
 
-`$/1k queries` in the table is gross: each row's serving cost, floor included, over its own
-queries. It falls with rate as the always-on minimum spreads over more traffic, and it misses NAT. The
-marginal cost of a query is $0.00375<!--FD65--> ᴰ/1k (§4.2), 1.5<!--FD90-->–4.3<!--FD91-->× above
-any row.
+**Run $/1k (gross)** — derived from node lifetimes in each run. It contains the baseline but
+  doesn't count NAT.
+**Effective $/1k** — what 1k queries would cost if the system served that rate for a whole
+  month: the baseline spread over that month's queries, plus the marginal
+  $0.00375<!--FD65--> ᴰ/1k (§4.2).
 
-| Offered req/s | Served req/s | api / tei replicas | Converge | p95 ms ᴿ (Envoy) | p95 ms (k6) | Error % | $/1k queries (gross) ᴰ | Saturation signal |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 50 | 45.5 (91%) | 2 / 3 | not timed, window avg already clean | 2418 | **2040** | 0% | $0.00250<!--FD78--> | none |
-| 200 | 192.5 (96%) | 2 / 7 | not timed, window avg already clean | 2425 | **2150** | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> | none |
-| 300 | 296.4 (99%) | 3 / 11 | not timed, window avg already clean | 2425 | **2060** | 0.20% avg / 2.75% peak | $0.00098<!--FD80--> | none |
-| 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | ~7 min to 13 replicas, then clean | 7934 (window avg) / **2425 once converged** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
-| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | ~4 min to 30 replicas, then clean | 6378 (window avg) / **2425 once converged** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
+| Offered req/s | Served req/s | api / tei replicas | p95 ms ᴿ (Envoy) | p95 ms (k6) | Error % | Run $/1k (gross) ᴰ | Effective $/1k ᴰ |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 50 | 45.5 (91%) | 2 / 3 | 2418 | **2040** | 0% | $0.00250<!--FD78--> | $0.00781 |
+| 200 | 192.5 (96%) | 2 / 7 | 2425 | **2150** | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> | $0.00477 |
+| 300 | 296.4 (99%) | 3 / 11 | 2425 | **2060** | 0.20% avg / 2.75% peak | $0.00098<!--FD80--> | $0.00443 |
+| 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | 7934 (window avg) / **2425 once scaled out** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> | $0.00416 |
+| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | 6378 (window avg) / **2425 once scaled out** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> | $0.00395 |
 
 ---
 
