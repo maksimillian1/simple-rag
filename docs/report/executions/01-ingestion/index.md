@@ -617,9 +617,10 @@ never integrated. The reading that the chunker was unmeasurable came from the Ma
 
 Against the frozen requests plus the 256 MB EKS adds per pod, the Fargate cells are
 0.25<!--FR23--> vCPU / 1<!--FR24--> GB for the chunker and 0.5<!--FR25--> vCPU / 3<!--FR26--> GB
-for the indexer. That gives $0.7562<!--FD121--> against $0.2595<!--FD122--> actually billed on
-Spot for the same two workers, a factor of 2.91<!--FD123-->. Report §4.4 carries the comparison
-and the condition it rests on; the figures live in `figures.yaml` group `fargate`.
+for the indexer. That gives $0.7562<!--FD121--> against $0.2595<!--FD122-->, the share of the Spot
+nodes the same two workers requested, a factor of 2.91<!--FD123-->. Report §4.4 compares against
+the whole `apps-compute` node bill from CUR instead, since the pool runs nothing else. The figures
+live in `figures.yaml` group `fargate`.
 
 Still outside it: image pull, metered per task from the docker pull rather than once per node,
 which raises the Fargate side by an amount no point here measured. The other four points are not

@@ -732,7 +732,7 @@ figures:
   queries_at_half_floor:
     ref: FD43
     kind: D
-    formula: block_b_total / (query_per_1k_broad / 1000)
+    formula: block_b_total / query_marginal_per_query
     unit: queries_per_month
     display: 0
     group: amortization
@@ -740,7 +740,7 @@ figures:
   queries_at_half_floor_rs:
     ref: FD44
     kind: D
-    formula: block_b_total_rs / (query_per_1k_broad / 1000)
+    formula: block_b_total_rs / query_marginal_per_query
     unit: queries_per_month
     display: 0
     group: amortization
@@ -1533,16 +1533,16 @@ figures:
   eff_per_query_10k:
     ref: FD101
     kind: D
-    formula: (block_b_total + query_per_query * 10000) / 10000
+    formula: (block_b_total + query_marginal_per_query * 10000) / 10000
     unit: usd_per_query
-    display: 5
+    display: 4
     group: amortization
     appears_in: [report.md]
 
   eff_per_query_100k:
     ref: FD102
     kind: D
-    formula: (block_b_total + query_per_query * 100000) / 100000
+    formula: (block_b_total + query_marginal_per_query * 100000) / 100000
     unit: usd_per_query
     display: 5
     group: amortization
@@ -1551,41 +1551,41 @@ figures:
   eff_per_query_1m:
     ref: FD103
     kind: D
-    formula: (block_b_total + query_per_query * 1000000) / 1000000
+    formula: (block_b_total + query_marginal_per_query * 1000000) / 1000000
     unit: usd_per_query
-    display: 6
+    display: 5
     group: amortization
     appears_in: [report.md]
 
   eff_per_query_10m:
     ref: FD104
     kind: D
-    formula: (block_b_total + query_per_query * 10000000) / 10000000
+    formula: (block_b_total + query_marginal_per_query * 10000000) / 10000000
     unit: usd_per_query
-    display: 7
+    display: 6
     group: amortization
     appears_in: [report.md]
 
   floor_share_queries_10k:
     ref: FD105
     kind: D
-    formula: block_b_total / (block_b_total + query_per_query * 10000) * 100
+    formula: block_b_total / (block_b_total + query_marginal_per_query * 10000) * 100
     unit: percent
-    display: 2
+    display: 1
     group: amortization
 
   floor_share_queries_100k:
     ref: FD106
     kind: D
-    formula: block_b_total / (block_b_total + query_per_query * 100000) * 100
+    formula: block_b_total / (block_b_total + query_marginal_per_query * 100000) * 100
     unit: percent
-    display: 2
+    display: 1
     group: amortization
 
   floor_share_queries_1m:
     ref: FD107
     kind: D
-    formula: block_b_total / (block_b_total + query_per_query * 1000000) * 100
+    formula: block_b_total / (block_b_total + query_marginal_per_query * 1000000) * 100
     unit: percent
     display: 1
     group: amortization
@@ -1593,7 +1593,7 @@ figures:
   floor_share_queries_10m:
     ref: FD108
     kind: D
-    formula: block_b_total / (block_b_total + query_per_query * 10000000) * 100
+    formula: block_b_total / (block_b_total + query_marginal_per_query * 10000000) * 100
     unit: percent
     display: 1
     group: amortization
@@ -1614,32 +1614,32 @@ figures:
     kind: D
     formula: queries_at_half_floor / seconds_per_month
     unit: requests_per_second
-    display: 0
+    display: 1
     source: >-
-      the query crossover expressed as the arrival rate it implies. It falls between r050's served
-      45.5 and r200's 192.5, so it is interpolated inside the measured range rather than
-      extrapolated past it
+      the query crossover expressed as the arrival rate it implies. It sits below r050's served
+      45.5, outside the range the retrieval line was measured over. That line is under 1% of the
+      marginal, and generation, a price per token, holds at any rate
     group: amortization
     appears_in: [report.md]
 
   eff_per_query_500m:
     ref: FD139
     kind: D
-    formula: (block_b_total + query_per_query * 500000000) / 500000000
+    formula: (block_b_total + query_marginal_per_query * 500000000) / 500000000
     unit: usd_per_query
-    display: 7
+    display: 6
     source: >-
-      500 million queries a month is rate_at_500m sustained, about r200's served rate. Unlike the
-      rows below the crossover, this one sits inside the range the marginal was measured over
+      500 million queries a month is rate_at_500m sustained, about r200's served rate, inside the
+      range the retrieval line was measured over
     group: amortization
     appears_in: [report.md]
 
   eff_per_query_1b:
     ref: FD140
     kind: D
-    formula: (block_b_total + query_per_query * 1000000000) / 1000000000
+    formula: (block_b_total + query_marginal_per_query * 1000000000) / 1000000000
     unit: usd_per_query
-    display: 7
+    display: 6
     source: a billion queries a month is rate_at_1b sustained, between r300 and r500
     group: amortization
     appears_in: [report.md]
@@ -1647,7 +1647,7 @@ figures:
   floor_share_queries_500m:
     ref: FD141
     kind: D
-    formula: block_b_total / (block_b_total + query_per_query * 500000000) * 100
+    formula: block_b_total / (block_b_total + query_marginal_per_query * 500000000) * 100
     unit: percent
     display: 1
     group: amortization
@@ -1656,7 +1656,7 @@ figures:
   floor_share_queries_1b:
     ref: FD142
     kind: D
-    formula: block_b_total / (block_b_total + query_per_query * 1000000000) * 100
+    formula: block_b_total / (block_b_total + query_marginal_per_query * 1000000000) * 100
     unit: percent
     display: 1
     group: amortization
@@ -1782,7 +1782,7 @@ figures:
     display: 6
     source: the per-query form of E18, quoted in 02-inference/K4 against the bytes that carry the same answer
     group: marginal
-    appears_in: [executions/02-inference/concepts.md]
+    appears_in: [executions/02-inference/concepts.md, report.md]
 
   request_overhead_bytes:
     ref: FE15
@@ -1922,7 +1922,7 @@ figures:
     formula: m12_chunker_n25 + m12_indexer_n25
     unit: usd
     display: 4
-    source: the same two workers as actually billed on Karpenter Spot, EKS instance-hour slice only
+    source: the share of the apps-compute nodes the two workers' pods requested, EKS instance-hour slice only
     group: fargate
     appears_in: [report.md]
   fargate_vs_spot_n25:
@@ -1933,7 +1933,7 @@ figures:
     display: 2
     source: the price of the operating model, expressed as a multiple rather than a verdict
     group: fargate
-    appears_in: [report.md]
+    appears_in: [executions/01-ingestion/index.md]
   unused_share_flip_n25:
     ref: FD124
     kind: D
@@ -1945,7 +1945,7 @@ figures:
       Spot side costs what Fargate does. Above it the comparison inverts. Nothing here measures
       that share - it is the condition the choice rests on, not a result
     group: fargate
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-10: report.md 4.4 now compares whole apps-compute nodes from CUR
 
   m12_workload_total_n10:
     ref: FM51
@@ -2727,3 +2727,177 @@ figures:
     group: memory_limits
     appears_in: [report.md]
 
+  query_marginal_per_query:
+    ref: FD158
+    kind: D
+    formula: query_per_query + generation_per_query
+    unit: usd_per_query
+    display: 6
+    group: amortization
+    appears_in: [report.md]
+
+  retrieval_share_of_marginal:
+    ref: FD159
+    kind: D
+    formula: query_per_query / query_marginal_per_query * 100
+    unit: percent
+    display: 1
+    group: amortization
+    appears_in: [report.md]
+
+  generation_share_of_marginal:
+    ref: FD160
+    kind: D
+    formula: generation_per_query / query_marginal_per_query * 100
+    unit: percent
+    display: 1
+    group: amortization
+    appears_in: [report.md]
+
+  cur_compute_n25:
+    ref: FM81
+    kind: M
+    value: 1.0916
+    unit: usd
+    display: 4
+    source: >-
+      CUR actual, apps-compute-tagged cost in the n25 hour (resource_tags user_karpenter_sh_nodepool), pulled 2026-09-05; 01-ingestion Notes, CUR table. Only chunker and indexer pods schedule on apps-compute, so the whole bill is the workers'
+    group: fargate
+    appears_in: [report.md]
+
+  cur_nat_n25:
+    ref: FM82
+    kind: M
+    value: 1.3823
+    unit: usd
+    display: 4
+    source: >-
+      CUR actual, the NAT gateway's line items in the n25 hour (both byte legs plus regional transfer), pulled 2026-09-05; 01-ingestion Notes, CUR table. Over 99% of the window's inbound bytes fell in the node-bootstrap minutes (Notes #08)
+    group: fargate
+    appears_in: [report.md]
+
+  worker_jobs_n25:
+    ref: FM83
+    kind: M
+    value: 58
+    unit: count
+    display: 0
+    source: >-
+      distinct job_name in kube_job_status_active over the n25 window, data/ingestion-n25.jsonl: 31 chunker and 27 indexer Jobs. Each Job is at least one pod, so at least one Fargate task and one image pull
+    group: fargate
+    appears_in: [report.md]
+
+  spot_nodes_n25:
+    ref: FM84
+    kind: M
+    value: 10
+    unit: count
+    display: 0
+    source: >-
+      apps-compute node rows in data/ingestion-n25.cost-estimate.json: 7 c7g.xlarge and 3 c7g.4xlarge, all Spot
+    group: fargate
+    appears_in: [report.md]
+
+  fargate_vs_spot_nodes_n25:
+    ref: FD161
+    kind: D
+    formula: fargate_workers_n25 / cur_compute_n25
+    unit: ratio
+    display: 2
+    source: Fargate compute against the whole apps-compute node bill from CUR, as a multiple rather than a verdict. Fargate's image pulls are not in it
+    group: fargate
+    appears_in: [report.md]
+
+  cur_compute_n10:
+    ref: FM85
+    kind: M
+    value: 1.5475
+    unit: usd
+    display: 2
+    source: >-
+      CUR actual, apps-compute-tagged cost in the n10 hours, 2026-09-05 10-12 (resource_tags user_karpenter_sh_nodepool), read 2026-09-07; 01-ingestion Notes, CUR table
+    group: d23
+    appears_in: [report.md]
+
+  cur_compute_n50:
+    ref: FM86
+    kind: M
+    value: 1.2613
+    unit: usd
+    display: 2
+    source: >-
+      CUR actual, apps-compute-tagged cost in the n50 hour, 2026-09-04 16 (resource_tags user_karpenter_sh_nodepool), pulled 2026-09-05; 01-ingestion Notes, CUR table
+    group: d23
+    appears_in: [report.md]
+
+  cur_compute_n75:
+    ref: FM87
+    kind: M
+    value: 1.5446
+    unit: usd
+    display: 2
+    source: >-
+      CUR actual, apps-compute-tagged cost in the n75 hour, 2026-09-04 15 (resource_tags user_karpenter_sh_nodepool), pulled 2026-09-05; 01-ingestion Notes, CUR table
+    group: d23
+    appears_in: [report.md]
+
+  cur_compute_n125:
+    ref: FM88
+    kind: M
+    value: 2.0069
+    unit: usd
+    display: 2
+    source: >-
+      CUR actual, apps-compute-tagged cost in the n125 hour, 2026-09-04 14 (resource_tags user_karpenter_sh_nodepool), pulled 2026-09-05; 01-ingestion Notes, CUR table
+    group: d23
+    appears_in: [report.md]
+
+  other_n10:
+    ref: FD162
+    kind: D
+    formula: cur_marginal_n10 - cur_compute_n10
+    unit: usd
+    display: 2
+    source: report 3.1 Other $, the CUR marginal less apps-compute, so NAT plus SQS and S3. Defined as the remainder so the row adds up to $/run
+    group: d23
+    appears_in: [report.md]
+
+  other_n25:
+    ref: FD163
+    kind: D
+    formula: cur_marginal_n25 - cur_compute_n25
+    unit: usd
+    display: 2
+    source: report 3.1 Other $, the CUR marginal less apps-compute, so NAT plus SQS and S3. Defined as the remainder so the row adds up to $/run
+    group: d23
+    appears_in: [report.md]
+
+  other_n50:
+    ref: FD164
+    kind: D
+    formula: cur_marginal_n50 - cur_compute_n50
+    unit: usd
+    display: 2
+    source: report 3.1 Other $, the CUR marginal less apps-compute, so NAT plus SQS and S3. Defined as the remainder so the row adds up to $/run
+    group: d23
+    appears_in: [report.md]
+
+  other_n75:
+    ref: FD165
+    kind: D
+    formula: cur_marginal_n75 - cur_compute_n75
+    unit: usd
+    display: 2
+    source: report 3.1 Other $, the CUR marginal less apps-compute, so NAT plus SQS and S3. Defined as the remainder so the row adds up to $/run
+    group: d23
+    appears_in: [report.md]
+
+  other_n125:
+    ref: FD166
+    kind: D
+    formula: cur_marginal_n125 - cur_compute_n125
+    unit: usd
+    display: 2
+    source: report 3.1 Other $, the CUR marginal less apps-compute, so NAT plus SQS and S3. Defined as the remainder so the row adds up to $/run
+    group: d23
+    appears_in: [report.md]

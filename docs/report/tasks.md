@@ -435,12 +435,19 @@ as-built, потому что это то, что реально заплаче�
   percent is a generator reading, not a system one. Written into `02-inference`'s Retro
   ("Back into the kit", item 3) on 2026-10-03; it belongs in the kit's point template, not only
   in this campaign's retro · S
-- [ ] b24 ⟨3⟩ **§3.1's `Compute $` and `Other $` columns have no saved decomposition.** They split
+- [x] b24 ⟨3⟩ **§3.1's `Compute $` and `Other $` columns have no saved decomposition.** They split
   `cur_marginal_nXX`, which is registered, but the split itself exists only as printed cents —
   `orphans` reports all eight cells and nothing in `executions/01-ingestion/data/` carries them,
   so they cannot be registered without inventing precision. One CUR pull over the five point hours
   settles it, and K3's month-close re-read is owed anyway now that 2026-09 has closed. Until then
   the two columns are the only unregistered numbers left in `report.md` · S
+  · **решено 2026-10-10**: разбивка нашлась в CUR-таблице заметок `01-ingestion` (выгрузка
+  2026-09-05, n10 — 2026-09-07) с точностью до четырёх знаков, тот же источник, что у
+  `cur_marginal_nXX`. `Compute $` = `cur_compute_nXX` (FM81, FM85–FM88), `Other $` =
+  `cur_marginal_nXX − cur_compute_nXX` (FD162–FD166), остаток, поэтому каждая строка точно
+  складывается в `$/run`. Ячейка n25 сдвинулась $1.38 → $1.39: раньше там стоял NAT без SQS и S3,
+  и строка давала $2.48 против $2.49. `orphans report.md` теперь пуст. Пересчёт K3 по закрытому
+  месяцу по-прежнему не сделан.
 - [ ] b22 ⟨6⟩ Minor: "Article 1" (§4.1) is never identified; the header's "1000 is not a swept maximum"
   means *not a proven ceiling* (1000 is the top rate swept); §1 marks the sustained rate ᴿ where
   §4.3's "`api` held 2 replicas to ~300 requests a second"
