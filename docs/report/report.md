@@ -24,8 +24,8 @@ how that cost spreads over volume.
 | Area | Status | Evidence |
 | :--- | :--- | :--- |
 | Ingestion throughput, cost per run and cost per 1M documents | measured · cost per run derived ᴰ · per 1M documents estimated ᴱ | §3.1 · `01-ingestion/M10` · `D25` |
-| Per-component share of ingestion cost | estimated ᴱ | §4.2 · `01-ingestion/M12` |
-| TEI cost caused by ingestion | measured, two readings | cash: §3.1 `TEI $ (cash)` · `01-ingestion/D23` · allocated: §4.2 · `01-ingestion/M12` |
+| Per-component share of ingestion cost | derived ᴰ | §4.2 · `01-ingestion` Notes, CUR table |
+| TEI cost caused by ingestion | measured | §3.1 `TEI $ (cash)` · §4.2 · `01-ingestion/D23` |
 | Ingestion constraint | measured | §3.1 · `01-ingestion/M6` |
 | Sustained query rate, the replicas it required and the query path constraint | measured | §3.2 · `02-inference/D15` · `M7` · `R14` |
 | Retrieval cost per 1k queries — marginal | derived ᴰ | §4.2 · `02-inference/D16` |
@@ -244,26 +244,21 @@ every run before any per-unit figure is computed.
 #### Per 1M documents
 
 For the calculation used single point – N=25, the sweet spot. One run processes the 100-document fixture for
-$2.49<!--FD70-->, and the $24,875<!--FD37--> per 1M documents is that run repeated 10,000 times.
+$2.49<!--FD70-->, so if we multiply it 10,000 times, we got $24,875<!--FD37--> per 1M documents.
 Every run started its worker nodes from zero, so the figure assumes documents arrive in batches
 of 100. A continuous load would pay node start-up and image pulls once and cost less.
 
-The total is **cash**, what the account paid. The first three rows are **allocation**: CUR splits
-each node's bill between its pods by their requests (`01-ingestion/M12`, pulled 2026-09-09). The
-fourth row is the rest of the total: NAT, SQS, S3 and **unallocated capacity**, the part of a node
-no pod requested. It also absorbs one gap. TEI grew from 2 to 4 replicas on nodes that were
-already running, so it added only $0.01<!--FM24-->/run of cash but was allocated
-$0.249<!--FD153-->/run.
+Every row is cash, what the account paid in the run's CUR hour (`01-ingestion` Notes, CUR table).
+The chunker and indexer run alone on the `apps-compute` nodes, so their row is those whole nodes,
+capacity no pod requested included. TEI grew from 2 to 4 replicas on nodes that were already
+running.
 
 | Component | $/1M docs | Share |
 | :--- | :--- | :--- |
-| Stage-1 chunker pods | $21<!--FM42--> | 0.1<!--FD111-->% |
-| Stage-2 indexer pods | $2,574<!--FM43--> | 10.3<!--FD112-->% |
-| TEI above its always-on minimum | $2,490<!--FD109--> ᴰ ($3,256<!--FM44--> allocated − $766<!--FM45--> floor share for this window) | 10.0<!--FD113-->% |
-| NAT, SQS, S3 and unallocated capacity, combined | $19,790<!--FD110--> ᴱ (cannot be split: `M12` reports unallocated capacity fleet-wide) | 79.6<!--FD114-->% |
+| Chunker and indexer, whole `apps-compute` nodes | $10,916<!--FD167--> ᴱ | 43.9<!--FD170-->% |
+| NAT, SQS and S3 | $13,884<!--FD168--> ᴱ, NAT 99.6<!--FD173-->% of it | 55.8<!--FD171-->% |
+| TEI above its always-on minimum | $75<!--FD169--> ᴱ | 0.3<!--FD172-->% |
 | **Total** | $24,875<!--FD37--> ᴱ | 100% |
-
-The two worker rows are a tenth of the total.
 
 #### Per 1k queries
 

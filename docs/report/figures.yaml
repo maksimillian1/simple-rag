@@ -2570,7 +2570,7 @@ figures:
       the same figure report 4.2 prints per 1M documents, expressed per run, so it can be set
       beside D23's cash reading of the same tier at N=25 ($0.01/run). 100 documents per run
     group: m12_split
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-11: report.md 4.2 now prices whole nodes in cash, with no allocation rows
 
 
   # --- group memory_limits: added 2026-10-06 ---
@@ -2918,3 +2918,73 @@ figures:
       of 100 costs what one measured run did, and every run started its worker nodes from zero, so
       node start-up and image pulls repeat per batch. A continuous load would pay them once
     group: d23
+
+  workers_nodes_per_1m:
+    ref: FD167
+    kind: D
+    formula: cur_compute_n25 * runs_per_1m_docs
+    unit: usd_per_1m_docs
+    display: 0
+    source: report 4.2 per-document table, one N=25 run scaled to 1M documents; cash from the run's CUR hour
+    group: d23
+    appears_in: [report.md]
+
+  other_per_1m:
+    ref: FD168
+    kind: D
+    formula: other_n25 * runs_per_1m_docs
+    unit: usd_per_1m_docs
+    display: 0
+    source: report 4.2 per-document table, one N=25 run scaled to 1M documents; cash from the run's CUR hour
+    group: d23
+    appears_in: [report.md]
+
+  tei_cash_per_1m:
+    ref: FD169
+    kind: D
+    formula: d23_n25 * runs_per_1m_docs
+    unit: usd_per_1m_docs
+    display: 0
+    source: report 4.2 per-document table, one N=25 run scaled to 1M documents; cash from the run's CUR hour
+    group: d23
+    appears_in: [report.md]
+
+  share_workers_nodes:
+    ref: FD170
+    kind: D
+    formula: cur_compute_n25 / run_total_n25 * 100
+    unit: percent
+    display: 1
+    source: share of one N=25 run, so the 1M-document scaling cancels
+    group: d23
+    appears_in: [report.md]
+
+  share_other:
+    ref: FD171
+    kind: D
+    formula: other_n25 / run_total_n25 * 100
+    unit: percent
+    display: 1
+    source: share of one N=25 run, so the 1M-document scaling cancels
+    group: d23
+    appears_in: [report.md]
+
+  share_tei_cash:
+    ref: FD172
+    kind: D
+    formula: d23_n25 / run_total_n25 * 100
+    unit: percent
+    display: 1
+    source: share of one N=25 run, so the 1M-document scaling cancels
+    group: d23
+    appears_in: [report.md]
+
+  nat_share_of_other:
+    ref: FD173
+    kind: D
+    formula: cur_nat_n25 / other_n25 * 100
+    unit: percent
+    display: 1
+    source: NAT's part of report 4.2's NAT, SQS and S3 row at N=25. SQS and S3 have no recorded value, only this remainder, which sits within the cent rounding of cur_marginal_n25
+    group: d23
+    appears_in: [report.md]
