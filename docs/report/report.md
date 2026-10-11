@@ -28,7 +28,7 @@ how that cost spreads over volume.
 | TEI cost caused by ingestion | measured | §3.1 `TEI $ (cash)` · §4.2 · `01-ingestion/D23` |
 | Ingestion constraint | measured | §3.1 · `01-ingestion/M6` |
 | Sustained query rate, the replicas it required and the query path constraint | measured | §3.2 · `02-inference/D15` · `M7` · `R14` |
-| Retrieval cost per 1k queries — marginal | derived ᴰ | §4.2 · `02-inference/D16` |
+| Retrieval cost per 1k queries at 1000 req/s | estimated ᴱ | §4.2 · `02-inference` r1000 steady phase · campaign CUR |
 | Generation cost per 1k queries — Bedrock | estimated ᴱ | §4.2 · `02-inference/E18` |
 | Idle floor, split A / B / C | derived ᴰ | §4.1 · `00-baseline` §2 Floor |
 | Errors found at rest, excluded from the floor | derived ᴰ | §4.1 · `00-baseline` §2 Floor errors table |
@@ -260,33 +260,21 @@ running.
 | TEI above its always-on minimum | $75<!--FD169--> ᴱ | 0.3<!--FD172-->% |
 | **Total** | $24,875<!--FD37--> ᴱ | 100% |
 
-#### Per 1k queries
+#### Per 1k queries at 1000 req/s, 24/7
 
-| Component | $/1k queries |
-| :--- | :--- |
-| Retrieval marginal — serving capacity above the always-on minimum | $0.00375<!--FD65--> ᴰ (CUR for the whole `02-inference` campaign, floor subtracted once) |
-| Generation marginal — Bedrock, at ~1,800<!--FE1--> input and up to 512<!--FR17--> output tokens | ~$0.51<!--FD39--> ᴱ |
-| Floor share at the sustained rate | $0.000203<!--FD45--> ᴰ (at 1000 req/s\* continuously) |
-
-- **Retrieval marginal** — the cost of one more query after TEI has scaled. It comes from the CUR
-  for the whole campaign (`02-inference` §3), not from `Run $/1k (gross)` in §3.2. Most replicas
-  it pays for are TEI (§3.2).
-- **Generation marginal** — a vendor price on a token count from the prompt template
-  (`apps/api/core/llm.go`, `02-inference/E18`). No run called Bedrock. It is ~136<!--FD115-->× the
-  retrieval marginal.
-- **Floor share** — the floor spread over 2,628,000,000<!--FD116--> queries, one month at
-  1000 req/s\*. §4.3 covers lower volumes.
-
-Retrieval and generation add up to the per-query marginal. Floor share is not added: the formula
-at the top of the chapter counts the floor once.
+Retrieval costs about $0.0008<!--FE18--> ᴱ per 1k queries, ~$2,077<!--FE19--> ᴱ a month: the ten
+serving nodes that held 1000 req/s in r1000, $1.47<!--FM89-->/hour less the always-on pair the
+floor already pays for, plus cross-AZ transfer at the campaign's rate per query, with image pulls
+paid once instead of on every scale-out. Generation adds ~$0.51<!--FD39--> ᴱ per 1k,
+~644<!--FD174-->× retrieval, so it is almost the whole marginal.
 
 ### 4.3 Amortization
 
-Block B is paid every month at any volume. Spread over the month's documents or queries, it adds
-to the marginal of each one. This section shows the full cost of one unit at each volume, and the
-volume below which most of the bill pays for the feature to exist rather than for work done.
+Block B is paid every month at any load. Each document or query has a share of it, and the
+share shrinks as volume grows. The tables below show the cost of one unit and the floor's share of
+it, both reducing with volume.
 
-`Effective $/unit = ( Block B + Marginal × V ) ÷ V`
+`Effective $/unit = ( Block B Floor + Marginal × V ) ÷ V`
 
 V is the monthly volume. **Floor share** is the part of the effective cost that is Block B. Both
 tables use the as-built Block B, $534.12<!--FD26-->/month. Each carries all of it, so adding a
@@ -302,29 +290,27 @@ Documents use the N=25 marginal, $24,875<!--FD37-->/1M docs = $0.02488<!--FD38--
 | 100 000 | $0.0302<!--FD94--> | 17.7<!--FD98-->% |
 | 1 000 000 | $0.0254<!--FD95--> | 2.1<!--FD99-->% |
 
-Queries use the per-query marginal from §4.2, retrieval plus generation. The two stay separate
-lines because they have different sources and different levers. Retrieval is measured from the
-bill and changes with the infrastructure. Generation is a vendor price on an estimated token count
-and changes with the model and the prompt.
+Queries use the per-query marginal from §4.2, whose retrieval part comes from the nodes and traffic
+of the 50–1000 req/s campaign and changes with the infrastructure.
 
 | Marginal line | $/query | Share of the marginal |
 | :--- | :--- | :--- |
-| Retrieval — serving capacity above the always-on minimum | $0.00000375<!--FD100--> ᴰ | 0.7<!--FD159-->% |
-| Generation — Bedrock | $0.000509<!--FD118--> ᴱ | 99.3<!--FD160-->% |
-| **Per-query marginal** | **$0.000512<!--FD158--> ᴱ** | 100% |
+| Retrieval — serving capacity above the always-on minimum | $0.00000079<!--FD100--> ᴱ | 0.2<!--FD159-->% |
+| Generation — Bedrock | $0.000509<!--FD118--> ᴱ | 99.8<!--FD160-->% |
+| **Per-query marginal** | **$0.000509<!--FD158--> ᴱ** | 100% |
 
 ![Effective cost per query and floor share against monthly query volume, log scale](charts/amortization-queries.svg)
 
 | Monthly queries | Effective $/query ᴱ | Floor share |
 | :--- | :--- | :--- |
-| 10 000 | $0.0539<!--FD101--> | 99.0<!--FD105-->% |
-| 100 000 | $0.00585<!--FD102--> | 91.2<!--FD106-->% |
-| 1 000 000 | $0.00105<!--FD103--> | 51.0<!--FD107-->% |
-| 10 000 000 | $0.000566<!--FD104--> | 9.4<!--FD108-->% |
-| 500 000 000 | $0.000513<!--FD139--> | 0.2<!--FD141-->% |
-| 1 000 000 000 | $0.000513<!--FD140--> | 0.1<!--FD142-->% |
+| 10 000 | $0.0539<!--FD101--> | 99.1<!--FD105-->% |
+| 100 000 | $0.00585<!--FD102--> | 91.3<!--FD106-->% |
+| 1 000 000 | $0.00104<!--FD103--> | 51.2<!--FD107-->% |
+| 10 000 000 | $0.000563<!--FD104--> | 9.5<!--FD108-->% |
+| 500 000 000 | $0.000510<!--FD139--> | 0.2<!--FD141-->% |
+| 1 000 000 000 | $0.000510<!--FD140--> | 0.1<!--FD142-->% |
 
-Floor share falls below 50% at ~21,472<!--FD41--> documents and ~1,042,421<!--FD43--> queries
+Floor share falls below 50% at ~21,472<!--FD41--> documents and ~1,048,470<!--FD43--> queries
 per month. This report calls that volume the **crossover**. Below it, the floor is most of the
 bill, so the crossover is the lower bound where this design makes economic sense. A document costs
 more than a query, so documents reach it at a lower volume. The query path reaches it at
@@ -332,9 +318,9 @@ more than a query, so documents reach it at a lower volume. The query path reach
 
 **Only the retrieval line depends on the measured range.** A month has 2,628,000<!--FR28-->
 seconds, so the four smallest rows are 0.004<!--FD146-->, 0.04<!--FD147-->, 0.4<!--FD148--> and
-3.8<!--FD149--> req/s, and the crossover is among them. Retrieval was measured at 50 to 1000 req/s,
-where TEI added replicas and the nodes under them. At 0.4 req/s the always-on minimum serves every
-query, so these rows overstate retrieval. It is 0.7<!--FD159-->% of the marginal, so no row is off
+3.8<!--FD149--> req/s, and the crossover is among them. Retrieval is priced at 1000 req/s,
+on the nodes that rate needed. At 0.4 req/s the always-on minimum serves every
+query, so these rows overstate retrieval. It is 0.2<!--FD159-->% of the marginal, so no row is off
 by more than that. Generation is a price per token and holds at any volume.
 
 Two volumes are inside the measured range: 500M a month at 190<!--FD150--> req/s (r200 served
@@ -381,7 +367,7 @@ an OOM decision, taken per pod at its maximum over each point's window (`01-inge
 | :--- | :--- | ---: | ---: | :--- | :--- |
 | Chunker | `1Gi` | 445<!--FM79--> MiB (N=25) | 2.30<!--FD156-->× | `deploy/k8s/apps/chunker` | The margin is deliberate, well past `peak+30%`: the full corpus holds a 124 MB file against the fixture's 78.8 MB, and an image-heavy PDF decodes to several times its file size |
 | Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | Raise `requests.memory` to `2560Mi`: at 2,048<!--FR37--> MiB it sits below the peak, so §2.3's packing density overstates the real one. At 2560Mi fewer indexers fit a node, and the effect on `$/1M docs` is unmeasured |
-| Go API | `512<!--FR32-->Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | Sized for one replica carrying the whole rate: a pinned replica reached 439<!--FM77--> MiB, 86% of the limit, a state reachable at scale-in and under imbalanced routing |
+| Go API | `512Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | Sized for one replica carrying the whole rate: a pinned replica reached 439<!--FM77--> MiB, 86% of the limit, a state reachable at scale-in and under imbalanced routing |
 | TEI | `1Gi` | 670<!--FM78--> MiB (r050) | 1.53<!--FD155-->× | `deploy/k8s/apps/tei` | Memory decides nothing here: at `requests.cpu: 3000m` packing is CPU-bound, so the 768<!--FR34--> MiB request does not affect density |
 
 ### 5.2 Max replicas

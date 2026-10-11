@@ -1524,7 +1524,7 @@ figures:
   query_per_query:
     ref: FD100
     kind: D
-    formula: query_per_1k_broad / 1000
+    formula: retrieval_steady_per_1k / 1000
     unit: usd_per_query
     display: 8
     group: amortization
@@ -2647,7 +2647,7 @@ figures:
     display: 0
     source: deploy/k8s/apps/api/deployment.yaml limits.memory
     group: memory_limits
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-11: report.md 5.1 prints the limit as manifest code (`512Mi`), like the other rows, and a mark inside a code span renders literally
 
   tei_mem_limit:
     ref: FR33
@@ -2987,4 +2987,52 @@ figures:
     display: 1
     source: NAT's part of report 4.2's NAT, SQS and S3 row at N=25. SQS and S3 have no recorded value, only this remainder, which sits within the cent rounding of cur_marginal_n25
     group: d23
+    appears_in: [report.md]
+
+  r1000_steady_nodes_hour:
+    ref: FM89
+    kind: M
+    value: 1.4710
+    unit: usd_per_hour
+    display: 2
+    source: >-
+      median over 15 s ticks of the summed Spot rates of the apps-serving nodes alive in r1000's
+      steady phase, 14:57:16-15:01:01Z, data/inference-r1000.cost-estimate.json (min 1.4566, max
+      1.6480). Ten nodes, 104 vCPU at mid-window, the always-on pair included. The pool sat at its
+      NodePool limit (cpu 100), so these are the nodes that actually served 1000 req/s
+    group: steady_state
+    appears_in: [report.md]
+
+  retrieval_steady_per_1k:
+    ref: FE18
+    kind: E
+    formula: (r1000_steady_nodes_hour - serving_rest_pair_0905_hour) / 3600 + campaign_serving_transfer / campaign_queries * 1000
+    unit: usd_per_1k_queries
+    display: 4
+    source: >-
+      retrieval marginal at 1000 req/s held around the clock. Nodes: r1000's steady-phase serving
+      nodes less the always-on pair the floor already pays for, over 3,600 thousand queries an hour.
+      Traffic: the campaign's cross-AZ transfer per query, which includes resting transfer and so
+      reads high. NAT is left out on the assumption that the campaign's NAT bytes were image and
+      model pulls at scale-out, which a steady load pays once (not verified for 02-inference)
+    group: steady_state
+    appears_in: [report.md]
+
+  retrieval_steady_month:
+    ref: FE19
+    kind: E
+    formula: retrieval_steady_per_1k * 1000 * 3600 * hours_per_month / 1000
+    unit: usd_per_month
+    display: 0
+    source: retrieval_steady_per_1k over one month at 1000 req/s
+    group: steady_state
+    appears_in: [report.md]
+
+  generation_vs_retrieval_steady:
+    ref: FD174
+    kind: D
+    formula: generation_per_1k_queries / retrieval_steady_per_1k
+    unit: ratio
+    display: 0
+    group: steady_state
     appears_in: [report.md]
