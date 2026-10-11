@@ -23,10 +23,9 @@ how that cost spreads over volume.
 
 | Area | Status | Evidence |
 | :--- | :--- | :--- |
-| Ingestion throughput, cost per run and cost per 1M documents | measured · unit cost derived ᴰ | §3.1 · `01-ingestion/M10` · `D25` |
-| Per-component share of ingestion cost | derived ᴰ | §4.2 · `01-ingestion/M12` |
+| Ingestion throughput, cost per run and cost per 1M documents | measured · cost per run derived ᴰ · per 1M documents estimated ᴱ | §3.1 · `01-ingestion/M10` · `D25` |
+| Per-component share of ingestion cost | estimated ᴱ | §4.2 · `01-ingestion/M12` |
 | TEI cost caused by ingestion | measured, two readings | cash: §3.1 `TEI $ (cash)` · `01-ingestion/D23` · allocated: §4.2 · `01-ingestion/M12` |
-| Unused node capacity, fleet-wide | recorded ᴿ | §4.4 · `01-ingestion/M12` |
 | Ingestion constraint | measured | §3.1 · `01-ingestion/M6` |
 | Sustained query rate, the replicas it required and the query path constraint | measured | §3.2 · `02-inference/D15` · `M7` · `R14` |
 | Retrieval cost per 1k queries — marginal | derived ᴰ | §4.2 · `02-inference/D16` |
@@ -34,7 +33,7 @@ how that cost spreads over volume.
 | Idle floor, split A / B / C | derived ᴰ | §4.1 · `00-baseline` §2 Floor |
 | Errors found at rest, excluded from the floor | derived ᴰ | §4.1 · `00-baseline` §2 Floor errors table |
 | Untaggable billing lines, mapped to the Floor rows that price them | recorded ᴿ | §4.1 · `00-baseline/R5` |
-| Amortization across volumes — documents | derived ᴰ | §4.3 |
+| Amortization across volumes — documents | estimated ᴱ | §4.3 |
 | Amortization across volumes — queries, generation included | estimated ᴱ | §4.3 · `02-inference/E18` |
 | Fargate against Karpenter Spot, ingestion | derived ᴰ · Fargate image pulls not priced | §4.4 · `01-ingestion/D29` |
 | Warm-up and consolidation-tail share | declared, not measured | the share of each run's bill that is node boot and teardown |
@@ -50,8 +49,8 @@ how that cost spreads over volume.
 
 ## 1. BLUF
 
-* **Ingestion cost at the sweet spot** — $24,875<!--FD37--> / 1M docs ᴰ at N=25. N=10 below it costs
-  $44,707<!--FD76--> ᴰ, and every N above it costs more. On compute, Fargate for the same two
+* **Ingestion cost at the sweet spot** — $24,875<!--FD37--> / 1M docs ᴱ at N=25. N=10 below it costs
+  $44,707<!--FD76--> ᴱ, and every N above it costs more. On compute, Fargate for the same two
   workers costs 0.69<!--FD161-->× the Spot nodes they ran on, before its image pulls (§4.4)
 * **Sustained query rate** — 1000 req/s\*, held for 1m45s at 30 TEI replicas and
   0.02<!--FM62-->% errors. The full steady phase served 955<!--FM63--> req/s at 0.28<!--FM64-->%
@@ -78,7 +77,7 @@ how that cost spreads over volume.
   (§4.1). Right-sizing every line in the floor saves $139.80<!--FD138--> ᴱ, and $52.56 of that is
   the two Bedrock endpoints, which count as defects, so sizing alone saves $87.24<!--FD152--> ᴱ.
 * **The two paths want opposite operating points.** Cost per document rises with concurrency:
-  $24,875<!--FD37--> ᴰ per 1M docs at N=25 against $88,161<!--FD72--> ᴰ at N=125. Effective cost
+  $24,875<!--FD37--> ᴱ per 1M docs at N=25 against $88,161<!--FD72--> ᴱ at N=125. Effective cost
   per query, floor included, falls with rate: below ~0.4<!--FD143--> requests a second the bill is
   mostly floor, and at a billion queries a month the floor is 0.1<!--FD142-->% of it. Ingestion is
   cheapest run slowly, the query path is cheapest run hot, and they share no operating point, so
@@ -130,18 +129,18 @@ query-path finding holds for an idle ingestion path, because contention was not 
 ### 3.1 Ingestion — throughput, cost and constraint
 
 Tested at N = 10, 25, 50, 75 and 125. N=25 was the nearest to sweet spot, the cheapest operating point
-at $24,875<!--FD75--> ᴰ per 1M docs. Throughput is limited by the indexer's code, not by any resource. 
+at $24,875<!--FD75--> ᴱ per 1M docs. Throughput is limited by the indexer's code, not by any resource. 
 
 N is the max replicas setting (`maxReplicaCount`) on both ScaledJobs, a limit on concurrent pods,
 not observed concurrency. The indexer ran at max replicas at every point (125 of 125 at N=125, `M5`).
 The `chunker` peaked at ~20 whatever the N, technically because 100-file corpus was same.
 
 Cost per document has V-shape, the cheapest at N=25 and both sides neighbors points are higher. N=10 costs
-$44,707<!--FD76--> ᴰ per 1M docs against $24,875<!--FD75--> ᴰ at N=25, because it runs twice as
+$44,707<!--FD76--> ᴱ per 1M docs against $24,875<!--FD75--> ᴱ at N=25, because it runs twice as
 long (132.5 min against 61.7 min) while fixed per-hour costs keep billing.
 
 Throughput rises at every step and never levels off. Per step, it gains +113%, +40%, +2.6%, then
-+11.6%. If speed matters, stop at N=50: it buys +40% docs/min over N=25 for $19,460<!--FD77--> ᴰ
++11.6%. If speed matters, stop at N=50: it buys +40% docs/min over N=25 for $19,460<!--FD77--> ᴱ
 more per 1M docs.
 
 Ingestion is limited only how the indexer calls TEI, not by any resource. No worker reached
@@ -153,11 +152,11 @@ long that call takes, so the only way to go faster today is more pods.
 
 | N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ (cash) | Other $ | $/run | $/1M docs |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 10 | 0.76 | 132.5 min | 3 | $1.55<!--FM85--> | $0.31<!--FM25--> | $2.61<!--FD162--> | $4.47<!--FD71--> ᴰ | $44,707<!--FD76--> ᴰ |
-| 25 | 1.62 | 61.7 min | 4 | $1.09<!--FM81--> | $0.01<!--FM24--> | $1.39<!--FD163--> | $2.49<!--FD70--> ᴰ | **$24,875<!--FD75-->** ᴰ |
-| 50 | 2.27 | 44.0 min | 10 | $1.26<!--FM86--> | $0.29<!--FM23--> | $2.88<!--FD164--> | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴰ |
-| 75 | 2.33 | 42.9 min | 16 | $1.54<!--FM87--> | $0.52<!--FM22--> | $4.10<!--FD165--> | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴰ |
-| 125 | 2.60 | 38.5 min | 26 | $2.01<!--FM88--> | $0.82<!--FM21--> | $5.99<!--FD166--> | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴰ |
+| 10 | 0.76 | 132.5 min | 3 | $1.55<!--FM85--> | $0.31<!--FM25--> | $2.61<!--FD162--> | $4.47<!--FD71--> ᴰ | $44,707<!--FD76--> ᴱ |
+| 25 | 1.62 | 61.7 min | 4 | $1.09<!--FM81--> | $0.01<!--FM24--> | $1.39<!--FD163--> | $2.49<!--FD70--> ᴰ | **$24,875<!--FD75-->** ᴱ |
+| 50 | 2.27 | 44.0 min | 10 | $1.26<!--FM86--> | $0.29<!--FM23--> | $2.88<!--FD164--> | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴱ |
+| 75 | 2.33 | 42.9 min | 16 | $1.54<!--FM87--> | $0.52<!--FM22--> | $4.10<!--FD165--> | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴱ |
+| 125 | 2.60 | 38.5 min | 26 | $2.01<!--FM88--> | $0.82<!--FM21--> | $5.99<!--FD166--> | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴱ |
 
 ### 3.2 Query path — sustained rate, latency and bottleneck
 
@@ -235,14 +234,7 @@ column is unchanged, as sizing doesn't influence NAT or cross-AZ traffic at rest
 
 Errors found at rest weren't added to any table. They were $175.85<!--FD35-->/month: EKS control-plane
 logs that nobody chose, $100.95<!--FD34-->, and an ArgoCD self-heal loop, $65.85<!--FD32--> in
-cross-AZ traffic plus $9.05<!--FD33--> in T3 CPU credits. They all fixed or added to `tech-debt.md`.
-
-About a quarter of the bill at rest, 25.6<!--FD126-->%, arrives in CUR without a `feature` tag, or
-17.9<!--FD127-->% without the control-plane logs above. That 17.9% has two sources. AWS bills some
-flat charges on lines that carry no tag: EKS control-plane hours, Karpenter's Fargate pods, public
-IPv4, KMS and the load balancer. Qdrant's volumes arrive untagged too, because the CSI driver
-created them without tags. Each line is mapped by hand to the Floor row that prices it (`R5`, ᴿ),
-so the tables above already include it.
+cross-AZ traffic plus $9.05<!--FD33--> in T3 CPU credits. They all fixed or added to `tech-debt.md`. 
 
 ### 4.2 Marginal
 
@@ -251,24 +243,25 @@ every run before any per-unit figure is computed.
 
 #### Per 1M documents
 
-All figures are at N=25, the sweet spot (`01-ingestion/M12`, pulled 2026-09-09). The first three
-rows are CUR rows per pod. The fourth row is the rest of the $24,875<!--FD37--> total.
+For the calculation used single point – N=25, the sweet spot. One run processes the 100-document fixture for
+$2.49<!--FD70-->, and the $24,875<!--FD37--> per 1M documents is that run repeated 10,000 times.
+Every run started its worker nodes from zero, so the figure assumes documents arrive in batches
+of 100. A continuous load would pay node start-up and image pulls once and cost less.
 
-The total is **cash**: money that left the account (`cur_marginal` plus `D23`). The pod rows are
-**allocation**: CUR splits each node's bill between the pods on it by their requests, with a fixed
-CPU-to-memory weighting. The part of a node that no pod requested is **unallocated capacity**.
-Allocation moves money between pods and leaves the bill unchanged. At N=25, TEI grew from 2 to 4
-replicas on nodes that were already running. It added $0.01<!--FM24-->/run of cash (§3.1
-`TEI $ (cash)`) and took $0.249<!--FD153-->/run of allocated capacity. The fourth row absorbs that
-gap. Share is a share of the total, not of cash.
+The total is **cash**, what the account paid. The first three rows are **allocation**: CUR splits
+each node's bill between its pods by their requests (`01-ingestion/M12`, pulled 2026-09-09). The
+fourth row is the rest of the total: NAT, SQS, S3 and **unallocated capacity**, the part of a node
+no pod requested. It also absorbs one gap. TEI grew from 2 to 4 replicas on nodes that were
+already running, so it added only $0.01<!--FM24-->/run of cash but was allocated
+$0.249<!--FD153-->/run.
 
 | Component | $/1M docs | Share |
 | :--- | :--- | :--- |
 | Stage-1 chunker pods | $21<!--FM42--> | 0.1<!--FD111-->% |
 | Stage-2 indexer pods | $2,574<!--FM43--> | 10.3<!--FD112-->% |
 | TEI above its always-on minimum | $2,490<!--FD109--> ᴰ ($3,256<!--FM44--> allocated − $766<!--FM45--> floor share for this window) | 10.0<!--FD113-->% |
-| NAT, SQS, S3 and unallocated capacity, combined | $19,790<!--FD110--> ᴰ (cannot be split: `M12` reports unallocated capacity fleet-wide) | 79.6<!--FD114-->% |
-| **Total** | $24,875<!--FD37--> ᴰ | 100% |
+| NAT, SQS, S3 and unallocated capacity, combined | $19,790<!--FD110--> ᴱ (cannot be split: `M12` reports unallocated capacity fleet-wide) | 79.6<!--FD114-->% |
+| **Total** | $24,875<!--FD37--> ᴱ | 100% |
 
 The two worker rows are a tenth of the total.
 
@@ -294,17 +287,20 @@ at the top of the chapter counts the floor once.
 
 ### 4.3 Amortization
 
+Block B is paid every month at any volume. Spread over the month's documents or queries, it adds
+to the marginal of each one. This section shows the full cost of one unit at each volume, and the
+volume below which most of the bill pays for the feature to exist rather than for work done.
+
 `Effective $/unit = ( Block B + Marginal × V ) ÷ V`
 
-Effective cost is the floor spread over the month's volume, plus the marginal. It is arithmetic on
-§4.1 and §4.2. No run measured it.
-
-Both tables use Block B = $534.12<!--FD26-->/month. Each table carries all of Block B. Adding a
-`$/doc` row to a `$/query` row counts the floor twice.
+V is the monthly volume. **Floor share** is the part of the effective cost that is Block B. Both
+tables use the as-built Block B, $534.12<!--FD26-->/month. Each carries all of it, so adding a
+`$/doc` row to a `$/query` row counts the floor twice. This is arithmetic on §4.1 and §4.2, and no
+run measured it.
 
 Documents use the N=25 marginal, $24,875<!--FD37-->/1M docs = $0.02488<!--FD38-->/doc.
 
-| Monthly documents | Effective $/doc ᴰ | Floor share |
+| Monthly documents | Effective $/doc ᴱ | Floor share |
 | :--- | :--- | :--- |
 | 1 000 | $0.5590<!--FD92--> | 95.6<!--FD96-->% |
 | 10 000 | $0.0783<!--FD93--> | 68.2<!--FD97-->% |

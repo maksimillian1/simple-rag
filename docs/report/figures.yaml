@@ -1136,7 +1136,7 @@ figures:
   per_1m_n125:
     ref: FD72
     kind: D
-    formula: run_total_n125 * 10000
+    formula: run_total_n125 * runs_per_1m_docs
     unit: usd_per_1m_docs
     display: 0
     group: d23
@@ -1144,7 +1144,7 @@ figures:
   per_1m_n75:
     ref: FD73
     kind: D
-    formula: run_total_n75 * 10000
+    formula: run_total_n75 * runs_per_1m_docs
     unit: usd_per_1m_docs
     display: 0
     group: d23
@@ -1152,7 +1152,7 @@ figures:
   per_1m_n50:
     ref: FD74
     kind: D
-    formula: run_total_n50 * 10000
+    formula: run_total_n50 * runs_per_1m_docs
     unit: usd_per_1m_docs
     display: 0
     group: d23
@@ -1160,7 +1160,7 @@ figures:
   per_1m_n25:
     ref: FD75
     kind: D
-    formula: run_total_n25 * 10000
+    formula: run_total_n25 * runs_per_1m_docs
     unit: usd_per_1m_docs
     display: 0
     group: d23
@@ -1168,7 +1168,7 @@ figures:
   per_1m_n10:
     ref: FD76
     kind: D
-    formula: run_total_n10 * 10000
+    formula: run_total_n10 * runs_per_1m_docs
     unit: usd_per_1m_docs
     display: 0
     group: d23
@@ -2302,7 +2302,8 @@ figures:
       dropped_iterations in ./data/inference-r1000.generator.log: iterations k6 could not start
       because no VU was free. 568,923 started + 30,985 dropped = 599,908 of 600,000 scheduled
     group: steady_state
-    appears_in: [report.md, executions/02-inference/index.md]
+    # report.md dropped from appears_in 2026-10-11: report.md 3.2 prints the drop shares (FD144, FD145), not the generator counts behind them
+    appears_in: [executions/02-inference/index.md]
 
   r500_hold_served_lo:
     ref: FM66
@@ -2349,7 +2350,8 @@ figures:
       start of wind-down. Pulled down by 14:02:06-14:03:06, where served fell to 345-455 req/s
       at an unchanged offered rate
     group: steady_state
-    appears_in: [report.md, executions/02-inference/index.md]
+    # report.md dropped from appears_in 2026-10-11: report.md 3.2 prints the drop shares (FD144, FD145), not the generator counts behind them
+    appears_in: [executions/02-inference/index.md]
 
   r500_phase_err:
     ref: FM70
@@ -2372,7 +2374,8 @@ figures:
       = 300,001 of 300,000 scheduled; the VU pool was pinned at its 2,500 ceiling from 00m11.9s,
       so effectively all of them fall in the opening ramp
     group: steady_state
-    appears_in: [report.md, executions/02-inference/index.md]
+    # report.md dropped from appears_in 2026-10-11: report.md 3.2 prints the drop shares (FD144, FD145), not the generator counts behind them
+    appears_in: [executions/02-inference/index.md]
 
   d15_error_bound:
     ref: FR29
@@ -2396,7 +2399,8 @@ figures:
       maxVUs for r1000, from load.js: ceil(rate x (MOCK_DELAY_MS/1000 + 0.5)) x 2. Reached during
       the ramp, which is when iterations begin to be dropped
     group: steady_state
-    appears_in: [report.md, executions/02-inference/index.md]
+    # report.md dropped from appears_in 2026-10-11: report.md 3.2 prints the drop shares (FD144, FD145), not the generator counts behind them
+    appears_in: [executions/02-inference/index.md]
 
   r500_vu_cap:
     ref: FR31
@@ -2406,7 +2410,8 @@ figures:
     display: 0
     source: maxVUs for r500 by the same formula; reached at 00m11.9s of the run
     group: steady_state
-    appears_in: [report.md, executions/02-inference/index.md]
+    # report.md dropped from appears_in 2026-10-11: report.md 3.2 prints the drop shares (FD144, FD145), not the generator counts behind them
+    appears_in: [executions/02-inference/index.md]
 
   r1000_drop_share:
     ref: FD144
@@ -2444,7 +2449,7 @@ figures:
       pod's request share claimed that hour. Fleet-wide across every EKS node, so the
       ingestion share of it is not separable and report 3.4 declines to guess one
     group: fargate
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-11: the per-N unused-capacity table and the Fargate condition left report.md, which no longer prints fleet-wide unused capacity
 
   unused_ekslevel_n50:
     ref: FM73
@@ -2457,7 +2462,7 @@ figures:
       pod's request share claimed that hour. Fleet-wide across every EKS node, so the
       ingestion share of it is not separable and report 3.4 declines to guess one
     group: fargate
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-11: the per-N unused-capacity table and the Fargate condition left report.md, which no longer prints fleet-wide unused capacity
 
   unused_ekslevel_n75:
     ref: FM74
@@ -2470,7 +2475,7 @@ figures:
       pod's request share claimed that hour. Fleet-wide across every EKS node, so the
       ingestion share of it is not separable and report 3.4 declines to guess one
     group: fargate
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-11: the per-N unused-capacity table and the Fargate condition left report.md, which no longer prints fleet-wide unused capacity
 
   unused_ekslevel_n125:
     ref: FM75
@@ -2483,7 +2488,7 @@ figures:
       pod's request share claimed that hour. Fleet-wide across every EKS node, so the
       ingestion share of it is not separable and report 3.4 declines to guess one
     group: fargate
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-11: the per-N unused-capacity table and the Fargate condition left report.md, which no longer prints fleet-wide unused capacity
 
   rate_at_10k:
     ref: FD146
@@ -2901,3 +2906,15 @@ figures:
     source: report 3.1 Other $, the CUR marginal less apps-compute, so NAT plus SQS and S3. Defined as the remainder so the row adds up to $/run
     group: d23
     appears_in: [report.md]
+
+  runs_per_1m_docs:
+    ref: FE17
+    kind: E
+    value: 10000
+    unit: count
+    display: 0
+    source: >-
+      1M documents over the 100-document fixture. Used as a cost multiplier it assumes every batch
+      of 100 costs what one measured run did, and every run started its worker nodes from zero, so
+      node start-up and image pulls repeat per batch. A continuous load would pay them once
+    group: d23

@@ -502,11 +502,11 @@ last hour overlaps `02-inference`'s campaign window by $0.0441.
 
 | Run | N set | N reached | TEI peak | Docs/min | Wall time | Compute $ | TEI $ | Other $ | $/run | $/1M docs | Saturation signal |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| #10 | 10 | 9.0 (10) | 3 | 0.76 | 132.5 min | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | **$44,707<!--FD76-->** ᴰ | chunker *also* at N ceiling; the one point below the corpus's ~20-concurrent cap |
-| #08 | 25 | 19.5 (25) | 4 | 1.62 | 61.7 min | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | $24,875<!--FD75--> ᴰ | none; indexer at ceiling, no resource pegged |
-| #07 | 50 | 32.6 (50) | 10 | 2.27 | 44.0 min | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴰ | none |
-| #06 | 75 | 40.5 (75) | 16 | 2.33 | 42.9 min | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴰ | none; the "waste boundary": +39% cost for +2.6% docs/min over N=50 |
-| #05 | 125 | 63.5 (125) | 26 | 2.60 | 38.5 min | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴰ | none |
+| #10 | 10 | 9.0 (10) | 3 | 0.76 | 132.5 min | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | **$44,707<!--FD76-->** ᴱ | chunker *also* at N ceiling; the one point below the corpus's ~20-concurrent cap |
+| #08 | 25 | 19.5 (25) | 4 | 1.62 | 61.7 min | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | $24,875<!--FD75--> ᴱ | none; indexer at ceiling, no resource pegged |
+| #07 | 50 | 32.6 (50) | 10 | 2.27 | 44.0 min | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴱ | none |
+| #06 | 75 | 40.5 (75) | 16 | 2.33 | 42.9 min | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴱ | none; the "waste boundary": +39% cost for +2.6% docs/min over N=50 |
+| #05 | 125 | 63.5 (125) | 26 | 2.60 | 38.5 min | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴱ | none |
 
 N=10 (#10) breaks the otherwise clean monotonic N-vs-cost trend: $44,707<!--FD76--> sits just above N=50's
 $44,335<!--FD74--> instead of below N=25's $24,875<!--FD75-->, where the throughput trend alone would put it. With D23
@@ -657,7 +657,7 @@ slot for what was found here (Retro, last line).
 
 ### Guardrails
 
-- **`maxReplicaCount` = 20 ᴱ** — the sweet spot (N=25, $24,875<!--FD75-->/1M docs ᴰ) ran at a time-weighted
+- **`maxReplicaCount` = 20 ᴱ** — the sweet spot (N=25, $24,875<!--FD75-->/1M docs ᴱ) ran at a time-weighted
   mean of 19.5, so the cap bound only at the peak, and 20 is the concurrency the cheapest measured
   run actually sustained. Not a claim that 20 beats 25: no point separates them, and the grid's
   next step is 50. N=50 stays the knee, the documented ceiling for a hurry. Valid for this corpus
