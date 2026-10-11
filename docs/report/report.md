@@ -270,34 +270,45 @@ paid once instead of on every scale-out. Generation adds ~$0.51<!--FD39--> ᴱ p
 
 ### 4.3 Amortization
 
-Block B is paid every month at any load. Each document or query has a share of it, and the
+The Block B floor is paid every month at any load. Each document or query has a share of it, and the
 share shrinks as volume grows. The tables below show the cost of one unit and the floor's share of
 it, both reducing with volume.
 
 `Effective $/unit = ( Block B Floor + Marginal × V ) ÷ V`
 
-V is the monthly volume. **Floor share** is the part of the effective cost that is Block B. Both
-tables use the as-built Block B, $534.12<!--FD26-->/month. Each carries all of it, so adding a
-`$/doc` row to a `$/query` row counts the floor twice. This is arithmetic on §4.1 and §4.2, and no
-run measured it.
+V is the monthly volume. **Floor share** is the part of the effective cost that comes from the
+Block B floor, $534.12<!--FD26-->/month as built. Each table carries all of it, so adding a `$/doc`
+row to a `$/query` row counts the floor twice. This is arithmetic on §4.1 and §4.2, and no run
+measured it.
+
+#### Documents
 
 Documents use the N=25 marginal, $24,875<!--FD37-->/1M docs = $0.02488<!--FD38-->/doc.
 
-| Monthly documents | Effective $/doc ᴱ | Floor share |
+| Monthly documents | Effective $/doc ᴰ | Floor share |
 | :--- | :--- | :--- |
 | 1 000 | $0.5590<!--FD92--> | 95.6<!--FD96-->% |
 | 10 000 | $0.0783<!--FD93--> | 68.2<!--FD97-->% |
 | 100 000 | $0.0302<!--FD94--> | 17.7<!--FD98-->% |
 | 1 000 000 | $0.0254<!--FD95--> | 2.1<!--FD99-->% |
 
-Queries use the per-query marginal from §4.2, whose retrieval part comes from the nodes and traffic
-of the 50–1000 req/s campaign and changes with the infrastructure.
+Floor share falls below half at ~21,472<!--FD41--> documents a month.
+
+#### Per-query marginal
+
+Retrieval is priced from the nodes that held 1000 req/s, without the always-on minimum (§4.2), and
+changes with the infrastructure. Generation is Bedrock's price per token.
 
 | Marginal line | $/query | Share of the marginal |
 | :--- | :--- | :--- |
-| Retrieval — serving capacity above the always-on minimum | $0.00000079<!--FD100--> ᴱ | 0.2<!--FD159-->% |
+| Retrieval — serving capacity above the always-on minimum | $0.00000079<!--FD100--> ᴰ | 0.2<!--FD159-->% |
 | Generation — Bedrock | $0.000509<!--FD118--> ᴱ | 99.8<!--FD160-->% |
 | **Per-query marginal** | **$0.000509<!--FD158--> ᴱ** | 100% |
+
+#### Queries
+
+According to the fact that generation is 99.8% of the marginal, decided to build additional table, that shows
+difference of floor share for amount of total queries per month, it's mostly Bedrock's token price plus the floor.
 
 ![Effective cost per query and floor share against monthly query volume, log scale](charts/amortization-queries.svg)
 
@@ -310,22 +321,13 @@ of the 50–1000 req/s campaign and changes with the infrastructure.
 | 500 000 000 | $0.000510<!--FD139--> | 0.2<!--FD141-->% |
 | 1 000 000 000 | $0.000510<!--FD140--> | 0.1<!--FD142-->% |
 
-Floor share falls below 50% at ~21,472<!--FD41--> documents and ~1,048,470<!--FD43--> queries
-per month. This report calls that volume the **crossover**. Below it, the floor is most of the
-bill, so the crossover is the lower bound where this design makes economic sense. A document costs
-more than a query, so documents reach it at a lower volume. The query path reaches it at
-~0.4<!--FD143--> req/s sustained, and generation sets that point.
+Floor share falls below half at ~1,048,470<!--FD43--> queries a month, ~0.4<!--FD143--> req/s
+sustained. Above that, most of the effective cost is the token price.
 
-**Only the retrieval line depends on the measured range.** A month has 2,628,000<!--FR28-->
-seconds, so the four smallest rows are 0.004<!--FD146-->, 0.04<!--FD147-->, 0.4<!--FD148--> and
-3.8<!--FD149--> req/s, and the crossover is among them. Retrieval is priced at 1000 req/s,
-on the nodes that rate needed. At 0.4 req/s the always-on minimum serves every
-query, so these rows overstate retrieval. It is 0.2<!--FD159-->% of the marginal, so no row is off
-by more than that. Generation is a price per token and holds at any volume.
-
-Two volumes are inside the measured range: 500M a month at 190<!--FD150--> req/s (r200 served
-192.5) and a billion at 381<!--FD151--> req/s (between r300 and r500). At both, the floor is a
-fraction of a percent and the effective cost is the marginal.
+Retrieval is 0.2<!--FD159-->% of the marginal. It contains the API and TEI replicas above the
+always-on minimum, which could require more nodes for them. Price and share used at 1000 req/s, which are about
+2,628,000,000<!--FD116--> queries a month. Every row in the table, that below volume – needs
+fewer replicas, so its retrieval figure is less accurate.
 
 ### 4.4 Declined trade-offs
 
