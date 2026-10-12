@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-10-11T15:55:09Z",
+  "command": "aws ec2 describe-spot-price-history --region eu-central-1 --instance-types m7g.xlarge --product-descriptions Linux/UNIX --start-time 2026-09-04T17:00:00Z --end-time 2026-09-04T18:00:00Z --output json",
+  "window": "the price in force in each AZ at 2026-09-04T17:00Z, the n25 hour (the latest record at or before it, which the API returns for a window starting then)",
+  "instance_type": "m7g.xlarge",
+  "vcpu": 4,
+  "memory_gib": 16,
+  "by_az": {
+    "eu-central-1a": {
+      "spot_price": 0.1167,
+      "timestamp": "2026-09-04T16:00:00+00:00"
+    },
+    "eu-central-1b": {
+      "spot_price": 0.1114,
+      "timestamp": "2026-09-04T12:00:00+00:00"
+    },
+    "eu-central-1c": {
+      "spot_price": 0.1064,
+      "timestamp": "2026-09-04T14:00:00+00:00"
+    }
+  },
+  "mean_across_azs": 0.1115
+}

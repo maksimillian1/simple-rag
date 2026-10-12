@@ -448,6 +448,19 @@ as-built, потому что это то, что реально заплаче�
   складывается в `$/run`. Ячейка n25 сдвинулась $1.38 → $1.39: раньше там стоял NAT без SQS и S3,
   и строка давала $2.48 против $2.49. `orphans report.md` теперь пуст. Пересчёт K3 по закрытому
   месяцу по-прежнему не сделан.
+- [x] b25 ⟨9⟩ **r1000 ran 11 TEI pods, not 30.** Q5 (`kube_deployment_status_replicas`) read 30
+  through the steady phase, but only 11 pods had CPU and memory series (Q7, Q8), packed two per
+  c5.4xlarge and one per 2xlarge, as a 6-core request allows. The `apps-serving` NodePool has
+  `limits: cpu: 100` (since `36352e0`), and CloudTrail `CreateFleet`/`TerminateInstances` put the
+  pool at 96–100 vCPU in the steady phase and 100 at its peak, so 19 of the 30 pods KEDA created
+  had no node. r050–r500 never reached the limit and their running pods match Q5
+  · **решено 2026-10-11**: CloudTrail saved to `02-inference/data/cloudtrail-*-2026-09-04_05.json`;
+  report §1 (sustained rate, nearest ceiling), §2.3 Autoscaling, §3.2 intro and table, §5.2 (TEI row
+  plus a new NodePool CPU row) and §5.3 (alert on Pending pods or the pool limit, not on replicas at
+  max) rewritten; FR38, FM90–FM92, FD175 registered. `02-inference` edited 2026-10-11 with the
+  owner's go-ahead: validity rule, run ledger, the r1000 phase table (requested / running), its
+  Notes, the Matrix row, Results, Close, Saturation and the `maxReplicaCount` guardrail. a27's
+  ~35–40 replicas from the Spot quota is superseded: the NodePool limit binds first.
 - [ ] b22 ⟨6⟩ Minor: "Article 1" (§4.1) is never identified; the header's "1000 is not a swept maximum"
   means *not a proven ceiling* (1000 is the top rate swept); §1 marks the sustained rate ᴿ where
   §4.3's "`api` held 2 replicas to ~300 requests a second"

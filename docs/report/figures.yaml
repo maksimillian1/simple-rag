@@ -2243,8 +2243,7 @@ figures:
     unit: requests_per_second
     display: 0
     source: >-
-      lowest 15s sample of Q1 over r1000's hold window, 2026-09-05 14:57:16-14:59:01Z, with
-      tei-embeddings at 30 replicas and p95 on its flat floor; ./data/inference-r1000.jsonl
+      lowest 15s sample of Q1 over r1000's hold window, 2026-09-05 14:57:16-14:59:01Z, with 11 tei-embeddings pods running and p95 on its flat floor; ./data/inference-r1000.jsonl
     group: steady_state
     appears_in: [report.md, executions/02-inference/index.md]
 
@@ -2277,7 +2276,7 @@ figures:
     unit: requests_per_second
     display: 0
     source: >-
-      mean of Q1 over r1000's whole steady phase, 14:57:16-15:01:01Z: 30 replicas reached to the
+      mean of Q1 over r1000's whole steady phase, 14:57:16-15:01:01Z: 11 tei-embeddings pods running to the
       generator stall. Pulled down by a 45s excursion at 14:59:16-15:00:01 (760-885 req/s)
     group: steady_state
     appears_in: [report.md, executions/02-inference/index.md]
@@ -2768,7 +2767,6 @@ figures:
     source: >-
       CUR actual, apps-compute-tagged cost in the n25 hour (resource_tags user_karpenter_sh_nodepool), pulled 2026-09-05; 01-ingestion Notes, CUR table. Only chunker and indexer pods schedule on apps-compute, so the whole bill is the workers'
     group: fargate
-    appears_in: [report.md]
 
   cur_nat_n25:
     ref: FM82
@@ -2806,10 +2804,10 @@ figures:
   fargate_vs_spot_nodes_n25:
     ref: FD161
     kind: D
-    formula: fargate_workers_n25 / cur_compute_n25
+    formula: fargate_workers_n25 / spot_instances_n25
     unit: ratio
     display: 2
-    source: Fargate compute against the whole apps-compute node bill from CUR, as a multiple rather than a verdict. Fargate's image pulls are not in it
+    source: Fargate compute against the apps-compute Spot instance-hours from CUR, as a multiple rather than a verdict. Transfer and root volumes are left out on both sides, since Fargate tasks also move bytes across zones and need storage. Fargate's image pulls are not in it
     group: fargate
     appears_in: [report.md]
 
@@ -2998,7 +2996,8 @@ figures:
     source: >-
       median over 15 s ticks of the summed Spot rates of the apps-serving nodes alive in r1000's
       steady phase, 14:57:16-15:01:01Z, data/inference-r1000.cost-estimate.json (min 1.4566, max
-      1.6480). Ten nodes, 104 vCPU at mid-window, the always-on pair included. The pool sat at its
+      1.6480). Nine nodes at the median tick, 96-100 vCPU
+      per CloudTrail, the always-on pair included. The pool sat at its
       NodePool limit (cpu 100), so these are the nodes that actually served 1000 req/s
     group: steady_state
     appears_in: [report.md]
@@ -3035,4 +3034,192 @@ figures:
     unit: ratio
     display: 0
     group: steady_state
+    appears_in: [report.md]
+
+  serving_nodepool_cpu_limit:
+    ref: FR38
+    kind: R
+    value: 100
+    unit: vcpu
+    display: 0
+    source: >-
+      deploy/k8s/platform/karpenter-resources/templates/nodepool.yaml, apps-serving limits.cpu,
+      unchanged since commit 36352e0 (2026-07-25), so in force for every 02-inference point
+    group: steady_state
+    appears_in: [report.md]
+
+  r1000_tei_running:
+    ref: FM90
+    kind: M
+    value: 11
+    unit: count
+    display: 0
+    source: >-
+      tei-embeddings pods with a cAdvisor CPU and memory series (Q7, Q8) at every 15 s tick of r1000's
+      steady phase, 14:57:16-15:01:01Z, data/inference-r1000.jsonl. Packed two per c5.4xlarge and one
+      per 2xlarge, none on the xlarge nodes, which is what a 6-core request allows
+    group: steady_state
+    appears_in: [report.md]
+
+  r1000_tei_requested:
+    ref: FM91
+    kind: M
+    value: 30
+    unit: count
+    display: 0
+    source: Q5 kube_deployment_status_replicas for tei-embeddings, constant through r1000's steady phase. It counts the pods KEDA created, scheduled or not
+    group: steady_state
+    # appears_in dropped 2026-10-11: the report states how many TEI pods ran, not how many KEDA requested
+
+  r1000_serving_vcpu_peak:
+    ref: FM92
+    kind: M
+    value: 100
+    unit: vcpu
+    display: 0
+    source: >-
+      peak summed vCPU of apps-serving instances alive during r1000 (14:52-15:16Z), rebuilt from
+      CloudTrail CreateFleet and TerminateInstances, data/cloudtrail-*-2026-09-04_05.json. 96 vCPU at
+      14:57:30, 100 from 14:58:53 when a c5a.2xlarge replaced a c6i.xlarge. Agrees with Q9
+    group: steady_state
+    appears_in: [report.md]
+
+  r1000_tei_unscheduled:
+    ref: FD175
+    kind: D
+    formula: r1000_tei_requested - r1000_tei_running
+    unit: count
+    display: 0
+    source: TEI pods KEDA created at r1000 that never ran, because the apps-serving pool had reached its CPU limit
+    group: steady_state
+    # appears_in dropped 2026-10-11: the report states how many TEI pods ran, not how many KEDA requested
+
+  spot_instances_n25:
+    ref: FM93
+    kind: M
+    value: 0.8593579622
+    unit: usd
+    display: 4
+    source: >-
+      CUR, the apps-compute Spot instance-hours alone in the n25 hour (SpotUsage rows, 10 instances),
+      without the regional transfer and gp3 root volumes FM81 also carries.
+      executions/01-ingestion/data/n25-apps-compute-cur.json spot_instance_total
+    group: fargate
+    appears_in: [report.md]
+
+  spot_unused_n25:
+    ref: FM94
+    kind: M
+    value: 0.5784168214
+    unit: usd
+    display: 4
+    source: >-
+      CUR split_line_item_unused_cost on the same 10 instances in the n25 hour: node capacity no pod
+      requested. executions/01-ingestion/data/n25-apps-compute-cur.json unused
+    group: fargate
+    appears_in: [report.md]
+
+  spot_workers_share_n25:
+    ref: FD176
+    kind: D
+    formula: spot_workers_n25 / spot_instances_n25 * 100
+    unit: percent
+    display: 0
+    group: fargate
+    appears_in: [report.md]
+
+  spot_unused_share_n25:
+    ref: FD177
+    kind: D
+    formula: spot_unused_n25 / spot_instances_n25 * 100
+    unit: percent
+    display: 0
+    group: fargate
+    appears_in: [report.md]
+
+  n25_c7g_xlarge_hours:
+    ref: FM95
+    kind: M
+    value: 5.463333
+    unit: instance_hours
+    display: 2
+    source: CUR SpotUsage:c7g.xlarge usage amount, apps-compute, n25 hour. executions/01-ingestion/data/n25-apps-compute-cur.json instance_hours_by_type
+    group: fargate
+
+  n25_c7g_4xlarge_hours:
+    ref: FM96
+    kind: M
+    value: 1.093611
+    unit: instance_hours
+    display: 2
+    source: CUR SpotUsage:c7g.4xlarge usage amount, apps-compute, n25 hour. executions/01-ingestion/data/n25-apps-compute-cur.json instance_hours_by_type
+    group: fargate
+
+  c7g_xlarge_gib:
+    ref: FR39
+    kind: R
+    value: 8
+    unit: gib
+    display: 0
+    source: EC2 instance specification, c7g.xlarge
+    group: fargate
+
+  c7g_4xlarge_gib:
+    ref: FR40
+    kind: R
+    value: 32
+    unit: gib
+    display: 0
+    source: EC2 instance specification, c7g.4xlarge
+    group: fargate
+
+  m7g_xlarge_gib:
+    ref: FR41
+    kind: R
+    value: 16
+    unit: gib
+    display: 0
+    source: EC2 instance specification, m7g.xlarge - 4 vCPU and 16 GiB, the 4 GiB per vCPU the indexer requests
+    group: fargate
+
+  m7g_xlarge_spot_hour:
+    ref: FR42
+    kind: R
+    value: 0.1115
+    unit: usd_per_hour
+    display: 4
+    source: >-
+      Spot price of m7g.xlarge in force at 2026-09-04T17:00Z, mean of the three eu-central-1 AZs.
+      executions/01-ingestion/data/spot-m7g-xlarge-2026-09-04T17.json mean_across_azs
+    group: fargate
+
+  n25_node_gib_hours:
+    ref: FD178
+    kind: D
+    formula: n25_c7g_xlarge_hours * c7g_xlarge_gib + n25_c7g_4xlarge_hours * c7g_4xlarge_gib
+    unit: gib_hours
+    display: 1
+    source: memory the apps-compute nodes offered over the n25 hour
+    group: fargate
+
+  rightsized_spot_n25:
+    ref: FE20
+    kind: E
+    formula: n25_node_gib_hours / m7g_xlarge_gib * m7g_xlarge_spot_hour
+    unit: usd
+    display: 2
+    source: >-
+      the n25 pool on m7g.xlarge instead of c7g: the same memory the c7g nodes offered, so the same
+      memory fill and node churn as the real run, at m7g's Spot price that hour. Estimated because
+      no pod ran on m7g; perfect packing would roughly halve it
+    group: fargate
+    appears_in: [report.md]
+
+  fargate_vs_rightsized_n25:
+    ref: FE21
+    kind: E
+    formula: fargate_workers_n25 / rightsized_spot_n25
+    unit: ratio
+    display: 1
+    group: fargate
     appears_in: [report.md]

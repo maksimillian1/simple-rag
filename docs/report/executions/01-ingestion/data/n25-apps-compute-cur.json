@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-10-11T15:55:07Z",
+  "source": "s3://simple-rag-cur-reports-883f615c/cur2/simple-rag/simple-rag-cur/data/BILLING_PERIOD=2026-09/",
+  "window": "2026-09-04T17:00Z -> 18:00Z, the n25 hour (run 17:00:55Z -> 18:02:39Z; no apps-compute rows bill in the 18:00 bucket)",
+  "method": "pyarrow direct read. Parents: ordinary rows (split_line_item_parent_resource_id null) tagged resource_tags['user_karpenter_sh_nodepool']=apps-compute, line item types Usage/DiscountedUsage/SavingsPlanCoveredUsage, line_item_unblended_cost summed by line_item_usage_type. Split: child rows whose split_line_item_parent_resource_id is one of those Spot instances, split_line_item_split_cost summed by resource_tags['aws_eks_workload_name'] with the pod suffix stripped, split_line_item_unused_cost summed over the same rows. The children are not tagged with the nodepool, which is why aws-cur-report-export.py --tag cannot produce this split",
+  "by_usage_type": {
+    "EUC1-SpotUsage:c7g.xlarge": 0.5583055757,
+    "EUC1-SpotUsage:c7g.4xlarge": 0.3010523865,
+    "EUC1-DataTransfer-Regional-Bytes": 0.2144392998,
+    "EUC1-EBS:VolumeUsage.gp3": 0.017769932
+  },
+  "spot_instance_total": 0.8593579622,
+  "spot_instances": 10,
+  "split_by_workload": {
+    "indexer": 0.2574251493,
+    "cilium": 0.0130490668,
+    "monitoring-promtail": 0.0083696055,
+    "chunker": 0.0020810023,
+    "ebs-csi-node": 1.65975e-05,
+    "eks-pod-identity": 0.0,
+    "monitoring-prometheus-node-exporter": 0.0
+  },
+  "split_total": 0.2809414214,
+  "instance_hours_by_type": {
+    "EUC1-SpotUsage:c7g.4xlarge": 1.093611,
+    "EUC1-SpotUsage:c7g.xlarge": 5.463333
+  },
+  "pod_reserved_by_usage_type": {
+    "EUC1-EKS-EC2-GB-Hours": 41.8287557018,
+    "EUC1-EKS-EC2-vCPU-Hours": 10.4811777778
+  },
+  "unused": 0.5784168214
+}

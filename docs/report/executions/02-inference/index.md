@@ -103,7 +103,7 @@ the embedding-versus-retrieval split goes to report Coverage.
 A point is excluded when:
 
 - the served rate on M1 falls short of the offered rate by more than a few percent: the generator was the limit → K3
-- M7 reaches `maxReplicaCount` on either deployment: the point describes a configured limit
+- M7 reaches `maxReplicaCount` on either deployment, or the serving pool reaches its NodePool CPU limit: the point describes a configured limit. M7 also counts pods that never got a node, so the running count comes from the pods with CPU series (`Q7`)
 - the collection differs from the restored snapshot, the stub delay differs from the frozen value, or either scaler trigger or threshold changed: each changes what the p95 describes
 
 A point is not trusted when M3 exceeds 0.1% (`guards.txt` Q2: `max 0.001`, confirmed matching);
@@ -163,7 +163,7 @@ A point's `Generator ended` is the instant its offered-rate guard must be read a
 | 03 | inference-r200 | 200 | 2026-09-05T13:21:58Z → 13:39:24Z | 13:32:11Z | `4e15a2c` (dirty) | ~2min | 2 / 2→7 | real guard breach on error rate (Notes) | served ~192/200 rps (96%), p95≈2425ms, error 0.24% avg / ~4% peak | ✓ (10/10) | ᴰ M9=$0.1686<!--FM33--> gross, D16 $0.00141<!--FD79-->/1k queries gross; `./data/inference-r200.cost-estimate.json` |
 | 04 | inference-r500 | 500 | 2026-09-05T13:53:36Z → 14:14:49Z | 14:03:40Z | `4e15a2c` (dirty) | ~7min to 13 replicas | 2→3 / 2→16 | window average looked like a collapse; **clean once TEI reached ~13 replicas**, so convergence lag rather than a ceiling (Notes) | ramp: p95 to 25.2s, 0-6.5% error · **steady (once tei≈13): p95 flat ~2425ms, error ~0%** | ✓ (10/10) | ᴰ M9=$0.3255<!--FM37--> gross, D16 $0.00121<!--FD81-->/1k queries gross |
 | 05 | inference-r300 | 300 | 2026-09-05T14:27:50Z → 14:45:40Z | 14:37:53Z | `4e15a2c` (dirty) | ~2min | 2→3 / 2→11 | real, minor guard breach on error rate | served 296/300 (98.8%), **p95 still flat (2425ms)**, error 0.20% avg / 2.75% peak | ✓ (10/10) | ᴰ M9=$0.1769<!--FM35--> gross, D16 $0.00098<!--FD80-->/1k queries gross |
-| 06 | inference-r1000 | 1000 | 2026-09-05T14:52:16Z → 15:16:25Z | 15:05:34Z | `1ef1f0a` (dirty; **TEI 6/8**) | ~4min | 2→6 / 2→30 | guard breach on the window average, **clean at steady state**: a convergence problem, not a ceiling (Notes) | ramp (0-4min): p95 to 24.6s, error to 35% · **steady (5min once at 30 replicas): p95 flat ~2425ms, error ~0%, rate on target** | ✓ (10/10) | ᴰ M9=$0.4992<!--FM39--> gross, D16 $0.00088<!--FD82-->/1k queries gross |
+| 06 | inference-r1000 | 1000 | 2026-09-05T14:52:16Z → 15:16:25Z | 15:05:34Z | `1ef1f0a` (dirty; **TEI 6/8**) | ~4min | 2→6 / 2→11 | guard breach on the window average, **clean at steady state**: a convergence problem, with the serving pool at its NodePool CPU limit (Notes) | ramp (0-4min): p95 to 24.6s, error to 35% · **steady (once 11 TEI pods were up): p95 flat ~2425ms, error ~0%, rate on target** | ✓ (10/10) | ᴰ M9=$0.4992<!--FM39--> gross, D16 $0.00088<!--FD82-->/1k queries gross |
 
 ### Notes
 
@@ -303,26 +303,30 @@ On the window average it read worse than `r500` on most axes: p95 mean 6378ms ag
 0.78%/6.6%; the served-rate instant read at generator end was the exception. Read sample by
 sample (`Q1`/`Q2`/`Q3`/`Q5`), it splits into ramp and steady state like `r500`, more sharply:
 
-| Phase | Time | Served rate | p95 | Error % | `tei-embeddings` |
+| Phase | Time | Served rate | p95 | Error % | `tei-embeddings` pods running |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Ramp | 14:52–14:57 | swings 490–1036 | up to 24.6s | up to 35% | 2 → 17 |
-| **Hold** | **14:57:16–14:59:01** | **998<!--FM60-->–1,001<!--FM61-->, on target** | **~2425ms, the same flat baseline as `r050`–`r300`** | **0.02<!--FM62-->%** | **30, holding** |
-| Excursion | 14:59:16–15:00:01 | 760–885 | 2427–2429ms | ~1.2% | 30, holding |
-| Recovered | 15:00:16–15:01:01 | 980–997 | ~2427ms | 0.18% → 0 | 30, holding |
-| Generator stall | 15:01:16–15:03:31 | 563 → 445 → 0 | no requests to measure | — | 30 → 10 (scale-in, no traffic) |
-| Second ramp | 15:03:46–15:06:01 | 17 → 901, falling again | **to 51.7s** | to 8.9% | 6 → 27 |
+| Ramp | 14:52–14:57 | swings 490–1036 | up to 24.6s | up to 35% | 3 → 11 |
+| **Hold** | **14:57:16–14:59:01** | **998<!--FM60-->–1,001<!--FM61-->, on target** | **~2425ms, the same flat baseline as `r050`–`r300`** | **0.02<!--FM62-->%** | **11** |
+| Excursion | 14:59:16–15:00:01 | 760–885 | 2427–2429ms | ~1.2% | 11 |
+| Recovered | 15:00:16–15:01:01 | 980–997 | ~2427ms | 0.18% → 0 | 11 |
+| Generator stall | 15:01:16–15:03:31 | 563 → 445 → 0 | no requests to measure | — | 11–12 |
+| Second ramp | 15:03:46–15:06:01 | 17 → 901, falling again | **to 51.7s** | to 8.9% | 13–18 |
 
-Once `tei-embeddings` reached 30 replicas at `14:57:16`, every figure returned to the flat shape
-of the lower-rate points and stayed there for 1m45s. **1000rps is reachable at steady state**;
-the disorder in the average is the ~4 minutes KEDA needed to scale `tei-embeddings` from 2 to 30.
-Two corrections to the earlier read of this point. The hold is 1m45s, not five minutes: 30
-replicas were reached at `14:57:16`, not at 14:56, and a 45-second excursion at `14:59:16` drops
-served to 760–885 req/s at ~1.2% errors with the replica count unchanged — so the phase as a
+Once the eleven `tei-embeddings` pods the pool could place were up (the last two started at
+`14:56:31`), every figure returned at `14:57:16` to the flat shape of
+the lower-rate points and stayed there for 1m45s. **1000rps is reachable at steady state**; the
+disorder in the average is the ~4 minutes KEDA and Karpenter needed to scale `tei-embeddings` from
+2 pods to 11. TEI stopped at 11 because the `apps-serving` NodePool reached its `cpu: 100` limit
+(CloudTrail, `./data/cloudtrail-*-2026-09-04_05.json`, peak 100 vCPU), and a 6-core pod fits twice
+on a c5.4xlarge, once on a 2xlarge and not at all on an xlarge. Two
+corrections to the earlier read of this point. The hold is 1m45s, not five minutes: the flat
+shape starts at `14:57:16`, not at 14:56, and a 45-second excursion at `14:59:16` drops
+served to 760–885 req/s at ~1.2% errors on the same 11 pods — so the phase as a
 whole is 955<!--FM63--> req/s at 0.28<!--FM64-->%, against `D15`'s 0.1<!--FR29-->% bound. And the
 "wind-down" is the **generator**, not scale-in: served falls off a cliff at `15:01:16` and reads
 zero for ~105s while `k6` is still scheduling, k6's own progress output stops between `08m30.9s`
 and `11m28.1s` elapsed with completions at 43/s over those 178s and its VU count climbing from
-~2,100 to 4,252, and `tei-embeddings` scales 30 → 6 for want of traffic. The second ramp after it
+~2,100 to 4,252, and KEDA scales `tei-embeddings` in for want of traffic. The second ramp after it
 is where this point's worst readings come from — p95 51.7s at `15:06:01` and the 59/s error peak
 — and they belong to the generator's recovery, not to the system under load. During the ramp
 the busiest replicas hit 7.0–7.8 of their 8-core limit (87–97.5%, per-pod `rate()` CPU), a real
@@ -344,7 +348,7 @@ finding is in the latency and error columns, not in `D16`.
 
 ### Close
 
-- [x] Saturation identified, or headroom confirmed at the top of the grid: none found by resource signature (§3 Saturation). `tei-embeddings` CPU saturates during a ramp and recovers once KEDA converges, so it is not a standing ceiling; no rate up to 1000 req/s found one.
+- [x] Saturation identified, or headroom confirmed at the top of the grid: no component saturated at steady state (§3 Saturation). `tei-embeddings` CPU saturates during a ramp and recovers once KEDA converges. At 1000 req/s the serving pool reached its NodePool CPU limit, a configured ceiling, and held TEI at 11 pods.
 - [x] Cost pass run at least 48 h after the last point (2026-09-07): the first CUR read for this execution, which had only provisional figures before. Campaign-level only, not per point (points share hourly buckets by design). It found a gap: NAT was never priced per point, and the real cost is 1.5–4.3× the per-point gross `D16` figures (§3, CUR campaign-level cross-check). The re-run after month close is still open.
 - [ ] Contention pass run at the point nearest D15.
 - [ ] Convergence time recorded at every point, and compared against the window length.
@@ -405,7 +409,7 @@ generator-side instrument unread until 2026-10-03.
 | #03 | 200 | 192.5 (96%) | 2 / 7 | not timed ᴱ, window avg already clean | 1750 | 2425 | **2150** | 0.24% avg / 4.0% peak | 119,623<!--FM34--> | $0.1686<!--FM33--> | $0.00141<!--FD79--> | none |
 | #05 | 300 | 296.4 (99%) | 3 / 11 | not timed ᴱ, window avg already clean | 1749 | 2425 | **2060** | 0.20% avg / 2.75% peak | 180,001<!--FM36--> | $0.1769<!--FM35--> | $0.00098<!--FD80--> | none |
 | #04 | 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | **~7 min to 13 replicas** ᴿ, then clean | 2973 | 7934 (window avg) / **2425 once converged** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | 267,956<!--FM38--> | $0.3255<!--FM37--> | $0.00121<!--FD81--> | scale-out lag, not a ceiling |
-| #06 | 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | **~4 min to 30 replicas** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | 568,923<!--FM40--> | $0.4992<!--FM39--> | $0.00088<!--FD82--> | scale-out lag, not a ceiling |
+| #06 | 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 11 | **~4 min to 11 pods** ᴿ, then clean | 2092 | 6378 (window avg) / **2425 once converged** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | 568,923<!--FM40--> | $0.4992<!--FM39--> | $0.00088<!--FD82--> | scale-out lag, then the serving pool's CPU limit |
 
 **#06 is not the same configuration as the others.** `r1000` ran `tei-embeddings` at `cpu 6 / 8`
 (commit `1ef1f0a`, applied just before it); #01-#05 ran the frozen `3 / 4` (`00-baseline` §2
@@ -432,9 +436,11 @@ exclude generation, stubbed at a fixed 2000ms (`mock_delay_ms`, confirmed live, 
 - **Sustained rate** — D15 = **≥1000 req/s**, untested above that. Every rate up to 1000 reached
   the same steady-state p95 and error floor once converged; what grows with rate is convergence
   time, which sets no lower D15
-- **Replicas at that rate** — 6 API, 30 TEI at r1000, converged in ~4 min from floor (2/2)
+- **Replicas at that rate** — 6 API and 11 TEI pods of 6 cores at r1000, converged in ~4 min from
+  floor (2/2), the most the serving pool's `cpu: 100` NodePool limit could place
 - **Scaling shape** — `tei-embeddings` peak replicas against offered rate: 3 (50) → 7 (200) → 11
-  (300) → 16 (500) → 30 (1000), sublinear from 50→300, then roughly linear 300→1000. `api` moved
+  (300) → 16 (500) at 3 cores each, sublinear from 50→300. r1000 is not on the same scale: 11 pods
+  of 6 cores, 66 cores against r500's 48. `api` moved
   only twice in five points (2→3 at 300rps, 3→6 at 1000rps); Saturation explains why that is the
   scaler working as configured → report §3.6
 - **Reference value** — none for this campaign.
@@ -532,8 +538,8 @@ own.**
   (`sum(rate(cpu[2m]))/replicas` at `0.2`, confirmed live) works, and CPU demand didn't cross it
   until `r1000`
 - **Relieved by** — no standing ceiling to relieve. The ramp saturation on `tei-embeddings`
-  clears once KEDA finishes scaling out (`r500` clean at 13 replicas ~7 min in, `r1000` at 30
-  replicas ~4 min in). Doubling per-pod CPU (commit `1ef1f0a`, 3/4→6/8 cores, applied before
+  clears once KEDA finishes scaling out (`r500` clean at 13 replicas ~7 min in, `r1000` once 11
+  pods were up ~4 min in, the most the serving pool's `cpu: 100` NodePool limit could place). Doubling per-pod CPU (commit `1ef1f0a`, 3/4→6/8 cores, applied before
   `r1000`) left this shape unchanged, because `tei-embeddings-scaler`'s target (1.5 cores/replica
   average) is far below both limits. The lever is scale-out speed: trigger threshold, poll
   interval, cooldown, pod-ready time
@@ -550,11 +556,10 @@ evidence bullet above.
 
 ### Guardrails
 
-- **`tei-embeddings-scaler` `maxReplicaCount` = 30 (unchanged)** — not raised, although `r1000`
-  ran right up against it: the real limit is the account's AWS Spot vCPU quota (256, checked live
-  with `service-quotas`). At 6 cores requested per pod the quota alone caps headroom at ~35-40
-  replicas whatever `maxReplicaCount` says, so raising it without a quota increase would trade a
-  clean "ceiling hit" signal for pods stuck `Pending` · `tei-embeddings-scaler` → report §5
+- **`tei-embeddings-scaler` `maxReplicaCount` = 30 (unchanged)** — not raised, and not the limit that
+  bound: at `r1000` the `apps-serving` NodePool's `cpu: 100` held TEI at 11 pods of 6 cores. Behind it is the account's AWS Spot vCPU quota (256, checked live
+  with `service-quotas`). Raising `maxReplicaCount` alone adds nothing; the NodePool
+  limit has to rise first, then the quota · `tei-embeddings-scaler` → report §5
 - **`tei-embeddings-scaler` trigger threshold** — not lowered, though Saturation argues for it.
   Lowering it (for example 1.5 → 1.0 cores/replica average) would make KEDA scale out ahead of a
   sudden step instead of during it, which targets the convergence lag directly. It is untested:

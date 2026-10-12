@@ -51,9 +51,9 @@ how that cost spreads over volume.
 
 * **Ingestion cost at the sweet spot** — $24,875<!--FD37--> / 1M docs ᴱ at N=25. N=10 below it costs
   $44,707<!--FD76--> ᴱ, and every N above it costs more. On compute, Fargate for the same two
-  workers costs 0.69<!--FD161-->× the Spot nodes they ran on, before its image pulls (§4.4)
-* **Sustained query rate** — 1000 req/s\*, held for 1m45s at 30 TEI replicas and
-  0.02<!--FM62-->% errors. The full steady phase served 955<!--FM63--> req/s at 0.28<!--FM64-->%
+  workers costs 0.88<!--FD161-->× the Spot nodes they ran on, before its image pulls (§4.4)
+* **Sustained query rate** — 1000 req/s\*, held for 1m45s on 11<!--FM90--> TEI pods of 6 cores, with the
+  serving pool at its 100<!--FR38--> vCPU limit, and 0.02<!--FM62-->% errors. The full steady phase served 955<!--FM63--> req/s at 0.28<!--FM64-->%
   errors and misses the 0.1<!--FR29-->% error bound (`D15`). Without generation a query returns in ~40-60ms
   at p95 (§3.2)
 * **Retrieval cost** — $0.00375<!--FD65--> / 1k queries ᴰ marginal, read from the campaign's CUR
@@ -70,9 +70,10 @@ how that cost spreads over volume.
   replica count: 26 TEI replicas were needed for 2.60 docs/min at N=125, and docs/min was
   still climbing when testing stopped on cost. Raising it takes a rewrite of that loop, not larger
   pods.
-* **Qdrant is the query path's nearest ceiling, and it cannot scale out.** It reached 1.568<!--FM59--> of its 2<!--FR27-->-core limit, 78<!--FD137-->%, and two replicas
-  hold one shard at every rate. TEI touched 97.5% of its CPU limit in r1000 while it was still
-  scaling out, and more replicas relieved it.
+* **The serving pool reached its CPU limit at 1000 req/s, and Qdrant is the nearest ceiling behind it.**
+  The `apps-serving` NodePool sat at its 100<!--FR38--> vCPU limit in r1000, so TEI could not grow past
+  11<!--FM90--> pods (§2.3). Qdrant reached 1.568<!--FM59--> of its 2<!--FR27-->-core limit,
+  78<!--FD137-->%, and cannot scale out: two replicas hold one shard at every rate.
 * **The defects cost more than the sizing.** Errors found at rest recur at $175.85<!--FD35-->/month
   (§4.1). Right-sizing every line in the floor saves $139.80<!--FD138--> ᴱ, and $52.56 of that is
   the two Bedrock endpoints, which count as defects, so sizing alone saves $87.24<!--FD152--> ᴱ.
@@ -117,7 +118,7 @@ query-path finding holds for an idle ingestion path, because contention was not 
 
 - **Envelope** — `00-baseline` §2 Envelope
 - **Metric sources** — `00-baseline` §1 · `01-ingestion/metrics.md` · `02-inference` §1
-- **Autoscaling** — the Go API and TEI scale from two replicas each, their always-on minimum, under the triggers frozen in `00-baseline` §2. Every figure in this report is conditional on those triggers rather than on a replica count. On the ingestion path the ScaledJob max replicas is the swept axis N, so the indexer running at N is the design, not a ceiling. TEI stayed under its own max replicas there, 26 of 30 at N=125. TEI reached its `maxReplicaCount: 30` at r1000. `02-inference`'s validity rule excludes a point that sits at its ceiling, and this one is kept as the declared exception: TEI converged there and held the offered rate at the steady-state p95 with 0.02<!--FM62-->% errors (§3.2), so 30 replicas sufficed
+- **Autoscaling** — the Go API and TEI scale from two replicas each, their always-on minimum, under the triggers frozen in `00-baseline` §2. Every figure in this report is conditional on those triggers rather than on a replica count. On the ingestion path the ScaledJob max replicas is the swept axis N, so the indexer running at N is the design, not a ceiling. TEI stayed under its own max replicas there, 26 of 30 at N=125. At r1000 TEI ran on 11<!--FM90--> pods of 6 cores, the most the `apps-serving` NodePool could hold at its `cpu: 100` limit, which CloudTrail shows it reaching (100<!--FM92--> vCPU, `02-inference/data`). `02-inference`'s validity rule excludes a point that sits at its ceiling, and this one is kept as the declared exception: it held the offered rate at the steady-state p95 with 0.02<!--FM62-->% errors (§3.2), so 11 pods sufficed
 - **Shared embedding service** — TEI (`tei-embeddings`), one deployment serving both paths. Ingestion runs raise its replica count, and that cost is charged to ingestion in §4.2 after the always-on minimum is subtracted
 - **Worker packing density** — the ingestion pool is pinned to one Spot instance family, `c7g`, in three sizes (`xlarge`, `2xlarge`, `4xlarge`) so Karpenter can fall back when one Spot pool runs out of capacity. That gives ≈ 3–14 indexer pods per node, computed from frozen requests against allocatable, memory-bound, never observed live (`01-ingestion` §2). Every ingestion figure is conditional on this ratio
 - **Scalar quantization** — INT8 SQ is a fixed parameter, chosen for memory footprint. Its effect on retrieval quality is not measured and is not claimed either way
@@ -161,7 +162,8 @@ long that call takes, so the only way to go faster today is more pods.
 ### 3.2 Query path — sustained rate, latency and bottleneck
 
 Tested at 50, 200, 300, 500 and 1000 req/s. The query path held 1000 req/s\* for 1m45s at r1000
-(14:57:16–14:59:01Z, bold in the table), and no component hit a ceiling. Over the full steady
+(14:57:16–14:59:01Z, bold in the table). No component saturated, but the serving pool sat at its
+NodePool CPU limit, with TEI on 11 pods (§2.3). Over the full steady
 phase it served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, which misses the
 0.1<!--FR29-->% error bound (`D15`).
 
@@ -194,7 +196,7 @@ instead of `3 / 4`, so its cost is not part of the same trend as the other rows.
 | 200 | 192.5 (96%) | 2 / 7 | 2425 | **2150** | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> |
 | 300 | 296.4 (99%) | 3 / 11 | 2425 | **2060** | 0.20% avg / 2.75% peak | $0.00098<!--FD80--> |
 | 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | 7934 (window avg) / **2425 once scaled out** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> |
-| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 30 | 6378 (window avg) / **2425 once scaled out** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> |
+| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 11 | 6378 (window avg) / **2425 once scaled out** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> |
 
 ---
 
@@ -262,7 +264,7 @@ running.
 
 #### Per 1k queries at 1000 req/s, 24/7
 
-Retrieval costs about $0.0008<!--FE18--> ᴱ per 1k queries, ~$2,077<!--FE19--> ᴱ a month: the ten
+Retrieval costs about $0.0008<!--FE18--> ᴱ per 1k queries, ~$2,077<!--FE19--> ᴱ a month: the nine
 serving nodes that held 1000 req/s in r1000, $1.47<!--FM89-->/hour less the always-on pair the
 floor already pays for, plus cross-AZ transfer at the campaign's rate per query, with image pulls
 paid once instead of on every scale-out. Generation adds ~$0.51<!--FD39--> ᴱ per 1k,
@@ -331,39 +333,42 @@ fewer replicas, so its retrieval figure is less accurate.
 
 ### 4.4 Declined trade-offs
 
-#### Fargate instead of Karpenter Spot, ingestion
+#### Fargate instead of EC2 Spot nodes for ingestion
 
-The `apps-compute` pool runs only the ingestion workers, so its whole Spot bill belongs to
-ingestion: $1.0916<!--FM81--> for one run at N=25. The worker pods requested $0.2595<!--FD122--> of
-it, under a quarter. Fargate bills only each task's size, and the same pod-hours cost
-$0.7562<!--FD121--> at its on-demand rates, since EKS has no Spot option for Fargate
-(`01-ingestion/D29`, shared TEI excluded). On compute Fargate costs 0.69<!--FD161-->× the Spot
-nodes. It also removes node provisioning and Spot interruptions.
+Comparing Fargate at N=25, the ingestion pool's EC2 Spot nodes billed $0.8594<!--FM93--> for this
+run, instances alone. The worker pods requested $0.2595<!--FD122--> of it, which was 30<!--FD176-->%,
+and $0.5784<!--FM94-->, 67<!--FD177-->%, was capacity no pod requested. Fargate bills per pod,
+so the same pod-hours cost $0.7562<!--FD121--> at its on-demand rates, which is 0.88<!--FD161-->× the Spot nodes.
+It also removes node provisioning and Spot interruptions, but in exchange, it downloads the image once per task,
+and each Job is a task, while node downloads each image once per node and caches it.
 
-Image pulls are priced on neither side. Spot pulls once per node, on 10<!--FM84--> nodes at N=25,
-and NAT billed $1.3823<!--FM82--> for that run, almost all of it node bootstrap (`01-ingestion`
-Notes #08). Fargate pulls once per task, 58<!--FM83--> times, and bills the pull time as task time.
-Which side the pulls favour depends on image size. The record does not keep it, because both images
-are tagged `latest`. Spot stays until the pulls are priced.
+The n25 run created 58<!--FM83--> jobs, so technically fargate would pull images 3-6 times more times, but Fargate
+skips node bootstrap. But with instances that match the pods, sized the way §4.1 sizes the floor, Fargate loses: the
+same run on `m7g.xlarge` would cost about $0.55<!--FE20--> ᴱ, so Fargate would cost
+1.4<!--FE21--> ᴱ times more, though it stays a reasonable option.
 
 #### VPC endpoint instead of the NAT gateway, query path
 
-Bedrock traffic leaves through the NAT gateway, which Block A already pays for. At a reference
-1,000,000<!--FE14--> queries a month, that network costs $0.59<!--FD53--> ᴱ, 0.12<!--FD55-->% of
-generation. An interface endpoint costs $26.28<!--FD48-->/month for three ENIs at any traffic and
-charges $0.01<!--FR15-->/GB against the NAT's $0.052<!--FR4-->. It pays back at
-625.71<!--FD49--> GB a month, 54,854,311<!--FD50--> ᴱ queries, 55× the reference. It also needs a
-model served in `eu-central-1`, where the endpoint sits. The current model is listed only in US
-regions, so the client calls `us-east-1` through NAT under TLS and IAM. Byte figures are estimates
-(`02-inference/K4`).
+Every Bedrock call leaves the VPC through the NAT gateway, which charges $0.052<!--FR4--> per GB
+it processes. An interface VPC endpoint charges $0.01<!--FR15-->/GB, but it also costs
+$26.28<!--FD48-->/month for its three ENIs, one per AZ, whether or not any traffic passes.
+
+The endpoint pays back once the per-GB saving covers that fixed fee, at 625.71<!--FD49--> GB a
+month. One query moves ~11.4 KB ᴱ through the NAT (`02-inference/K4`), so the crossover is
+~54,854,311<!--FD50--> ᴱ queries a month, about 21 req/s ᴱ sustained. At the reference volume of
+1,000,000<!--FE14--> queries the NAT costs $0.59<!--FD53--> ᴱ a month, 0.12<!--FD55-->% of
+generation, and the crossover sits 55× above it.
+
+However, besides the cost, the endpoint reaches Bedrock in `eu-central-1` only, and the current
+model is served only in US regions. So such change would also require to change a model to one,
+that in `eu-central-1` first.
 
 ## 5. Guardrails
 
 ### 5.1 Memory limits
 
-The peaks are `container_memory_working_set_bytes`, the metric the kubelet reads for
-an OOM decision, taken per pod at its maximum over each point's window (`01-ingestion/M7` ·
-`02-inference/Q8`, with `M8` = 0 by live observation).
+Peak is each pod's highest `container_memory_working_set_bytes` in the window, the value the kubelet compares
+with the limit before an OOM kill (`01-ingestion/M7` · `02-inference/Q8`).
 
 | Component | Keep | Peak working set | Limit ÷ peak | Enforced in | Comment |
 | :--- | :--- | ---: | ---: | :--- | :--- |
@@ -374,42 +379,34 @@ an OOM decision, taken per pod at its maximum over each point's window (`01-inge
 
 ### 5.2 Max replicas
 
-All three settings are max replicas. On the ingestion path the ScaledJob setting is the axis itself,
-and TEI peaked at 26 of its 30. TEI reached its max only at r1000, the declared exception (§2.3).
+All three settings are max replicas. On the ingestion path
+the ScaledJob setting is the axis itself, and TEI peaked at 26 of its 30 replicas. On the query path
+the pool's CPU limit was reached before TEI's max: at r1000 TEI ran on 11 pods (§2.3).
 
 | Setting | Keep | Observed | Enforced in | Comment |
 | :--- | :--- | :--- | :--- | :--- |
-| Ingestion concurrency, both ScaledJobs | `maxReplicaCount: 20` ᴱ | chunker never above ~20 at any N. The N=25 sweet spot held a time-weighted mean of 19.5 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`, committed 2026-09-19, applies at the next cluster bootstrap | N is max replicas, not observed concurrency (§3.1). No point separates 20 from 25, and the corpus sets both the ~20 ceiling and this guardrail |
+| Ingestion concurrency, both ScaledJobs | `maxReplicaCount: 20` ᴱ | chunker never above ~20 at any N. The N=25 sweet spot held a time-weighted mean of 19.5 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`, committed 2026-09-19, applies at the next cluster bootstrap | No point separates 20 from 25, it based on estimate |
 | Go API replicas | `maxReplicaCount: 10` | 6 at r1000 | `api-scaler` | Sufficiency above 1000 req/s\* is untested |
-| TEI replicas | `maxReplicaCount: 30` | 30 at r1000, at max | `tei-embeddings-scaler` | Full and sufficient at 1000 req/s\* (§2.3). Above 1000 req/s max replicas binds first, then the account's Spot vCPU quota (`L-34B43A08`=256), whose ceiling depends on the per-pod request (`00-baseline` §2) |
+| TEI replicas | `maxReplicaCount: 30` | 11 at r1000, 6 cores each | `tei-embeddings-scaler` | The serving pool's CPU limit stops TEI first. 11 pods held 1000 req/s\* (§2.3) |
+
+The `apps-serving` NodePool keeps `limits: cpu: 100`, during testing reached it at r1000 and at N=125, and it
+was enough for both.
 
 ### 5.3 Alerts, topology and spend
 
 - **Karpenter node consolidation delay — keep `consolidateAfter: 5m` under `WhenEmpty`, and do not lower it for cost**
 
-  Karpenter's default, `0s` under `WhenEmptyOrUnderutilized`, removes ingestion nodes in the gaps
-  between short-lived Job pods. A shorter delay is the obvious lever against the consolidation
-  tail, but 30s broke scheduling here, so every point ran on `5m`.
+Karpenter by default has configured with `0s` under `WhenEmptyOrUnderutilized` and for this setup a node would be empty
+for a moment between Job started. Karpenter reads it as idle and removes a node the next pod was about to use. A
+`5m` delay would fix that consolidation issue, so better to not reduce.
 
-- **TEI at max replicas — alert when `tei-embeddings` replicas equal `maxReplicaCount: 30`**
+- **Serving pool full — alert when `tei-embeddings` pods stay Pending, or `apps-serving` reaches its `cpu: 100` limit**
   §3.2 · §2.3 → `prometheus/rules.yaml`
 
-  At r1000 TEI needed all 30 replicas, so at max replicas it cannot absorb more load, and no run has
-  measured what happens past that point. The response is a higher max and more Spot vCPU quota.
-
-- **No interface VPC endpoints for Bedrock — revisit above 54,854,311<!--FD50--> ᴱ queries/month**
-  §4.4 · `ADR-0018` → `terraform/vpc.tf`, removed 2026-09-28
-
-  Below that volume an endpoint costs more than the NAT it replaces, against a reference volume of
-  1,000,000<!--FE14-->. The crossover is estimated (`02-inference/K4`), so read it as an order of
-  magnitude.
+At r1000 the pool set at its limit and TEI could not grow past 11 pods(applicable for tei `cpu 6 / 8`).
+The response is a higher NodePool limit and, past 256 vCPU, more Spot vCPU quota.
 
 - **Budget alarm — $1,032.84<!--FD56--> ᴱ/month**
 
-  Right-sized Block C, $737.74<!--FE11--> ᴱ, × 1.4 for headroom.
-
-  - Creating the alarm in Terraform is tracked as `docs/tech-debt.md` #11.
-  - An AWS budget is account-level and sees Block A and the errors at rest too, so a threshold
-    taken from Block B alone would trip the day it is set.
-  - Block B is the better base, but scoping a budget to it needs a block tag or cost category
-    (`docs/tech-debt.md` #13). Until then the alarm watches Block C.
+Right-sized Block C, $737.74<!--FE11--> ᴱ, × 1.4 for headroom. However, Block B is the better base, but scoping
+a budget to it needs a block tag or cost category(`docs/tech-debt.md` #13).
