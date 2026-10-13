@@ -2174,7 +2174,7 @@ figures:
     unit: usd_per_month
     source: what right-sizing the whole floor saves, against which the recurring errors are measured
     group: totals
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-14: the defects-versus-sizing point left the BLUF; 4.1 and tech-debt #11 carry the reasoning
 
   node_cost_hour:
     ref: FD129
@@ -2499,7 +2499,7 @@ figures:
     display: 3
     source: the arrival rate a 10k-query month implies, sustained
     group: amortization
-    appears_in: [report.md]
+    # report.md dropped from appears_in 2026-10-14: report.md 4.3 no longer prints the rates behind its volume rows
 
   rate_at_100k:
     ref: FD147
@@ -2508,7 +2508,7 @@ figures:
     unit: requests_per_second
     display: 2
     group: amortization
-    appears_in: [report.md]
+    # report.md dropped from appears_in 2026-10-14: report.md 4.3 no longer prints the rates behind its volume rows
 
   rate_at_1m:
     ref: FD148
@@ -2526,7 +2526,7 @@ figures:
     unit: requests_per_second
     display: 1
     group: amortization
-    appears_in: [report.md]
+    # report.md dropped from appears_in 2026-10-14: report.md 4.3 no longer prints the rates behind its volume rows
 
   rate_at_500m:
     ref: FD150
@@ -2535,7 +2535,7 @@ figures:
     unit: requests_per_second
     display: 0
     group: amortization
-    appears_in: [report.md]
+    # report.md dropped from appears_in 2026-10-14: report.md 4.3 no longer prints the rates behind its volume rows
 
   rate_at_1b:
     ref: FD151
@@ -2544,7 +2544,7 @@ figures:
     unit: requests_per_second
     display: 0
     group: amortization
-    appears_in: [report.md]
+    # report.md dropped from appears_in 2026-10-14: report.md 4.3 no longer prints the rates behind its volume rows
 
   # --- added 2026-10-03 with the b4 and b7 fixes ---
 
@@ -2559,7 +2559,7 @@ figures:
       tech-debt #5 removes for a different reason (#12 calls the control-plane one a defect and
       ADR-0018 withdraws the runtime one). The full gap, rightsize_fixed_saving, carries both
     group: attribution
-    appears_in: [report.md]
+    # appears_in dropped 2026-10-14: the defects-versus-sizing point left the BLUF; 4.1 and tech-debt #11 carry the reasoning
 
   tei_apportioned_above_min_per_run:
     ref: FD153
@@ -2779,7 +2779,7 @@ figures:
     source: >-
       CUR actual, the NAT gateway's line items in the n25 hour (both byte legs plus regional transfer), pulled 2026-09-05; 01-ingestion Notes, CUR table. Over 99% of the window's inbound bytes fell in the node-bootstrap minutes (Notes #08)
     group: fargate
-    appears_in: [report.md]
+    # report.md dropped from appears_in 2026-10-14: report.md 4.4 no longer prints the n25 NAT bill
 
   worker_jobs_n25:
     ref: FM83
@@ -3224,4 +3224,14 @@ figures:
     unit: ratio
     display: 1
     group: fargate
+    appears_in: [report.md]
+
+  query_marginal_per_1k:
+    ref: FD179
+    kind: D
+    formula: query_marginal_per_query * 1000
+    unit: usd_per_1k_queries
+    display: 2
+    source: the per-query marginal, retrieval plus generation, per 1k queries for the BLUF
+    group: amortization
     appears_in: [report.md]

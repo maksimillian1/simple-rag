@@ -165,8 +165,8 @@ deck are where they are used.
 | §1 BLUF | verbatim, four figures | — |
 | §1 What the measurements settled | verbatim — this is the article's spine | `tradeoff-jobs` for the fourth finding |
 | §1 Verdict | conclusion — the three conditions, not the row-by-row reasoning | — |
-| §2.1, §2.2 | conclusion — fixture, denominator, window | — |
-| §2.3 | dropped, except the shared embedding tier and packing density | — |
+| §2.2, §2.3 | conclusion — fixture, denominator, window | — |
+| §2.1 | dropped, except the shared embedding tier and packing density | — |
 | §3.1 | verbatim finding | matrix → `frontier-jobs` plus three lines |
 | §3.2 | folded into §3.1 | — |
 | §3.3 | verbatim | table → prose |
