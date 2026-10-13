@@ -2,7 +2,7 @@ meta:
   updated: 2026-09-19
   capture_hour: 2026-09-04T18:00Z
   method: >-
-    methodology.md §9, "Cost calculation approach (AWS)". Spot: the Floor's resting hour
+    methodology.md §8, "Cost calculation approach (AWS)". Spot: the Floor's resting hour
     is 09-04, the campaign's is 09-05
   cur: >-
     s3://simple-rag-cur-reports-883f615c/cur2/simple-rag/simple-rag-cur/data/BILLING_PERIOD=2026-09/
@@ -1607,7 +1607,6 @@ figures:
     source: the 730-hour month every monthly figure in this report projects to, in seconds
     group: amortization
     appears_in: [report.md]
-    group: amortization
 
   crossover_rate:
     ref: FD143
@@ -2021,7 +2020,7 @@ figures:
     source: >-
       every ordinary row billed in the Floor's resting hour, 2026-09-04 18:00-19:00Z, summed from
       data/idle-2026-09-04T1800.csv (118 rows; the 134 split-cost children are excluded as they are
-      in the Floor, methodology.md §9). M2's denominator. Re-pulled 2026-09-26; the first reading was
+      in the Floor, methodology.md §8). M2's denominator. Re-pulled 2026-09-26; the first reading was
       over the 13:00 bootstrap hour, which no figure rests on
     group: attribution
     appears_in: [executions/00-baseline/index.md]
@@ -2060,7 +2059,8 @@ figures:
     display: 1
     source: M2 itself - a reading, not a gate; the < 5% threshold it used to carry was removed 2026-09-26
     group: attribution
-    appears_in: [report.md, executions/00-baseline/index.md]
+    # report.md dropped from appears_in 2026-10-13: the untagged-lines paragraph and its Coverage row left report.md 4.1
+    appears_in: [executions/00-baseline/index.md]
 
   untagged_share_ex_logs:
     ref: FD127
@@ -2072,7 +2072,8 @@ figures:
       M2 net of the vended-log defect, which is what says the rise from the bootstrap hour's 14.3%
       is a defect entering the numerator rather than a tagging regression
     group: attribution
-    appears_in: [report.md, executions/00-baseline/index.md]
+    # report.md dropped from appears_in 2026-10-13: the untagged-lines paragraph and its Coverage row left report.md 4.1
+    appears_in: [executions/00-baseline/index.md]
 
   feature_fill_rate:
     ref: FD128
@@ -2227,7 +2228,8 @@ figures:
       over-provisioning the right-sized floor removes, measured from the billing side rather than
       from observed working sets
     group: utilisation
-    appears_in: [report.md, executions/00-baseline/index.md]
+    # report.md dropped from appears_in 2026-10-13: the idle-at-rest sentence left report.md 4.1
+    appears_in: [executions/00-baseline/index.md]
 
   # --- group steady_state: added 2026-10-03, b3 ---
   # The hold windows and their surrounding phases, read sample by sample from each

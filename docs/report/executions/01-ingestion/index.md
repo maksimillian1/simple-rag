@@ -15,7 +15,7 @@
 
 - **Varied parameter** — KEDA `maxReplicaCount` (N), one value on both ScaledJobs, in `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`. Fixing one stage while sweeping the other makes the fixed stage the ceiling by construction, and the hypothesis names a stage. The split between them comes from M6 → K7
 - **Candidate grid** — N ∈ {4, 24, 50, 100, 125, 175}, revised from the original {4,8,12,16,20,24}. `ingestion-n50-test` (§2 Journal) showed the indexer still at its full N=50 ceiling with no plateau (M5: 50/50 concurrent, against the chunker's 20/50), so the original top of 24 would never have found the indexer's knee. Ceiling raised to 175 against the new Spot quota (192, up from 96), leaving headroom for TEI
-- **Sweep order** — coarse to fine: {4, 50, 175}, then refinement points placed by the shape those three produce (`docs/report/methodology.md` §7). `ingestion-n50-test` already covers the N=50 point
+- **Sweep order** — coarse to fine: {4, 50, 175}, then refinement points placed by the shape those three produce (`docs/report/methodology.md` §6). `ingestion-n50-test` already covers the N=50 point
 - **Held constant** — image digests, corpus (`zabiullah/pdf-books-collection`, **stratified 100-file / 1.38 GB sample**, drawn from the full 1,041-PDF / 14.52 GB set; Notes), Qdrant collection config, instance types, the TEI trigger, and every row of `00-baseline` §2 Configuration freeze. The config commit moves between points: the swept value lives in Git
 - **Not held constant, and measured instead** — TEI replicas. The indexer drives the same autoscaler the query path drives, so TEI scales during a run and its cost above the two-replica floor belongs to this execution → K5
 - **Reset between points** — both queues at zero, `apps-compute` at zero nodes, TEI back at 2 replicas, collection recreated
@@ -470,7 +470,7 @@ points). It is the first snapshot this project has taken; the CronJob in
 - [x] CUR-based `D23` (TEI above floor, net): closed 2026-09-19. The missing piece was the floor rate itself, not the gross. Each run day's own resting hour supplies it ($0.37940<!--FM1-->/h on 09-04, $0.18480<!--FM13-->/h on 09-05), so the two-replica floor now nets out per point.
 - [x] Re-checked the CUR pull after 48h (2026-09-07): N=25/50/75/125 unchanged from the ~24h read, no credits or true-ups.
 - [x] Declared not made: `D30` was never defined in `00-baseline` or `report.md`, so `M18` has nothing to compare against (§3 Sizing check). `M18` itself was captured 2026-09-05 against the live collection and is kept in `./data/m18-qdrant-working-set.json` for whenever `D30` exists.
-- [x] Collection point count written back into `00-baseline` §2 Envelope: 84,018, done 2026-09-09.
+- [x] Collection point count written back into `00-baseline` §2 Scope: 84,018, done 2026-09-09.
 - [x] Every figure in §3 marked, per `docs/report/formats.md` Scope, which is what the registry claims through `appears_in`. The M12 decomposition table is the one deliberate exception: its cells are a CUR dump whose read is described in `data/m12-eks-split.json`, and only the **workload total** column is registered (`FM51`-`FM55`). Registering the other 35 would buy nothing while no section quotes them; the three §4.4 does quote are registered.
 - [x] Outcome compared against Expected in Retro, inversion included (Retro, first bullet).
 
@@ -545,7 +545,7 @@ cluster is gone) would turn this into a confirmed reading.
 - **Sweet spot** — N=25, the minimum `$/1M docs` ($24,875<!--FD75-->) among all five points, N=10 included.
   N=10's real cost ($44,707<!--FD76-->) is *higher*, and the NAT re-check shows that is a genuine reading of
   N=10's economics (low throughput keeps the fixed per-hour costs running longer), not a corrupted
-  one. Landing on the lowest clean N swept is the case `docs/report/methodology.md` §7 flags as unproven: the
+  one. Landing on the lowest clean N swept is the case `docs/report/methodology.md` §6 flags as unproven: the
   true minimum could sit below 25 (untested), or N=10 could already be past it and rising, which
   its real number now suggests
 - **Waste boundary** — N=75, where `$/run` rises 35% for a 2.6% docs/min gain over N=50. It is the
@@ -553,7 +553,7 @@ cluster is gone) would turn this into a confirmed reading.
 - **Gap cost** — $19,460<!--FD77--> extra per 1M docs paid running at the knee (N=50, $44,335<!--FD74-->) instead of
   the sweet spot (N=25, $24,875<!--FD75-->) → report §3.3
 - **Reference value** — no pre-sweep default `maxReplicaCount` was frozen for this parameter. This is its first exploration, so there is nothing to compare against. Fargate equivalent (D29): computed at N=25 — $0.7562<!--FD121--> against $0.2595<!--FD122--> on Spot for the two workers (§3 D29, report §4.4)
-- **Condition boundary** — `00-baseline` §2 Envelope, plus packing density, bulk-drop arrival and the TEI trigger
+- **Condition boundary** — `00-baseline` §2 Scope, plus packing density, bulk-drop arrival and the TEI trigger
 - **Raw data** — `./data/⟨point⟩.jsonl`, `⟨point⟩.cost-estimate.json` and `⟨point⟩.meta.json` per point, plus `series.txt`, the collection configs and the upload logs. The Matrix is built directly from them
 
 ### M12 — split-cost decomposition by workload

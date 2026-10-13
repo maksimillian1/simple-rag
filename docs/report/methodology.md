@@ -1,12 +1,10 @@
 <!--
 Vendored from report-kit — do not edit here.
 Source: src/report_kit/templates/methodology.md
-Version: v0.3.2 — the tag pinned in requirements.txt, so the cited section numbers and the
+Version: v0.3.3 — the tag pinned in requirements.txt, so the cited section numbers and the
 checker that enforces them name the same release. The body is byte-identical to that tag's
-template. No local divergence: the two subsections this report added, §2 "Data files hold
-readings, not results" and §9 "Cost calculation approach (AWS)", are in the template as of
-v0.3, so re-copying no longer drops anything.
-Vendored: 2026-10-03
+template.
+Vendored: 2026-10-13
 Edit upstream and re-copy. The report cites section numbers, and an upstream edit renumbers them.
 -->
 
@@ -17,28 +15,11 @@ Basic filling logic is in `README.md`.
 
 ---
 
-## 1. One report, one question
+## 1. Each flow is a separate execution, and a report has at least one
 
-A report is defined by the decision it supports, not by the ground it covers. One subject,
-one document, however many executions it took to measure.
-
-The failure mode is splitting it by measurement campaign: "Part 1: ingestion", "Part 2:
-queries". Each half then answers half a question, neither is publishable alone, and the
-second half never ships. Areas not yet measured belong in the coverage register (§11), not
-in a separate document.
-
-**The section list is fixed by the template; what varies is which sections have material.**
-A report with three of eight sections filled is a complete report with declared coverage,
-not a draft.
-
-| | Report | Article or talk |
-| :--- | :--- | :--- |
-| Boundary | the whole subject, coverage stated | one finding, told well |
-| Audience | decision makers, and the author in a year | the public |
-| Lifetime | revisions | once |
-
-The article does not have to cover the whole report, and nobody notices that it did not.
-Confusing the two is what turns a finished measurement into an unpublished one.
+Each flow a report measures, such as an API load test or async jobs, runs as its own execution,
+and the report brings them together instead of splitting into one document per flow. Sections
+with no material are left out and declared in Coverage.
 
 ---
 
@@ -153,29 +134,7 @@ author saw, read as commentary written on a date.
 
 ---
 
-## 3. An execution is the unit of work, not of publication
-
-Where a result lands is decided at Close, against the finished report:
-
-| Destination | When |
-| :--- | :--- |
-| the whole report | it is the only execution |
-| a report section, table inline | significant, and it fits |
-| a benchmark, cited from a section | too detailed for the report, or needed as the regression unit |
-| the givens | it is a constant with two or more consumers |
-| **nothing** | measured, and insignificant against the rest, or the hypothesis did not hold |
-
-**"Insignificant" is a finding.** A module worth a few percent of cost has earned its way
-*out* of an executive report, and the run is what proved it. The record stays in the
-execution; the coverage register carries the result so the question is not re-asked next
-revision.
-
-**Every execution that ran is named in the report header**, `abandoned` ones included. An
-execution that disappears takes with it the evidence that the question was ever asked.
-
----
-
-## 4. Start minimal, promote on the second consumer
+## 3. Start minimal, promote on the second consumer
 
 One function, one run, one report is the default shape. Everything else appears when a
 second consumer forces it:
@@ -197,7 +156,7 @@ building the full tree for a report that turns out to need one run.
 
 ---
 
-## 5. What makes a figure credible
+## 4. What makes a figure credible
 
 Five properties. A figure missing any of them will be questioned, and the question will be
 correct.
@@ -210,7 +169,7 @@ by each run. Both are denominators. What must not vary is the definition of the 
 
 > **One denominator per cost curve, not per report.** A second unit appears only for a
 > physically different path: ingestion priced per document, queries per query. Then each
-> unit gets its own contract block and its own tables, and no table, chart or headline row
+> unit gets its own block in Test Setup & Scope and its own tables, and no table, chart or headline row
 > mixes them. A conversion between the two is never published: it depends on an arrival
 > ratio nobody measured. Two denominators over the *same* path is the failure.
 
@@ -246,7 +205,7 @@ in a cell, and `report-kit charts --format` the shape of the file.
 
 ---
 
-## 6. Recorded before, not after
+## 5. Recorded before, not after
 
 Some things cannot be reconstructed once the moment passes. They are the only urgent
 items in any project.
@@ -296,29 +255,9 @@ same reason an execution has no opening checklist: its preparation is fields (`E
 the record it was there to make. A baseline does have one, because its preflight produces files
 and external state that no field in the document would reveal as missing.
 
-### What the tooling holds, and what it does not
-
-Two of the unrecoverable classes are mechanical enough to be enforced rather than remembered,
-and the runner enforces them. A window comes from the process that applied the load, so it is
-observed rather than reconstructed from memory. Export happens at each point's close rather
-than being batched toward the end, and a series that came back empty exits non-zero. A
-retention gap is then loud on the day it happens, when the window can still be re-exported,
-instead of at Close, when it cannot.
-
-A third is recorded rather than enforced: each point carries the `kit_version` that
-produced it, because the measurement tooling is a dependency with a life of its own and
-nothing else in the record would say which code produced the numbers.
-
-`Signal` is deliberately not among them. What the instruments showed is a judgement, not a
-reading, and a tool that inferred it would produce a confident sentence nobody checked. The
-runner records only what the judgement is made from, and stops there: the peak,
-whether a configured ceiling was touched, which tier never left its floor. The column
-belongs to the author and is filled while the run is live. A blank cell is visible; an
-inferred one is not.
-
 ---
 
-## 7. Sweep coarse to fine
+## 6. Sweep coarse to fine
 
 When the finding is a curve, do not sweep linearly. Take the two ends of the range and one
 point between them first, then place the rest by the shape those three produce.
@@ -334,7 +273,7 @@ it on the third run, and reads as a refinement pass rather than a mistake.
 
 ---
 
-## 8. Constraint ladders
+## 7. Constraint ladders
 
 A ladder is the order in which ceilings are hit. A tier counts as proven only when the
 previous one was **actually relieved** and a new saturation was then observed, never
@@ -351,7 +290,7 @@ block, and you add the second only after it exists.
 
 ---
 
-## 9. Cost has exactly two terms
+## 8. Cost has exactly two terms
 
 ```
 Cost = Floor + ( Marginal_per_unit × Volume )
@@ -400,7 +339,7 @@ exists regardless, the alternative is a different mode on the same platform.
 
 ---
 
-## 10. Guardrails, not recommendations
+## 9. Guardrails, not recommendations
 
 A recommendation is prose and gets forgotten. A guardrail is a config value, sourced from a
 number in the report, that can be committed to a file.
@@ -410,7 +349,7 @@ number does not survive the runs are deleted, not left blank.
 
 ---
 
-## 11. Declared scope beats silent omission
+## 10. Declared scope beats silent omission
 
 Every report has boundaries. Stating them is what separates an engineering document from a
 student one.
@@ -428,12 +367,12 @@ answer half a question. An execution that ran and proved insignificant is a row 
 with its finding: "measured, contributed under n % of cost, omitted" is a result, and it
 stops the question being asked again next revision.
 
-One structure that works: `Area | Status | Evidence`, where for an uncovered row's, evidence would say in
-one clause why it could be important.
+One structure that works: `Area | Status | Evidence`. For a row that is not covered, Evidence says
+in one clause why the area could matter.
 
 ---
 
-## 12. Revisions, not parts
+## 11. Revisions, not parts
 
 A report is reissued, not extended. Each revision carries `Supersedes` and a one-line
 `Changes` summary: the two lines a returning reader actually reads.
@@ -449,7 +388,7 @@ never compared to each other.
 
 ---
 
-## 13. Where a sentence lives
+## 12. Where a sentence lives
 
 The kit's own failure mode is instruction leaking into the deliverable. One test:
 

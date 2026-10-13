@@ -1,9 +1,10 @@
 <!--
 Vendored from report-kit — do not edit here.
 Source: src/report_kit/templates/formats.md
-Version: v0.3.2 — the tag pinned in requirements.txt, so the text and the checker that
-enforces it name the same release. The body is byte-identical to that tag's template.
-Vendored: 2026-10-03
+Version: v0.3.3 — the tag pinned in requirements.txt, so the cited section numbers and the
+checker that enforces them name the same release. The body is byte-identical to that tag's
+template.
+Vendored: 2026-10-13
 Edit upstream and re-copy. The report cites section numbers, and an upstream edit renumbers them.
 -->
 

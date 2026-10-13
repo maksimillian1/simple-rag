@@ -61,7 +61,7 @@ GATES = [
 ]
 
 # Retrieval latency is a function of what is indexed. Written back from
-# 01-ingestion into 00-baseline §2 Envelope.
+# 01-ingestion into 00-baseline §2 Scope.
 MIN_COLLECTION_POINTS = 0          # <-- set from 00-baseline §2 before freezing
 
 # The served rate must track the offered rate, or the generator queued its own

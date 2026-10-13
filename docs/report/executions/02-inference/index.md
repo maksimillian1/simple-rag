@@ -15,7 +15,7 @@
 
 - **Varied parameter** — offered arrival rate R in requests per second, set at the load generator with `--rate`. Nothing inside the cluster is edited between points
 - **Candidate grid** — R ∈ {5, 25, 50, 100, 200}
-- **Sweep order** — coarse to fine: {5, 50, 200}, then two refinement points placed around wherever p95 first approaches the target (`docs/report/methodology.md` §7). Five points total
+- **Sweep order** — coarse to fine: {5, 50, 200}, then two refinement points placed around wherever p95 first approaches the target (`docs/report/methodology.md` §6). Five points total
 - **Held constant** — image digests, the restored collection, Qdrant collection config, the Bedrock stub delay, both scaler triggers and thresholds, `minReplicaCount`, instance types, and every row of `00-baseline` §2 Configuration freeze
 - **Not held constant, and measured instead** — API and TEI replicas, and the nodes under them. The autoscaler is the system under test → K2
 
@@ -318,7 +318,8 @@ the lower-rate points and stayed there for 1m45s. **1000rps is reachable at stea
 disorder in the average is the ~4 minutes KEDA and Karpenter needed to scale `tei-embeddings` from
 2 pods to 11. TEI stopped at 11 because the `apps-serving` NodePool reached its `cpu: 100` limit
 (CloudTrail, `./data/cloudtrail-*-2026-09-04_05.json`, peak 100 vCPU), and a 6-core pod fits twice
-on a c5.4xlarge, once on a 2xlarge and not at all on an xlarge. Two
+on a c5.4xlarge, once on a 2xlarge and not at all on an xlarge. KEDA still raised the deployment to
+30<!--FM91-->, so `Q5` reads 30 against the 11<!--FM90--> pods with CPU series in `Q7`. Two
 corrections to the earlier read of this point. The hold is 1m45s, not five minutes: the flat
 shape starts at `14:57:16`, not at 14:56, and a 45-second excursion at `14:59:16` drops
 served to 760–885 req/s at ~1.2% errors on the same 11 pods — so the phase as a
@@ -448,7 +449,7 @@ exclude generation, stubbed at a fixed 2000ms (`mock_delay_ms`, confirmed live, 
   cores; `tei-embeddings-scaler` same shape at threshold `1.5` cores (both confirmed live via
   `kubectl get scaledobject -o yaml`); the stubbed generation path; the restored
   (reloaded, see `01-ingestion/#10`) collection; generator placement outside the VPC via the NLB;
-  `00-baseline` §2 Envelope
+  `00-baseline` §2 Scope
 - **Raw data** — `./data/⟨point⟩.jsonl`, `⟨point⟩.cost-estimate.json`,
   `⟨point⟩.meta.json`, `⟨point⟩.point.md` and `⟨point⟩.generator.log` per point, plus
   `series.txt`. The Matrix is built directly from them
