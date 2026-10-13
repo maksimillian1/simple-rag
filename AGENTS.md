@@ -119,8 +119,7 @@ in this repository where prose is load-bearing.
   compress and drop rather than to restate, and `report.md` stays the authority on every
   claim. It carries the same figure marks and sits in the registry's `scan`, so a figure that
   changes moves both documents or fails the check, and `docs/report/scripts/render_article.py` - not a
-  paste - produces what gets published. The decision is `docs/report/tasks.md` D10, what it
-  keeps and drops is §0.8.
+  paste - produces what gets published.
 * **`formats.md`** is the contract for how a number is written and marked.
 * **`methodology.md`** is why the structure is shaped this way. Both are vendored from
   report-kit and carry a provenance header — edit upstream, not here.

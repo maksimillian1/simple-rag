@@ -17,8 +17,8 @@ meta:
     asserts what report.md does not. It is in this scan, so every number it prints carries the same
     mark and resolves from here - a figure that changes moves both documents or fails check.
     docs/report/scripts/render_article.py strips the marks into rendered/article.md and refuses while check is
-    dirty; the published text is always that render. What it keeps, compresses and drops: tasks.md
-    D10 and the mapping in tasks.md 0.8
+    dirty; the published text is always that render. What it keeps, compresses and drops follows
+    AGENTS.md section 7
   naming: name a figure after what it is, not after how it was produced. A leaf carries the metric ref when the report has one (m9_gross_r050), otherwise the resource (serving_nodes). A per-point figure ends in the point id (_r050, _n25), a per-day one in the date (_0905). Groups are named by subject, not by date. Two authors without this rule produced serving_gross_r050 and m9_gross_r050 for the same number on 2026-09-21; the m9_ form won because the report cites M9
 
 scan:
@@ -2281,7 +2281,8 @@ figures:
       mean of Q1 over r1000's whole steady phase, 14:57:16-15:01:01Z: 11 tei-embeddings pods running to the
       generator stall. Pulled down by a 45s excursion at 14:59:16-15:00:01 (760-885 req/s)
     group: steady_state
-    appears_in: [report.md, executions/02-inference/index.md]
+    # report.md dropped from appears_in 2026-10-14: the BLUF and 3.2 state the 1m45s hold, not the whole-phase rate
+    appears_in: [executions/02-inference/index.md]
 
   r1000_phase_err:
     ref: FM64
@@ -3233,5 +3234,25 @@ figures:
     unit: usd_per_1k_queries
     display: 2
     source: the per-query marginal, retrieval plus generation, per 1k queries for the BLUF
+    group: amortization
+    appears_in: [report.md]
+
+  queries_at_half_floor_m:
+    ref: FD180
+    kind: D
+    formula: queries_at_half_floor / 1000000
+    unit: million_queries_per_month
+    display: 2
+    source: the query crossover in millions, printed at the precision its estimated inputs support
+    group: amortization
+    appears_in: [report.md]
+
+  endpoint_breakeven_queries_m:
+    ref: FD181
+    kind: D
+    formula: endpoint_breakeven_queries / 1000000
+    unit: million_queries_per_month
+    display: 0
+    source: the VPC endpoint crossover in millions, printed at the precision its estimated inputs support
     group: amortization
     appears_in: [report.md]

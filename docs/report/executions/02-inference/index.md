@@ -120,7 +120,7 @@ its own clean hour if a per-point CUR cost matters for it.
 
 ### Safeguards
 
-- **Estimated cost and duration** — 5 points × ⟨wall time⟩ · ⟨$⟩ ᴱ, spaced by convergence (revised 2026-09-05), so wall time is 5× (convergence wait + window length + scale-down) and not 5 hours
+- **Estimated cost and duration** — 5 points, which took 4<!--FR22--> hours and $5.33<!--FD89--> gross (campaign CUR, §3), spaced by convergence (revised 2026-09-05), so wall time is 5× (convergence wait + window length + scale-down) and not 5 hours
 - **Abort condition** — the generator saturates before the system at the lowest rate that shows any latency rise. The measurement is then about the generator, and continuing produces a number about the wrong machine
 
 ---
@@ -508,7 +508,7 @@ their sum is the cost of running this campaign.
 
 Not attempted: the cluster was torn down before it ran, and `report.md` Coverage marks it
 "declared, not measured" for v1.0. The plan was to repeat the point nearest D15 with ingestion
-running at the `01-ingestion` guardrail value (N=50, per that execution's Guardrails). Qdrant
+running at the `01-ingestion` guardrail value, now N=20 (it was N=50 when this was planned). Qdrant
 serves both paths from one node and one process, and TEI from one deployment, so a query run
 against an idle ingestion path measures a state the system is not in during a backfill. Upsert
 builds HNSW links on the cores that serve search, the optimizer keeps rebuilding segments after

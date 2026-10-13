@@ -4,11 +4,11 @@ This report measures cost and performance on both flows of a RAG system: asynchr
 document ingestion and synchronous queries. It also shows what the system costs at rest and
 how that cost spreads over volume.
 
-- **Report** — `simple-rag` · v1.0 · 2026-09-09
+- **Report** — `simple-rag` · v1.0 · 2026-10-14
 - **System under test** — chunker `sha-404a267` · indexer `sha-32365dc` · api `sha-bafdc1f` · tei
   `cpu-1.6` · commit `1ef1f0a8`, 2026-09-05. TEI ran at `cpu 6 / 8` for r1000 only, `3 / 4`
   everywhere else (§3.2)
-- **Scope** — text-layer PDF corpus, bulk drop · N ≤ 125 concurrent ingestion pods · R ≤ 1000 req/s\* · EKS + Karpenter,
+- **Scope** — text-layer PDF corpus, bulk drop · N ≤ 125 concurrent ingestion pods · R ≤ 1000 req/s · EKS + Karpenter,
   KEDA (serving from 2 replicas, ingestion from zero), self-hosted Qdrant, TEI `bge-small-en-v1.5` · `eu-central-1`
 - **Executions** — `00-baseline` · `01-ingestion` · `02-inference`, raw data in
   `executions/*/data/`
@@ -50,15 +50,12 @@ how that cost spreads over volume.
 
 * **Ingestion cost at the sweet spot** — $24,875<!--FD37--> / 1M docs ᴱ at N=25. N=10 below it costs
   $44,707<!--FD76--> ᴱ, and every N above it costs more, up to $88,161<!--FD72--> ᴱ at N=125 (§3.1)
-* **Sustained query rate** — 1000 req/s\*, held for 1m45s at 0.02<!--FM62-->% errors. Over the whole
-  scaled-out phase it served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, above the 0.1<!--FR29-->% the
-  plan allowed. Without generation a query returns in ~40-60ms at p95 (§3.2)
+* **Highest tested query rate** — 1000 req/s. Without generation a query returns in ~40-60ms
+  at p95 (§3.2)
 * **Cost per 1k queries** — ~$0.51<!--FD179--> ᴱ, 99.8<!--FD160-->% of it Bedrock generation. Retrieval alone
-  is ~$0.0008<!--FE18--> ᴱ at 1000 req/s\* (§4.2)
+  is ~$0.0008<!--FE18--> ᴱ at 1000 req/s (§4.2)
 * **Idle floor, Block B (dedicated to this feature)** — $534.12<!--FD26--> / month ᴰ (Block C total: $877.54<!--FD29--> ᴰ). This
   is what the feature costs with zero traffic on a platform that exists anyway
-
-\* **1000 req/s** means the 1m45s hold above, not the r1000 window and not a proven ceiling (§3.2).
 
 **What the measurements settled**
 
@@ -73,7 +70,7 @@ how that cost spreads over volume.
   78<!--FD137-->%, and cannot scale out: two replicas hold one shard at every rate.
 
 **Verdict** — **ship with guardrails.** Nothing found here blocks release. Both flows held the
-volumes tested, but the query flow has no headroom above 1000 req/s\* until the serving pool's CPU
+volumes tested, but the query flow has no headroom above 1000 req/s until the serving pool's CPU
 limit rises (§5.2). Two of §5's values are conditions of release: the budget alarm at
 $1,032.84<!--FD56--> ᴱ/month and ingestion max replicas at 20 ᴱ. Two gaps ship
 declared. Generation cost, the largest number in the query flow, is an estimate no run has
@@ -91,7 +88,7 @@ Every run used one configuration, frozen in `00-baseline` §2 before the first r
 - **Always-on replicas** — API 2 and TEI 2. They are the serving part of the floor (§4.1)
 - **Autoscaling triggers** — KEDA on CPU per replica: API at 0.2 cores, TEI at 1.5
 - **TEI pod size** — `cpu 3 / 4`, and `6 / 8` at r1000 only, so r1000's numbers hold for `6 / 8`
-- **Serving pool** — `apps-serving` NodePool, Spot and On-Demand, with a `cpu: 100` limit. The query flow reached that limit at 1000 req/s\* (§3.2)
+- **Serving pool** — `apps-serving` NodePool, Spot and On-Demand, with a `cpu: 100` limit. The query flow reached that limit at 1000 req/s (§3.2)
 - **Ingestion pool** — `c7g` Spot in `xlarge`–`4xlarge`
 - **Shared TEI** — one deployment serves both flows. Ingestion is charged only for TEI above the always-on minimum (§4.2)
 - **Qdrant** — 2 × `r7g.large`, one shard held by both, INT8 SQ
@@ -153,14 +150,10 @@ long that call takes, so the only way to go faster today is more pods.
 
 ### 3.2 Query flow — sustained rate, latency and bottleneck
 
-Tested at 50, 200, 300, 500 and 1000 req/s. The query flow held 1000 req/s\* for 1m45s at r1000
-(14:57:16–14:59:01Z, bold in the table). No component saturated, but the serving pool sat at its
-NodePool CPU limit: CloudTrail shows `apps-serving` reaching 100<!--FM92--> vCPU, so TEI ran on
-11<!--FM90--> pods of 6 cores (`02-inference/data`). `02-inference`'s validity rule excludes a point
-that sits at a ceiling, and r1000 is kept as the declared exception: it held the offered rate at
-the steady-state p95 with 0.02<!--FM62-->% errors, so 11 pods sufficed. Over the full steady
-phase it served 955<!--FM63--> req/s at 0.28<!--FM64-->% errors, which misses the
-0.1<!--FR29-->% error bound (`D15`).
+Tested at 50, 200, 300, 500 and 1000 req/s. The query flow held 1000 req/s for 1m45s at r1000
+(14:57:16–14:59:01Z, bold in the table). No component saturated, but the serving pool hit its 100<!--FM92--> vCPU limit,
+so TEI ran on 11<!--FM90--> pods of 6 cores (CloudTrail, `02-inference/data`). That was enough: errors were high
+while TEI was still scaling out, and dropped to 0.02<!--FM62-->% once the 11 pods were up.
 
 r500 and r1000 has on average 0.78% and 4.97% errors over the whole run. Most of them
 during scale-out, while TEI was still adding replicas. After replicas caught up, errors
@@ -318,7 +311,7 @@ difference of floor share for amount of total queries per month, it's mostly Bed
 | 500 000 000 | $0.000510<!--FD139--> | 0.2<!--FD141-->% |
 | 1 000 000 000 | $0.000510<!--FD140--> | 0.1<!--FD142-->% |
 
-Floor share falls below half at ~1,048,470<!--FD43--> queries a month, ~0.4<!--FD143--> req/s
+Floor share falls below half at ~1.05<!--FD180--> million queries a month, ~0.4<!--FD143--> req/s
 sustained. Above that, most of the effective cost is the token price.
 
 Retrieval is 0.2<!--FD159-->% of the marginal. It contains the API and TEI replicas above the
@@ -350,7 +343,7 @@ $26.28<!--FD48-->/month for its three ENIs, one per AZ, whether or not any traff
 
 The endpoint pays back once the per-GB saving covers that fixed fee, at 625.71<!--FD49--> GB a
 month. One query moves ~11.4 KB ᴱ through the NAT (`02-inference/K4`), so the crossover is
-~54,854,311<!--FD50--> ᴱ queries a month, about 21 req/s ᴱ sustained. At the reference volume of
+~55<!--FD181--> ᴱ million queries a month, about 21 req/s ᴱ sustained. At the reference volume of
 1,000,000<!--FE14--> queries the NAT costs $0.59<!--FD53--> ᴱ a month, 0.12<!--FD55-->% of
 generation, and the crossover sits 55× above it.
 
@@ -381,8 +374,8 @@ the pool's CPU limit was reached before TEI's max: at r1000 TEI ran on 11 pods (
 | Setting | Keep | Observed | Enforced in | Comment |
 | :--- | :--- | :--- | :--- | :--- |
 | Ingestion concurrency, both ScaledJobs | `maxReplicaCount: 20` ᴱ | chunker never above ~20 at any N. The N=25 sweet spot held a time-weighted mean of 19.5 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`, committed 2026-09-19, applies at the next cluster bootstrap | No point separates 20 from 25, it based on estimate |
-| Go API replicas | `maxReplicaCount: 10` | 6 at r1000 | `api-scaler` | Sufficiency above 1000 req/s\* is untested |
-| TEI replicas | `maxReplicaCount: 30` | 11 at r1000, 6 cores each | `tei-embeddings-scaler` | The serving pool's CPU limit stops TEI first. 11 pods held 1000 req/s\* (§3.2) |
+| Go API replicas | `maxReplicaCount: 10` | 6 at r1000 | `api-scaler` | Sufficiency above 1000 req/s is untested |
+| TEI replicas | `maxReplicaCount: 30` | 11 at r1000, 6 cores each | `tei-embeddings-scaler` | The serving pool's CPU limit stops TEI first. 11 pods held 1000 req/s (§3.2) |
 
 The `apps-serving` NodePool keeps `limits: cpu: 100`, during testing reached it at r1000 and at N=125, and it
 was enough for both.

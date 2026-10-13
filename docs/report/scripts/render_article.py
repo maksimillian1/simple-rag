@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render a report document into rendered/ for publication.
 
-Defaults to article.md, the source of the published article (tasks.md D10). The published
+Defaults to article.md, the source of the published article (AGENTS.md §7). The published
 text is always this render, never the source file and never a paste out of report.md:
 
   python3 docs/report/scripts/render_article.py                 # article.md

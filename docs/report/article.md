@@ -16,11 +16,10 @@ rewrites repo-relative pointers into permalinks pinned to a commit, and stamps t
 rendered from. It refuses to run while the figure check is dirty. The published text is
 always that render, never this file and never a paste from `report.md`.
 
-What is kept, compressed and dropped is decided once, in `tasks.md` D10 and the mapping in
-§0.8. Charts come from `charts/*.csv` through `report-kit charts`; the article and the
+What is kept, compressed and dropped follows the rule in `AGENTS.md` §7. Charts come from `charts/*.csv` through `report-kit charts`; the article and the
 slide deck are where they are used.
 
-Source: `report.md` · registry: `figures.yaml` · decision: `tasks.md` D10
+Source: `report.md` · registry: `figures.yaml` · rule: `AGENTS.md` §7
 -->
 
-*Not written yet. The mapping that says what goes here is `tasks.md` §0.8.*
+*Not written yet. What goes here follows the rule in `AGENTS.md` §7.*
