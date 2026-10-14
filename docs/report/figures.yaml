@@ -678,19 +678,19 @@ figures:
     group: errors
     appears_in: [executions/00-baseline/index.md]
 
-  ingestion_per_1m_docs:
+  ingestion_per_1k_docs:
     ref: FD37
     kind: D
-    formula: per_1m_n25
-    unit: usd_per_1m_docs
-    display: 0
+    formula: per_1k_n25
+    unit: usd_per_1k_docs
+    display: 2
     group: marginal
     appears_in: [report.md, executions/01-ingestion/index.md]
 
   ingestion_per_doc:
     ref: FD38
     kind: D
-    formula: ingestion_per_1m_docs / 1000000
+    formula: ingestion_per_1k_docs / 1000
     unit: usd_per_doc
     display: 5
     group: marginal
@@ -1133,52 +1133,52 @@ figures:
     unit: usd
     group: d23
 
-  per_1m_n125:
+  per_1k_n125:
     ref: FD72
     kind: D
-    formula: run_total_n125 * runs_per_1m_docs
-    unit: usd_per_1m_docs
-    display: 0
+    formula: run_total_n125 * runs_per_1k_docs
+    unit: usd_per_1k_docs
+    display: 2
     group: d23
 
-  per_1m_n75:
+  per_1k_n75:
     ref: FD73
     kind: D
-    formula: run_total_n75 * runs_per_1m_docs
-    unit: usd_per_1m_docs
-    display: 0
+    formula: run_total_n75 * runs_per_1k_docs
+    unit: usd_per_1k_docs
+    display: 2
     group: d23
 
-  per_1m_n50:
+  per_1k_n50:
     ref: FD74
     kind: D
-    formula: run_total_n50 * runs_per_1m_docs
-    unit: usd_per_1m_docs
-    display: 0
+    formula: run_total_n50 * runs_per_1k_docs
+    unit: usd_per_1k_docs
+    display: 2
     group: d23
 
-  per_1m_n25:
+  per_1k_n25:
     ref: FD75
     kind: D
-    formula: run_total_n25 * runs_per_1m_docs
-    unit: usd_per_1m_docs
-    display: 0
+    formula: run_total_n25 * runs_per_1k_docs
+    unit: usd_per_1k_docs
+    display: 2
     group: d23
 
-  per_1m_n10:
+  per_1k_n10:
     ref: FD76
     kind: D
-    formula: run_total_n10 * runs_per_1m_docs
-    unit: usd_per_1m_docs
-    display: 0
+    formula: run_total_n10 * runs_per_1k_docs
+    unit: usd_per_1k_docs
+    display: 2
     group: d23
 
   gap_cost:
     ref: FD77
     kind: D
-    formula: per_1m_n50 - per_1m_n25
-    unit: usd_per_1m_docs
-    display: 0
+    formula: per_1k_n50 - per_1k_n25
+    unit: usd_per_1k_docs
+    display: 2
     group: d23
     appears_in: [executions/01-ingestion/index.md]
 
@@ -1661,63 +1661,63 @@ figures:
     group: amortization
     appears_in: [report.md]
 
-  chunker_per_1m:
+  chunker_per_1k:
     ref: FM42
     kind: M
-    value: 21
-    unit: usd_per_1m_docs
-    display: 0
+    value: 0.021
+    unit: usd_per_1k_docs
+    display: 3
     source: CUR split cost allocation at N=25, pulled 2026-09-09; 01-ingestion M12, stage-1 chunker pods
     group: marginal
 
-  indexer_per_1m:
+  indexer_per_1k:
     ref: FM43
     kind: M
-    value: 2574
-    unit: usd_per_1m_docs
-    display: 0
+    value: 2.574
+    unit: usd_per_1k_docs
+    display: 3
     source: CUR split cost allocation at N=25, pulled 2026-09-09; 01-ingestion M12, stage-2 indexer pods
     group: marginal
 
-  tei_apportioned_per_1m:
+  tei_apportioned_per_1k:
     ref: FM44
     kind: M
-    value: 3256
-    unit: usd_per_1m_docs
-    display: 0
+    value: 3.256
+    unit: usd_per_1k_docs
+    display: 3
     source: CUR split cost allocation at N=25; the embedding tier's whole apportioned share for the window, before the always-on minimum is removed
     group: marginal
 
-  tei_idle_share_per_1m:
+  tei_idle_share_per_1k:
     ref: FM45
     kind: M
-    value: 766
-    unit: usd_per_1m_docs
-    display: 0
+    value: 0.766
+    unit: usd_per_1k_docs
+    display: 3
     source: the two-replica idle floor's share of the same window, subtracted so the tier is charged to ingestion only above its always-on minimum
     group: marginal
 
-  tei_above_floor_per_1m:
+  tei_above_floor_per_1k:
     ref: FD109
     kind: D
-    formula: tei_apportioned_per_1m - tei_idle_share_per_1m
-    unit: usd_per_1m_docs
-    display: 0
+    formula: tei_apportioned_per_1k - tei_idle_share_per_1k
+    unit: usd_per_1k_docs
+    display: 2
     group: marginal
 
-  undecomposed_per_1m:
+  undecomposed_per_1k:
     ref: FD110
     kind: D
-    formula: ingestion_per_1m_docs - chunker_per_1m - indexer_per_1m - tei_above_floor_per_1m
-    unit: usd_per_1m_docs
-    display: 0
+    formula: ingestion_per_1k_docs - chunker_per_1k - indexer_per_1k - tei_above_floor_per_1k
+    unit: usd_per_1k_docs
+    display: 2
     source: NAT, SQS, S3 and node capacity billed to no pod. A residual by construction - M12's unused_cost is fleet-wide rather than isolated to apps-compute, so this does not decompose further
     group: marginal
 
   share_chunker:
     ref: FD111
     kind: D
-    formula: chunker_per_1m / ingestion_per_1m_docs * 100
+    formula: chunker_per_1k / ingestion_per_1k_docs * 100
     unit: percent
     display: 1
     group: marginal
@@ -1725,7 +1725,7 @@ figures:
   share_indexer:
     ref: FD112
     kind: D
-    formula: indexer_per_1m / ingestion_per_1m_docs * 100
+    formula: indexer_per_1k / ingestion_per_1k_docs * 100
     unit: percent
     display: 1
     group: marginal
@@ -1733,7 +1733,7 @@ figures:
   share_tei:
     ref: FD113
     kind: D
-    formula: tei_above_floor_per_1m / ingestion_per_1m_docs * 100
+    formula: tei_above_floor_per_1k / ingestion_per_1k_docs * 100
     unit: percent
     display: 1
     group: marginal
@@ -1741,7 +1741,7 @@ figures:
   share_undecomposed:
     ref: FD114
     kind: D
-    formula: undecomposed_per_1m / ingestion_per_1m_docs * 100
+    formula: undecomposed_per_1k / ingestion_per_1k_docs * 100
     unit: percent
     display: 1
     group: marginal
@@ -2174,7 +2174,7 @@ figures:
     unit: usd_per_month
     source: what right-sizing the whole floor saves, against which the recurring errors are measured
     group: totals
-    # appears_in dropped 2026-10-14: the defects-versus-sizing point left the BLUF; 4.1 and tech-debt #11 carry the reasoning
+    # appears_in dropped 2026-10-14: the defects-versus-sizing point left the BLUF; 4.1 carries the reasoning
 
   node_cost_hour:
     ref: FD129
@@ -2560,16 +2560,16 @@ figures:
       tech-debt #5 removes for a different reason (#12 calls the control-plane one a defect and
       ADR-0018 withdraws the runtime one). The full gap, rightsize_fixed_saving, carries both
     group: attribution
-    # appears_in dropped 2026-10-14: the defects-versus-sizing point left the BLUF; 4.1 and tech-debt #11 carry the reasoning
+    # appears_in dropped 2026-10-14: the defects-versus-sizing point left the BLUF; 4.1 carries the reasoning
 
   tei_apportioned_above_min_per_run:
     ref: FD153
     kind: D
-    formula: tei_above_floor_per_1m / 10000
+    formula: tei_above_floor_per_1k / 10000
     unit: usd
     display: 3
     source: >-
-      the same figure report 4.2 prints per 1M documents, expressed per run, so it can be set
+      the same figure report 4.2 prints per 1k documents, expressed per run, so it can be set
       beside D23's cash reading of the same tier at N=25 ($0.01/run). 100 documents per run
     group: m12_split
     # appears_in dropped 2026-10-11: report.md 4.2 now prices whole nodes in cash, with no allocation rows
@@ -2694,7 +2694,7 @@ figures:
     value: 2048
     unit: mib
     display: 0
-    source: deploy/k8s/apps/indexer/scaledjob.yaml requests.memory, 2Gi
+    source: deploy/k8s/apps/indexer/scaledjob.yaml requests.memory, 2Gi for every ingestion run; raised to 2560Mi on 2026-10-14 per report.md 5.1
     group: memory_limits
     appears_in: [report.md]
 
@@ -2908,45 +2908,45 @@ figures:
     group: d23
     appears_in: [report.md]
 
-  runs_per_1m_docs:
+  runs_per_1k_docs:
     ref: FE17
     kind: E
-    value: 10000
+    value: 10
     unit: count
     display: 0
     source: >-
-      1M documents over the 100-document fixture. Used as a cost multiplier it assumes every batch
+      1k documents over the 100-document fixture. Used as a cost multiplier it assumes every batch
       of 100 costs what one measured run did, and every run started its worker nodes from zero, so
       node start-up and image pulls repeat per batch. A continuous load would pay them once
     group: d23
 
-  workers_nodes_per_1m:
+  workers_nodes_per_1k:
     ref: FD167
     kind: D
-    formula: cur_compute_n25 * runs_per_1m_docs
-    unit: usd_per_1m_docs
-    display: 0
-    source: report 4.2 per-document table, one N=25 run scaled to 1M documents; cash from the run's CUR hour
+    formula: cur_compute_n25 * runs_per_1k_docs
+    unit: usd_per_1k_docs
+    display: 2
+    source: report 4.2 per-document table, one N=25 run scaled to 1k documents; cash from the run's CUR hour
     group: d23
     appears_in: [report.md]
 
-  other_per_1m:
+  other_per_1k:
     ref: FD168
     kind: D
-    formula: other_n25 * runs_per_1m_docs
-    unit: usd_per_1m_docs
-    display: 0
-    source: report 4.2 per-document table, one N=25 run scaled to 1M documents; cash from the run's CUR hour
+    formula: other_n25 * runs_per_1k_docs
+    unit: usd_per_1k_docs
+    display: 2
+    source: report 4.2 per-document table, one N=25 run scaled to 1k documents; cash from the run's CUR hour
     group: d23
     appears_in: [report.md]
 
-  tei_cash_per_1m:
+  tei_cash_per_1k:
     ref: FD169
     kind: D
-    formula: d23_n25 * runs_per_1m_docs
-    unit: usd_per_1m_docs
-    display: 0
-    source: report 4.2 per-document table, one N=25 run scaled to 1M documents; cash from the run's CUR hour
+    formula: d23_n25 * runs_per_1k_docs
+    unit: usd_per_1k_docs
+    display: 2
+    source: report 4.2 per-document table, one N=25 run scaled to 1k documents; cash from the run's CUR hour
     group: d23
     appears_in: [report.md]
 

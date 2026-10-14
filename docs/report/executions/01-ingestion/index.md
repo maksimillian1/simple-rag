@@ -439,8 +439,8 @@ The same-day provisional estimate was only a floor: 5 of 11 nodes seen in the wi
 `instance_type: "?"` in `karpenter-cost-estimate.py`. They were short-lived, replaced early, and
 past EC2's ~1h post-termination `describe-instances` visibility by the time pricing ran.
 `apps-serving` also churned through 5 distinct node IDs against a floor of 2, so `D23` was left
-unresolved. A CUR read on 2026-09-07 replaced the estimate with $41,624/1M docs, and measuring
-`D23` on 2026-09-19 brought it to **$44,707<!--FD76-->/1M docs**. The §3 Matrix
+unresolved. A CUR read on 2026-09-07 replaced the estimate with $41.62/1k docs, and measuring
+`D23` on 2026-09-19 brought it to **$44.71<!--FD76-->/1k docs**. The §3 Matrix
 gives the number and explains why it breaks the otherwise clean N-vs-cost trend.
 The CUR read was checked against `./data/nat-by-window.json` on 2026-09-09, by actual duration
 and by CUR's own hour buckets: n10's and n25's NAT rates land in the same 0.7–1.4 range whichever
@@ -500,16 +500,16 @@ rate. The two days rest differently: 09-04 held 2 × c7i-flex.2xlarge Spot at $0
 held c5.xlarge + c6a.xlarge at $0.18480<!--FM13-->/h, so each point is netted against its own day. `n10`'s
 last hour overlaps `02-inference`'s campaign window by $0.0441.
 
-| Run | N set | N reached | TEI peak | Docs/min | Wall time | Compute $ | TEI $ | Other $ | $/run | $/1M docs | Saturation signal |
+| Run | N set | N reached | TEI peak | Docs/min | Wall time | Compute $ | TEI $ | Other $ | $/run | $/1k docs | Saturation signal |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| #10 | 10 | 9.0 (10) | 3 | 0.76 | 132.5 min | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | **$44,707<!--FD76-->** ᴱ | chunker *also* at N ceiling; the one point below the corpus's ~20-concurrent cap |
-| #08 | 25 | 19.5 (25) | 4 | 1.62 | 61.7 min | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | $24,875<!--FD75--> ᴱ | none; indexer at ceiling, no resource pegged |
-| #07 | 50 | 32.6 (50) | 10 | 2.27 | 44.0 min | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴱ | none |
-| #06 | 75 | 40.5 (75) | 16 | 2.33 | 42.9 min | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴱ | none; the "waste boundary": +39% cost for +2.6% docs/min over N=50 |
-| #05 | 125 | 63.5 (125) | 26 | 2.60 | 38.5 min | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴱ | none |
+| #10 | 10 | 9.0 (10) | 3 | 0.76 | 132.5 min | $1.55 | $0.31<!--FM25--> | $2.61 | $4.47<!--FD71--> ᴰ | **$44.71<!--FD76-->** ᴱ | chunker *also* at N ceiling; the one point below the corpus's ~20-concurrent cap |
+| #08 | 25 | 19.5 (25) | 4 | 1.62 | 61.7 min | $1.09 | $0.01<!--FM24--> | $1.38 | $2.49<!--FD70--> ᴰ | $24.88<!--FD75--> ᴱ | none; indexer at ceiling, no resource pegged |
+| #07 | 50 | 32.6 (50) | 10 | 2.27 | 44.0 min | $1.26 | $0.29<!--FM23--> | $2.88 | $4.43<!--FD69--> ᴰ | $44.33<!--FD74--> ᴱ | none |
+| #06 | 75 | 40.5 (75) | 16 | 2.33 | 42.9 min | $1.54 | $0.52<!--FM22--> | $4.10 | $6.16<!--FD68--> ᴰ | $61.57<!--FD73--> ᴱ | none; the "waste boundary": +39% cost for +2.6% docs/min over N=50 |
+| #05 | 125 | 63.5 (125) | 26 | 2.60 | 38.5 min | $2.01 | $0.82<!--FM21--> | $5.99 | $8.82<!--FD67--> ᴰ | $88.16<!--FD72--> ᴱ | none |
 
-N=10 (#10) breaks the otherwise clean monotonic N-vs-cost trend: $44,707<!--FD76--> sits just above N=50's
-$44,335<!--FD74--> instead of below N=25's $24,875<!--FD75-->, where the throughput trend alone would put it. With D23
+N=10 (#10) breaks the otherwise clean monotonic N-vs-cost trend: $44.71<!--FD76--> sits just above N=50's
+$44.33<!--FD74--> instead of below N=25's $24.88<!--FD75-->, where the throughput trend alone would put it. With D23
 measured rather than estimated, N=10 is now the second most expensive point of the five, where it
 used to be third. The script's timeout and the manual recovery did not inflate the number, as was
 first assumed. NAT was re-pulled directly (2026-09-09, `./data/nat-by-window.json`) and split into
@@ -542,16 +542,16 @@ cluster is gone) would turn this into a confirmed reading.
   they are not monotone and the rule lands on the top of the swept range, which is a rule finding
   no bend rather than a bend at 125. N=50 is the last step before gains first stalled and is what
   the Gap cost below is measured against; it is not a knee. → report §3.3
-- **Sweet spot** — N=25, the minimum `$/1M docs` ($24,875<!--FD75-->) among all five points, N=10 included.
-  N=10's real cost ($44,707<!--FD76-->) is *higher*, and the NAT re-check shows that is a genuine reading of
+- **Sweet spot** — N=25, the minimum `$/1k docs` ($24.88<!--FD75-->) among all five points, N=10 included.
+  N=10's real cost ($44.71<!--FD76-->) is *higher*, and the NAT re-check shows that is a genuine reading of
   N=10's economics (low throughput keeps the fixed per-hour costs running longer), not a corrupted
   one. Landing on the lowest clean N swept is the case `docs/report/methodology.md` §6 flags as unproven: the
   true minimum could sit below 25 (untested), or N=10 could already be past it and rising, which
   its real number now suggests
 - **Waste boundary** — N=75, where `$/run` rises 35% for a 2.6% docs/min gain over N=50. It is the
   clearest case in this campaign of the cost curve decoupling from throughput
-- **Gap cost** — $19,460<!--FD77--> extra per 1M docs paid running at the knee (N=50, $44,335<!--FD74-->) instead of
-  the sweet spot (N=25, $24,875<!--FD75-->) → report §3.3
+- **Gap cost** — $19.46<!--FD77--> extra per 1k docs paid running at the knee (N=50, $44.33<!--FD74-->) instead of
+  the sweet spot (N=25, $24.88<!--FD75-->) → report §3.3
 - **Reference value** — no pre-sweep default `maxReplicaCount` was frozen for this parameter. This is its first exploration, so there is nothing to compare against. Fargate equivalent (D29): computed at N=25 — $0.7562<!--FD121--> against $0.2595<!--FD122--> on Spot for the two workers (§3 D29, report §4.4)
 - **Condition boundary** — `00-baseline` §2 Scope, plus packing density, bulk-drop arrival and the TEI trigger
 - **Raw data** — `./data/⟨point⟩.jsonl`, `⟨point⟩.cost-estimate.json` and `⟨point⟩.meta.json` per point, plus `series.txt`, the collection configs and the upload logs. The Matrix is built directly from them
@@ -657,7 +657,7 @@ slot for what was found here (Retro, last line).
 
 ### Guardrails
 
-- **`maxReplicaCount` = 20 ᴱ** — the sweet spot (N=25, $24,875<!--FD75-->/1M docs ᴱ) ran at a time-weighted
+- **`maxReplicaCount` = 20 ᴱ** — the sweet spot (N=25, $24.88<!--FD75-->/1k docs ᴱ) ran at a time-weighted
   mean of 19.5, so the cap bound only at the peak, and 20 is the concurrency the cheapest measured
   run actually sustained. Not a claim that 20 beats 25: no point separates them, and the grid's
   next step is 50. N=50 stays the knee, the documented ceiling for a hurry. Valid for this corpus

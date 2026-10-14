@@ -23,7 +23,7 @@ how that cost spreads over volume.
 
 | Area | Status | Evidence |
 | :--- | :--- | :--- |
-| Ingestion throughput, cost per run and cost per 1M documents | measured · cost per run derived ᴰ · per 1M documents estimated ᴱ | §3.1 · `01-ingestion` Notes, CUR table · `D25` |
+| Ingestion throughput, cost per run and cost per 1k documents | measured · cost per run derived ᴰ · per 1k documents estimated ᴱ | §3.1 · `01-ingestion` Notes, CUR table · `D25` |
 | Per-component share of ingestion cost | derived ᴰ | §4.2 · `01-ingestion` Notes, CUR table |
 | TEI cost caused by ingestion | measured | §3.1 `TEI $ (cash)` · §4.2 · `01-ingestion/D23` |
 | Ingestion constraint | measured | §3.1 · `01-ingestion/M6` |
@@ -48,34 +48,20 @@ how that cost spreads over volume.
 
 ## 1. BLUF
 
-* **Ingestion cost at the sweet spot** — $24,875<!--FD37--> / 1M docs ᴱ at N=25. N=10 below it costs
-  $44,707<!--FD76--> ᴱ, and every N above it costs more, up to $88,161<!--FD72--> ᴱ at N=125 (§3.1)
-* **Highest tested query rate** — 1000 req/s. Without generation a query returns in ~40-60ms
-  at p95 (§3.2)
-* **Cost per 1k queries** — ~$0.51<!--FD179--> ᴱ, 99.8<!--FD160-->% of it Bedrock generation. Retrieval alone
-  is ~$0.0008<!--FE18--> ᴱ at 1000 req/s (§4.2)
-* **Idle floor, Block B (dedicated to this feature)** — $534.12<!--FD26--> / month ᴰ (Block C total: $877.54<!--FD29--> ᴰ). This
-  is what the feature costs with zero traffic on a platform that exists anyway
+* **Ingestion flow** — $24.88<!--FD37--> ᴱ per 1k docs at N=25, the cheapest point. The highest
+  tested concurrency, N=125, reached 2.60 docs/min at $88.16<!--FD72--> ᴱ per 1k docs. Throughput is
+  limited by code: each indexer pod sends one TEI call at a time, so rewriting that loop
+  would give much more that adding extra pods (§3.1)
+* **Query flow** — ~$0.51<!--FD179--> ᴱ per 1k queries, 99.8<!--FD160-->% of it Bedrock generation. The
+  highest tested rate, 1000 req/s, filled the serving pool to its 100<!--FR38--> vCPU limit, and
+  Qdrant, at 78<!--FD137-->% of its CPU, is the next ceiling. Without generation a query returns in
+  ~40-60 ms at p95 (§3.2, §4.2)
+* **Idle floor, Block B** — $534.12<!--FD26--> ᴰ / month (Block C $877.54<!--FD29--> ᴰ), what the
+  feature costs while idle
 
-**What the measurements settled**
-
-* **Ingestion is limited by code, not by hardware.** Nothing saturated at any N. The sequential
-  loop in `apps/indexer/src/main.py` holds one TEI call in flight per pod, so throughput follows
-  replica count: TEI rose to 26 replicas for 2.60 docs/min at N=125, and docs/min was
-  still climbing when testing stopped on cost. Raising it takes a rewrite of that loop, not larger
-  pods.
-* **The serving pool reached its CPU limit at 1000 req/s, and Qdrant is the nearest ceiling behind it.**
-  The `apps-serving` NodePool sat at its 100<!--FR38--> vCPU limit in r1000, so TEI could not grow past
-  11<!--FM90--> pods (§3.2). Qdrant reached 1.568<!--FM59--> of its 2<!--FR27-->-core limit,
-  78<!--FD137-->%, and cannot scale out: two replicas hold one shard at every rate.
-
-**Verdict** — **ship with guardrails.** Nothing found here blocks release. Both flows held the
+**Verdict** — **ship with guardrails.** Nothing blocks release. Both flows held the
 volumes tested, but the query flow has no headroom above 1000 req/s until the serving pool's CPU
-limit rises (§5.2). Two of §5's values are conditions of release: the budget alarm at
-$1,032.84<!--FD56--> ᴱ/month and ingestion max replicas at 20 ᴱ. Two gaps ship
-declared. Generation cost, the largest number in the query flow, is an estimate no run has
-confirmed (`docs/tech-debt.md` #9). Every query-flow finding holds for an idle ingestion flow,
-because contention was not tested (Coverage).
+limit rises (§5.2). Every guardrail in §5 is implemented or declared in `docs/tech-debt.md`.
 
 ---
 
@@ -119,34 +105,34 @@ Metric definitions: `00-baseline` §1 · `01-ingestion/metrics.md` · `02-infere
 ### 3.1 Ingestion flow — throughput, cost and constraint
 
 Tested at N = 10, 25, 50, 75 and 125. N=25 was the nearest to sweet spot, the cheapest operating point
-at $24,875<!--FD75--> ᴱ per 1M docs. Throughput is limited by the indexer's code, not by any resource. 
+at $24.88<!--FD75--> ᴱ per 1k docs. Throughput is limited by the indexer's code, not by any resource. 
 
 N is the max replicas setting (`maxReplicaCount`) on both ScaledJobs, a limit on concurrent pods,
 not observed concurrency. The indexer ran at max replicas at every point (125 of 125 at N=125, `M5`).
 The `chunker` peaked at ~20 whatever the N, technically because 100-file corpus was same.
 
 Cost per document has V-shape, the cheapest at N=25 and both sides neighbors points are higher. N=10 costs
-$44,707<!--FD76--> ᴱ per 1M docs against $24,875<!--FD75--> ᴱ at N=25, because it runs twice as
+$44.71<!--FD76--> ᴱ per 1k docs against $24.88<!--FD75--> ᴱ at N=25, because it runs twice as
 long (132.5 min against 61.7 min) while fixed per-hour costs keep billing.
 
 Throughput rises at every step and never levels off. Per step, it gains +113%, +40%, +2.6%, then
-+11.6%. If speed matters, stop at N=50: it buys +40% docs/min over N=25 for $19,460<!--FD77--> ᴱ
-more per 1M docs.
++11.6%. If speed matters, stop at N=50: it buys +40% docs/min over N=25 for $19.46<!--FD77--> ᴱ
+more per 1k docs.
 
 Ingestion is limited only how the indexer calls TEI, not by any resource. No worker reached
 its CPU or memory limit at any N (`01-ingestion/M6`). Each indexer pod sends one TEI request at a time and
 waits for the answer before sending the next (`apps/indexer/src/main.py`). Its throughput depends mostly on how
 long that call takes, so the only way to go faster today is more pods.
 
-![Cost per 1M docs against throughput, one point per N](charts/tradeoff-jobs-navy.svg)
+![Cost per 1k docs against throughput, one point per N](charts/tradeoff-jobs-navy.svg)
 
-| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ (cash) | Other $ | $/run | $/1M docs |
+| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ (cash) | Other $ | $/run | $/1k docs |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 10 | 0.76 | 132.5 min | 3 | $1.55<!--FM85--> | $0.31<!--FM25--> | $2.61<!--FD162--> | $4.47<!--FD71--> ᴰ | $44,707<!--FD76--> ᴱ |
-| 25 | 1.62 | 61.7 min | 4 | $1.09<!--FM81--> | $0.01<!--FM24--> | $1.39<!--FD163--> | $2.49<!--FD70--> ᴰ | **$24,875<!--FD75-->** ᴱ |
-| 50 | 2.27 | 44.0 min | 10 | $1.26<!--FM86--> | $0.29<!--FM23--> | $2.88<!--FD164--> | $4.43<!--FD69--> ᴰ | $44,335<!--FD74--> ᴱ |
-| 75 | 2.33 | 42.9 min | 16 | $1.54<!--FM87--> | $0.52<!--FM22--> | $4.10<!--FD165--> | $6.16<!--FD68--> ᴰ | $61,573<!--FD73--> ᴱ |
-| 125 | 2.60 | 38.5 min | 26 | $2.01<!--FM88--> | $0.82<!--FM21--> | $5.99<!--FD166--> | $8.82<!--FD67--> ᴰ | $88,161<!--FD72--> ᴱ |
+| 10 | 0.76 | 132.5 min | 3 | $1.55<!--FM85--> | $0.31<!--FM25--> | $2.61<!--FD162--> | $4.47<!--FD71--> ᴰ | $44.71<!--FD76--> ᴱ |
+| 25 | 1.62 | 61.7 min | 4 | $1.09<!--FM81--> | $0.01<!--FM24--> | $1.39<!--FD163--> | $2.49<!--FD70--> ᴰ | **$24.88<!--FD75-->** ᴱ |
+| 50 | 2.27 | 44.0 min | 10 | $1.26<!--FM86--> | $0.29<!--FM23--> | $2.88<!--FD164--> | $4.43<!--FD69--> ᴰ | $44.33<!--FD74--> ᴱ |
+| 75 | 2.33 | 42.9 min | 16 | $1.54<!--FM87--> | $0.52<!--FM22--> | $4.10<!--FD165--> | $6.16<!--FD68--> ᴰ | $61.57<!--FD73--> ᴱ |
+| 125 | 2.60 | 38.5 min | 26 | $2.01<!--FM88--> | $0.82<!--FM21--> | $5.99<!--FD166--> | $8.82<!--FD67--> ᴰ | $88.16<!--FD72--> ᴱ |
 
 ### 3.2 Query flow — sustained rate, latency and bottleneck
 
@@ -231,10 +217,10 @@ cross-AZ traffic plus $9.05<!--FD33--> in T3 CPU credits. They all fixed or adde
 The always-on minimum of the API and TEI (§2.1) belongs to the floor, so it is subtracted from
 every run before any per-unit figure is computed.
 
-#### Per 1M documents
+#### Per 1k documents
 
 For the calculation used single point – N=25, the sweet spot. One run processes the 100-document fixture for
-$2.49<!--FD70-->, so if we multiply it 10,000 times, we got $24,875<!--FD37--> per 1M documents.
+$2.49<!--FD70-->, so if we multiply it 10 times, we got $24.88<!--FD37--> per 1k documents.
 Every run started its worker nodes from zero, so the figure assumes documents arrive in batches
 of 100. A continuous load would pay node start-up and image pulls once and cost less.
 
@@ -243,12 +229,12 @@ The chunker and indexer run alone on the `apps-compute` nodes, so their row is t
 capacity no pod requested included. TEI grew from 2 to 4 replicas on nodes that were already
 running.
 
-| Component | $/1M docs | Share |
+| Component | $/1k docs | Share |
 | :--- | :--- | :--- |
-| Chunker and indexer, whole `apps-compute` nodes | $10,916<!--FD167--> ᴱ | 43.9<!--FD170-->% |
-| NAT, SQS and S3 | $13,884<!--FD168--> ᴱ, NAT 99.6<!--FD173-->% of it | 55.8<!--FD171-->% |
-| TEI above its always-on minimum | $75<!--FD169--> ᴱ | 0.3<!--FD172-->% |
-| **Total** | $24,875<!--FD37--> ᴱ | 100% |
+| Chunker and indexer, whole `apps-compute` nodes | $10.92<!--FD167--> ᴱ | 43.9<!--FD170-->% |
+| NAT, SQS and S3 | $13.88<!--FD168--> ᴱ, NAT 99.6<!--FD173-->% of it | 55.8<!--FD171-->% |
+| TEI above its always-on minimum | $0.07<!--FD169--> ᴱ | 0.3<!--FD172-->% |
+| **Total** | $24.88<!--FD37--> ᴱ | 100% |
 
 #### Per 1k queries at 1000 req/s, 24/7
 
@@ -273,7 +259,7 @@ measured it.
 
 #### Documents
 
-Documents use the N=25 marginal, $24,875<!--FD37-->/1M docs = $0.02488<!--FD38-->/doc.
+Documents use the N=25 marginal, $24.88<!--FD37-->/1k docs = $0.02488<!--FD38-->/doc.
 
 | Monthly documents | Effective $/doc ᴱ | Floor share |
 | :--- | :--- | :--- |
@@ -361,7 +347,7 @@ with the limit before an OOM kill (`01-ingestion/M7` · `02-inference/Q8`).
 | Component | Keep | Peak working set | Limit ÷ peak | Enforced in | Comment |
 | :--- | :--- | ---: | ---: | :--- | :--- |
 | Chunker | `1Gi` | 445<!--FM79--> MiB (N=25) | 2.30<!--FD156-->× | `deploy/k8s/apps/chunker` | The margin is deliberate, well past `peak+30%`: real documents can be larger than the fixture, a 124 MB file against its 78.8 MB maximum, and an image-heavy PDF decodes to several times its file size |
-| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | Raise `requests.memory` to `2560Mi`: at 2,048<!--FR37--> MiB it sits below the peak, so §2.1's packing density overstates the real one. At 2560Mi fewer indexers fit a node, and the effect on `$/1M docs` is unmeasured |
+| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | `requests.memory` raised to `2560Mi`, above the peak. The runs used 2,048<!--FR37--> MiB, below it, so §2.1's packing density overstates the real one. At 2560Mi fewer indexers fit a node, and the effect on `$/1k docs` is unmeasured |
 | Go API | `512Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | Sized for one replica carrying the whole rate: a pinned replica reached 439<!--FM77--> MiB, 86% of the limit, a state reachable at scale-in and under imbalanced routing |
 | TEI | `1Gi` | 670<!--FM78--> MiB (r050) | 1.53<!--FD155-->× | `deploy/k8s/apps/tei` | Memory decides nothing here: at `requests.cpu: 3000m` packing is CPU-bound, so the 768<!--FR34--> MiB request does not affect density |
 
@@ -389,12 +375,13 @@ for a moment between Job started. Karpenter reads it as idle and removes a node 
 `5m` delay would fix that consolidation issue, so better to not reduce.
 
 - **Serving pool full — alert when `tei-embeddings` pods stay Pending, or `apps-serving` reaches its `cpu: 100` limit**
-  §3.2 → `prometheus/rules.yaml`
+  §3.2 → `docs/tech-debt.md` #16
 
 At r1000 the pool set at its limit and TEI could not grow past 11 pods(applicable for tei `cpu 6 / 8`).
 The response is a higher NodePool limit and, past 256 vCPU, more Spot vCPU quota.
 
 - **Budget alarm — $1,032.84<!--FD56--> ᴱ/month**
+  §4.1 → `docs/tech-debt.md` #11
 
 Right-sized Block C, $737.74<!--FE11--> ᴱ, × 1.4 for headroom. However, Block B is the better base, but scoping
 a budget to it needs a block tag or cost category(`docs/tech-debt.md` #13).
