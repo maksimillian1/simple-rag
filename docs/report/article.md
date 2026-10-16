@@ -10,8 +10,8 @@ registry and this file is in its `scan`. A figure that changes moves both docume
 Nothing is typed by hand from the report, and nothing is computed in prose.
 
 Publication. `docs/report/scripts/render_article.py` strips the marks into `rendered/article.md`,
-puts its `LEADS` entry in place of the paragraph under the title, rewrites repo-relative
-pointers into permalinks pinned to a commit, and stamps the sha it rendered from. It refuses to run while the figure check is dirty. The published text is
+puts links to Part 1 and to `report.md` on GitHub under the title, rewrites repo-relative
+pointers into links to `master`, and stamps the sha it rendered from. It refuses to run while the figure check is dirty. The published text is
 always that render, never this file and never a paste from `report.md`.
 
 What is kept, compressed and dropped follows the rule in `AGENTS.md` §7. Charts come from `charts/*.csv` through `report-kit charts`; the article and the
@@ -35,35 +35,46 @@ spreads over volume.
   `bge-small-en-v1.5` · `eu-central-1`
 - **Cost source** — AWS Cost and Usage Report 2.0 · USD · method in the
   [repository](https://github.com/maksimillian1/simple-rag)
-- **Figures** — ᴱ marks estimates. Every other figure is measured or computed from measurements.
+- **Figures** — measured unless marked: ᴰ derived · ᴿ recorded · ᴱ estimated
 
 ---
 
 ## Coverage
 
-**Measured**
+**Covered**
 
-- Ingestion throughput and cost per run, by concurrency (§3.1)
-- Cost per 1k documents ᴱ and its split by component (§4.2)
-- What limits ingestion: the indexer's code (§3.1)
-- Sustained query rate, the replicas it needed and what limits the query flow (§3.2)
-- Retrieval ᴱ and generation ᴱ cost per 1k queries (§4.2)
-- Idle floor by block, as built and right-sized ᴱ (§4.1)
-- Errors found at rest (§4.1)
-- Cost per unit by monthly volume ᴱ (§4.3)
-- Fargate against EC2 Spot nodes for ingestion ᴱ (§4.4)
+- Ingestion throughput, cost per run and cost per 1k documents ᴱ (§3.1)
+- Per-component share of ingestion cost (§4.2)
+- TEI cost caused by ingestion (§3.1, §4.2)
+- Ingestion constraint (§3.1)
+- Sustained query rate, the replicas it required and the query flow constraint (§3.2)
+- Retrieval cost per 1k queries at 1000 req/s ᴱ (§4.2)
+- Generation cost per 1k queries, Bedrock ᴱ (§4.2)
+- Idle floor, split A / B / C, as built and right-sized ᴱ (§4.1)
+- Errors found at rest, excluded from the floor (§4.1)
+- Amortization across volumes, documents ᴱ (§4.3)
+- Amortization across volumes, queries, generation included ᴱ (§4.3)
+- Fargate against EC2 Spot nodes, ingestion ᴱ (§4.4)
+- Warm-up and consolidation-tail share, partly: NAT, SQS and S3, almost all of it image pulls while
+  nodes start, are 55.8<!--FD171-->% of the N=25 run (§4.2). Node boot and teardown time itself was
+  not measured
 
-**Not measured**
+**Out of scope**
 
-- Node boot and teardown time, only partly: image pulls while nodes start are 55.8<!--FD171-->% of the N=25 run
-- The next ingestion bottleneck after the indexer fix: TEI or Qdrant writes
-- Query latency and errors while ingestion runs in parallel
-- How much of convergence time is scaler configuration
-- Query tail latency, p99
-- Retrieval quality under INT8 quantization
-- Behaviour above 1000 req/s (out of scope)
-- End-to-end latency with Bedrock generation (out of scope)
-- The cost of Spot interruptions: lost work, duplicates, recovery time (out of scope)
+- Next ingestion bottleneck after the indexer fix: what limits throughput once the indexer processes
+  documents in parallel, TEI or Qdrant writes. Their metrics were not collected. TEI's serving pool
+  already touched its 100 vCPU limit at N=125 (§5.2)
+- Ingest and query contention on shared Qdrant and TEI: how query latency and errors change while
+  ingestion runs in parallel
+- Scaler tuning, thresholds and cooldowns: how much of convergence time is configuration rather than
+  node provisioning
+- Query tail latency, p99: how slow the slowest 1% of queries get
+- Retrieval quality against quantization: what INT8 compression costs in recall. INT8 SQ is a frozen
+  given here
+- Behaviour above the sustained rate: whether overload degrades or collapses the deployment
+- End-to-end latency including Bedrock generation: what a user waits for once Bedrock answers
+- Reliability economics, Spot interruption under load: the price of the resilience mechanism, work
+  lost, duplicates, recovery time
 
 ---
 
@@ -101,7 +112,7 @@ Every run used one configuration, frozen before the first run.
 - **Shared TEI** — one deployment serves both flows. Ingestion is charged only for TEI above the
   always-on minimum (§4.2)
 - **Qdrant** — 2 × `r7g.large`, one shard held by both, INT8 SQ
-- **Generation** — the chosen LLM is llama3-1-8b
+- **Generation** — the chosen LLM is `llama3-1-8b`
 
 ### 2.2 Ingestion flow — per document
 
@@ -112,8 +123,8 @@ Every run used one configuration, frozen before the first run.
 - **Denominator** — 100 documents (files), frozen with the fixture. The same corpus is freshly
   ingested at every point, confirmed by an identical 84,018-chunk `points_count` at every point
 - **Window** — opens at the first `s3:ObjectCreated` and closes when the ingestion pool reaches zero
-  nodes and TEI returns to its always-on minimum, plus five minutes. The upload is started by a
-  script that uploads local files to S3
+  nodes and TEI returns to its always-on minimum, plus five minutes. Upload is started by a script
+  that uploads local files to S3
 
 ### 2.3 Query flow — per query
 
@@ -121,7 +132,7 @@ Every run used one configuration, frozen before the first run.
   response. Generation in Bedrock is outside the unit
 - **Workload fixture** — 5 query options (`docs/report/scripts/load.js:57-63`), one picked at random
   per request and sent at a constant rate
-- **Collection** — Qdrant loaded from the ingestion snapshot: 84,018 chunks, unchanged across runs
+- **Collection** — Qdrant loaded from the `01-ingestion` snapshot: 84,018 chunks, unchanged across runs
 - **Denominator** — queries served inside each run
 - **Window** — the whole generator run. It opens with both deployments at their always-on minimum,
   so it includes the scale-out
@@ -142,7 +153,8 @@ pods, not observed concurrency. The indexer ran at max replicas at every point (
 N=125). The `chunker` peaked at ~20 whatever the N, technically because the 100-file corpus was the
 same.
 
-Cost per document is V-shaped: it is cheapest at N=25, and the points on both sides are higher.
+Cost per document is V-shaped, the cheapest at N=25, and the neighboring points on both sides are
+higher.
 N=10 costs $44.71<!--FD76--> ᴱ per 1k docs against $24.88<!--FD75--> ᴱ at N=25, because it runs twice
 as long (132.5 min against 61.7 min) while fixed per-hour costs keep billing.
 
@@ -154,6 +166,14 @@ Ingestion is limited only by how the indexer calls TEI, not by any resource. No 
 CPU or memory limit at any N. Each indexer pod sends one TEI request at a time and waits for the
 answer before sending the next (`apps/indexer/src/main.py`). Its throughput depends mostly on how
 long that call takes, so the only way to go faster today is more pods.
+
+**Time** by N:
+
+- N=10 — 132.5 min
+- N=25 — 61.7 min
+- N=50 — 44.0 min
+- N=75 — 42.9 min
+- N=125 — 38.5 min
 
 [IMAGE: charts/tradeoff-jobs.png — caption: Cost per 1k docs against throughput in docs/min, one point per N]
 
@@ -202,15 +222,21 @@ document or query adds on top of the floor.
 ### 4.1 Floor
 
 The floor is measured as one hour of the running system with no load, projected to a month at AWS
-list rates. It is described in two versions, As built and Right-sized, because after the analysis
-we can choose the correct node sizes and exclude errors.
+list rates. Described in two versions, As built and Right-sized, as after the analysis we can
+choose the correct node sizes and exclude errors.
+
+- **B · Dedicated** — Qdrant node + gp3 (current-gen PVC) · serving pool at 2+2 replicas · Bedrock
+  interface endpoints (removed in the right-sized version, `ADR-0018`) · S3 at rest · SQS polling
+- **A · Shared** — EKS control plane · core node group · Karpenter on Fargate · NAT hourly ·
+  monitoring stack · the Gateway's load balancer
+- **C · Total** — `A + B`
 
 [IMAGE: charts/floor-blocks.png — caption: Monthly floor of Block B and Block A, as built against right-sized]
 
 As built, Block B costs $534.12<!--FD26--> a month and Block C $877.54<!--FD29-->. Right-sized,
 they cost $411.31<!--FE9--> ᴱ and $737.74<!--FE11--> ᴱ.
 
-Right-sized means each line is sized to its observed use. Variable cost at rest is unchanged,
+Right-sized ᴱ means each line is sized to its observed use. Variable cost at rest is unchanged,
 because sizing doesn't influence NAT or cross-AZ traffic at rest.
 
 Errors found at rest are not included in these figures. They were $175.85<!--FD35-->/month: EKS
@@ -234,8 +260,8 @@ Every figure here is cash, what the account paid in the run's CUR hour. The chun
 alone on the `apps-compute` nodes, so their cost is those whole nodes, including capacity no pod
 requested. TEI grew from 2 to 4 replicas on nodes that were already running.
 
-NAT, SQS and S3 are 55.8<!--FD171-->% of the cost, almost all of it NAT for image pulls while nodes
-start. The worker nodes are 43.9<!--FD170-->%, and TEI 0.3<!--FD172-->%.
+NAT, SQS and S3 are $13.88<!--FD168--> ᴱ(55.8<!--FD171-->% of the cost, almost all of it NAT for image pulls while nodes
+start). The worker nodes are $10.92<!--FD167--> ᴱ(43.9<!--FD170-->%), and TEI $0.07<!--FD169--> ᴱ(0.3<!--FD172-->%).
 
 ### Per 1k queries at 1000 req/s, 24/7
 
@@ -262,13 +288,16 @@ arithmetic on §4.1 and §4.2, and no run measured it.
 
 Documents use the N=25 marginal, $24.88<!--FD37-->/1k docs = $0.02488<!--FD38-->/doc.
 
-At 1,000 documents a month the floor is 95.6<!--FD96-->% of each document's cost. At 1,000,000 it
-is 2.1<!--FD99-->%, and it falls below half at ~21,472<!--FD41-->.
+* **1,000 documents/month:** floor share is 95.6<!--FD96-->% ($0.5590<!--FD92-->/doc)
+* **10,000 documents/month:** floor share is 68.2<!--FD97-->% ($0.0783<!--FD93-->/doc)
+* **100,000 documents/month:** floor share is 17.7<!--FD98-->% ($0.0302<!--FD94-->/doc)
+* **1,000,000 documents/month:** floor share is 2.1<!--FD99-->% ($0.0254<!--FD95-->/doc)
 
 ### Queries
 
-Generation is 99.8<!--FD160-->% of the marginal, so the effective cost per query is mostly Bedrock's
-token price plus the floor. The chart shows the floor share for each monthly query volume.
+According to the fact that generation is 99.8<!--FD160-->% of the marginal, decided to build an additional chart
+that shows the difference in floor share for the total number of queries per month. The cost is
+mostly Bedrock's token price plus the floor.
 
 [IMAGE: charts/amortization-queries.png — caption: Effective cost per query and floor share against monthly query volume, log scale]
 
@@ -284,7 +313,7 @@ fewer replicas, so its retrieval figure is less accurate.
 
 ### Fargate instead of EC2 Spot nodes for ingestion
 
-To compare with Fargate at N=25: the ingestion pool's EC2 Spot nodes billed $0.8594<!--FM93--> for
+Comparing Fargate at N=25, the ingestion pool's EC2 Spot nodes billed $0.8594<!--FM93--> for
 this run, instances alone. The worker pods requested $0.2595<!--FD122--> of it, which was
 30<!--FD176-->%, and $0.5784<!--FM94-->, 67<!--FD177-->%, was capacity no pod requested. Fargate
 bills per pod, so the same pod-hours cost $0.7562<!--FD121--> at its on-demand rates, which is
@@ -292,7 +321,7 @@ bills per pod, so the same pod-hours cost $0.7562<!--FD121--> at its on-demand r
 exchange, it downloads the image once per task, and each Job is a task, while a node downloads each
 image once per node and caches it.
 
-The N=25 run created 58<!--FM83--> jobs, so Fargate would pull images 3-6 times more often, but
+The N=25 run created 58<!--FM83--> jobs, so technically Fargate would pull images 3-6 times more often, but
 Fargate skips node bootstrap. But with instances that match the pods, sized the way §4.1 sizes the
 floor, Fargate loses: the same run on `m7g.xlarge` would cost about $0.55<!--FE20--> ᴱ, so Fargate
 would cost 1.4<!--FE21--> ᴱ times more, though it stays a reasonable option.
@@ -310,8 +339,8 @@ queries the NAT costs $0.59<!--FD53--> ᴱ a month, 0.12<!--FD55-->% of generati
 sits 55× above it.
 
 Besides the cost, the endpoint reaches Bedrock in `eu-central-1` only, and the current model is
-served only in US regions. So the change would first require switching to a model that is served in
-`eu-central-1`.
+served only in US regions. So such a change would also require changing a model to one that is in
+`eu-central-1` first.
 
 ---
 
@@ -322,13 +351,11 @@ served only in US regions. So the change would first require switching to a mode
 Peak is each pod's highest `container_memory_working_set_bytes` in the window, the value the kubelet
 compares with the limit before an OOM kill.
 
-- **Chunker** — 1Gi limit, 445<!--FM79--> MiB peak, 2.30<!--FD156-->× headroom. Deliberate: real
-  PDFs run larger than the fixture.
+- **Chunker** — 1Gi limit, 445<!--FM79--> MiB peak, 2.30<!--FD156-->× headroom,
+  real documents can be larger than the fixture
 - **Indexer** — 4Gi limit, 2,219<!--FM80--> MiB peak, 1.85<!--FD157-->×. The memory request is raised
-  from 2,048<!--FR37--> MiB to 2560Mi, above the peak. Fewer indexers now fit a node, and the effect
-  on cost is unmeasured.
-- **Go API** — 512Mi limit, 165<!--FM76--> MiB peak, 3.10<!--FD154-->×. Sized for one replica
-  carrying the whole rate: a pinned replica reached 439<!--FM77--> MiB.
+  from 2,048<!--FR37--> MiB to 2560Mi, above the peak.
+- **Go API** — 512Mi limit, 165<!--FM76--> MiB peak, 3.10<!--FD154-->×. replica reached 439<!--FM77--> MiB.
 - **TEI** — 1Gi limit, 670<!--FM78--> MiB peak, 1.53<!--FD155-->×. CPU decides packing, so memory
   does not affect density.
 
@@ -351,7 +378,7 @@ TEI's max: at r1000 TEI ran on 11 pods (§3.2).
   lower it for cost**
 
 By default, Karpenter is configured with `0s` under `WhenEmptyOrUnderutilized`, and in this setup a
-node is empty for a moment between Jobs starting. Karpenter reads it as idle and removes a node the
+node would be empty for a moment between Jobs starting. Karpenter reads it as idle and removes a node the
 next pod was about to use. A `5m` delay would fix that consolidation issue, so it is better not to
 reduce it.
 
@@ -363,5 +390,5 @@ The response is a higher NodePool limit and, past 256 vCPU, more Spot vCPU quota
 
 - **Budget alarm — $1,032.84<!--FD56--> ᴱ/month** (§4.1)
 
-The alarm is right-sized Block C, $737.74<!--FE11--> ᴱ, × 1.4 for headroom. Block B is the better
+Right-sized Block C, $737.74<!--FE11--> ᴱ, × 1.4 for headroom. However, Block B is the better
 base, but scoping a budget to it needs a block tag or cost category.

@@ -78,7 +78,7 @@ Every run used one configuration, frozen in `00-baseline` §2 before the first r
 - **Ingestion pool** — `c7g` Spot in `xlarge`–`4xlarge`
 - **Shared TEI** — one deployment serves both flows. Ingestion is charged only for TEI above the always-on minimum (§4.2)
 - **Qdrant** — 2 × `r7g.large`, one shard held by both, INT8 SQ
-- **Generation** — Chosen llm is llama3-1-8b
+- **Generation** — Chosen llm is `llama3-1-8b`
 
 Metric definitions: `00-baseline` §1 · `01-ingestion/metrics.md` · `02-inference` §1.
 
@@ -346,10 +346,10 @@ with the limit before an OOM kill (`01-ingestion/M7` · `02-inference/Q8`).
 
 | Component | Keep | Peak working set | Limit ÷ peak | Enforced in | Comment |
 | :--- | :--- | ---: | ---: | :--- | :--- |
-| Chunker | `1Gi` | 445<!--FM79--> MiB (N=25) | 2.30<!--FD156-->× | `deploy/k8s/apps/chunker` | The margin is deliberate, well past `peak+30%`: real documents can be larger than the fixture, a 124 MB file against its 78.8 MB maximum, and an image-heavy PDF decodes to several times its file size |
-| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | `requests.memory` raised to `2560Mi`, above the peak. The runs used 2,048<!--FR37--> MiB, below it, so §2.1's packing density overstates the real one. At 2560Mi fewer indexers fit a node, and the effect on `$/1k docs` is unmeasured |
-| Go API | `512Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | Sized for one replica carrying the whole rate: a pinned replica reached 439<!--FM77--> MiB, 86% of the limit, a state reachable at scale-in and under imbalanced routing |
-| TEI | `1Gi` | 670<!--FM78--> MiB (r050) | 1.53<!--FD155-->× | `deploy/k8s/apps/tei` | Memory decides nothing here: at `requests.cpu: 3000m` packing is CPU-bound, so the 768<!--FR34--> MiB request does not affect density |
+| Chunker | `1Gi` | 445<!--FM79--> MiB (N=25) | 2.30<!--FD156-->× | `deploy/k8s/apps/chunker` | real documents can be larger than the fixture |
+| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | `requests.memory` raised to `2560Mi`, above the peak. The runs used 2,048<!--FR37--> MiB |
+| Go API | `512Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | replica reached 439<!--FM77--> MiB, 86% of the limit |
+| TEI | `1Gi` | 670<!--FM78--> MiB (r050) | 1.53<!--FD155-->× | `deploy/k8s/apps/tei` | at `requests.cpu: 3000m` packing is CPU-bound, so the 768<!--FR34--> MiB request does not affect density |
 
 ### 5.2 Max replicas
 
@@ -370,7 +370,7 @@ was enough for both.
 
 - **Karpenter node consolidation delay — keep `consolidateAfter: 5m` under `WhenEmpty`, and do not lower it for cost**
 
-Karpenter by default has configured with `0s` under `WhenEmptyOrUnderutilized` and for this setup a node would be empty
+By default, Karpenter is configured with `0s` under `WhenEmptyOrUnderutilized` and for this setup a node would be empty
 for a moment between Job started. Karpenter reads it as idle and removes a node the next pod was about to use. A
 `5m` delay would fix that consolidation issue, so better to not reduce.
 

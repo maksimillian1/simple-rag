@@ -9,12 +9,10 @@ text is always this render, never the source file and never a paste out of repor
   python3 docs/report/scripts/render_article.py --no-check       # skip the registry gate
 
 Four things happen. Figure marks (`$534.12<!--FD26-->`) are stripped, so the text reads
-cleanly while the source keeps every number attached to figures.yaml. LEADS replaces the
-paragraph under the title: the published article opens by linking the previous one in the
-series, which report.md has no reason to know about. Repo-relative pointers in inline code - `00-baseline`'s path,
-apps/indexer/src/main.py, adr/0017-*.md - become permalinks pinned to the commit being
-rendered, so a reader outside the repository can follow them and they do not rot. And the
-render is stamped with that commit.
+cleanly while the source keeps every number attached to figures.yaml. SERIES puts links to the
+previous article in the series and to report.md on GitHub under the title, which report.md
+has no reason to know about. Repo-relative pointers in inline code - `00-baseline`'s path, apps/indexer/src/main.py, adr/0017-*.md - become links to BRANCH, so a reader outside the
+repository can follow them. And the render is stamped with the commit it was made from.
 
 It refuses to run while `report-kit figures check` is dirty: a published number that no
 longer resolves is the failure this whole arrangement exists to prevent.
@@ -28,23 +26,16 @@ from pathlib import Path
 
 REPORT_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = REPORT_DIR.parent.parent
+BRANCH = "master"
 MARK = re.compile(r"<!--\s*F[MRDE]\d+\s*-->")
 COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 CODE_SPAN = re.compile(r"`([^`\n]+)`")
 FENCE = re.compile(r"^```", re.MULTILINE)
-TITLE_PARAGRAPH = re.compile(r"(^# .*\n+)(?:.+\n)+", re.MULTILINE)
-FIGURES = [sys.executable, "-m", "report_kit.cli", "figures", "--path", "figures.yaml"]
-CHECK = [*FIGURES, "check"]
+TITLE = re.compile(r"^# .*\n", re.MULTILINE)
+CHECK = [sys.executable, "-m", "report_kit.cli", "figures", "--path", "figures.yaml", "check"]
 
 PART_1 = "https://medium.com/kairi-ai/finops-rag-architecture-scaling-ingestion-to-0-00-with-aws-spot-keda-0026d1daa2a6"
-LEADS = {
-    "article.md": (
-        "This report measures cost and performance on both flows of a RAG system: asynchronous document\n"
-        f"ingestion and synchronous queries. [Part 1]({PART_1})\n"
-        "scaled the ingestion workers to $0.00 at rest. This report prices everything else: at rest the\n"
-        "feature still costs ${FD26} a month, mostly Qdrant and the serving pool."
-    ),
-}
+SERIES = {"article.md"}
 
 
 def git(*args):
@@ -69,25 +60,18 @@ def strip_marks(text):
     return COMMENT.sub("", MARK.sub("", text))
 
 
-def figure(ref):
-    done = subprocess.run([*FIGURES, ref], cwd=REPORT_DIR, capture_output=True, text=True)
-    if done.returncode != 0:
-        sys.exit(f"figure {ref} does not resolve: {done.stderr.strip()}")
-    return done.stdout.strip()
-
-
-def resolve_figures(text):
-    return re.sub(r"\{(F[MRDE]\d+)\}", lambda m: figure(m.group(1)), text)
-
-
-def replace_lead(text, lead):
-    replaced, found = TITLE_PARAGRAPH.subn(lambda m: m.group(1) + lead + "\n", text, count=1)
+def link_series(text, base):
+    if not base:
+        sys.exit("no origin remote to link the source report on")
+    report = (REPORT_DIR / "report.md").relative_to(REPO_ROOT)
+    links = f"- [Part 1]({PART_1})\n- Source: [full report on GitHub]({base}/blob/{BRANCH}/{report})"
+    linked, found = TITLE.subn(lambda m: f"{m.group(0)}\n{links}\n", text, count=1)
     if not found:
-        sys.exit("no paragraph under the title for the lead to replace")
-    return replaced
+        sys.exit("no title to put the series links under")
+    return linked
 
 
-def link_pointers(text, base, sha):
+def link_pointers(text, base):
     def one(match):
         path = match.group(1)
         start, end = match.span()
@@ -97,7 +81,7 @@ def link_pointers(text, base, sha):
             return match.group(0)
         if not (REPO_ROOT / path).is_file():
             return match.group(0)
-        return f"[`{path}`]({base}/blob/{sha}/{path})"
+        return f"[`{path}`]({base}/blob/{BRANCH}/{path})"
 
     # inline code inside a fenced block is sample text, not a pointer
     parts = FENCE.split(text)
@@ -123,16 +107,14 @@ def main():
             sys.exit("registry check is dirty - fix it or pass --no-check")
 
     sha = commit()
-    text = strip_marks(source.read_text())
+    text = strip_marks(source.read_text()).lstrip()
 
-    if source.name in LEADS:
-        text = replace_lead(text, resolve_figures(LEADS[source.name]))
+    if source.name in SERIES:
+        text = link_series(text, permalink_base())
 
     base = None if args.no_links else permalink_base()
     if base:
-        text = link_pointers(text, base, sha)
-        if sha.endswith("-dirty"):
-            sys.stderr.write("warning: tree is dirty, so the permalinks resolve to nothing - commit before publishing\n")
+        text = link_pointers(text, base)
 
     stamp = f"\nFigures as of `{sha}`, registry `docs/report/figures.yaml`, source `docs/report/{args.source}`.\n"
     text = text.rstrip() + "\n\n---\n" + stamp
