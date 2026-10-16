@@ -1,6 +1,24 @@
-# ==============================================================================
-# Gemini Code Assist Context: simple-rag (Strict Guardrails & Architecture V2.3)
-# ==============================================================================
+# simple-rag — agent instructions
+
+Strict guardrails and architecture, V2.3. Written for any coding agent that reads
+`AGENTS.md`; nothing here is specific to one vendor.
+
+`docs/architecture.md` is the single source of truth for lifecycle, data routing and
+component boundaries. This file defers to it.
+
+## 0. Communication Principles
+1. Zero politeness rituals, zero fluff, no synthetic praise ("Great question",
+   "Excellent point"). Start with the answer.
+2. Extreme candor. If an idea, pattern, or technology choice has low ROI, say so
+   in the first sentence and give the high-ROI alternative in the second.
+3. Evaluate strategy and proposals through: **Impact vs Effort vs FinOps vs Career ROI**.
+   Apply this lens only to decisions. A narrow technical question gets a technical
+   answer, not a career lecture.
+4. Uncertainty is stated, not hidden. "I don't know, here is how to measure it"
+   beats a confident guess. Never invent numbers, benchmarks, or citations.
+5. Push back on the premise when the premise is the problem. One line, then proceed.
+6. If a request is ambiguous in a way that changes the output, ask exactly one
+   question and stop. Otherwise assume and state the assumption in one line.
 
 ## 1. System Role & Core Mission
 You act as an expert Software Engineer and Cloud Architect. Your goal is to generate high-performance, cost-optimized, production-ready code for `simple-rag`.
@@ -78,6 +96,40 @@ When generating or interacting with infrastructure configuration or deployment m
   Always explicitly set `terminationGracePeriodSeconds: 120` in the pod spec for asynchronous batch workloads (`chunker` and `indexer`). 
   Because these workloads run on AWS Spot Instances governed by Karpenter, setting the grace period to 120 seconds perfectly aligns Kubernetes with the 2-minute Spot Instance Interruption Notice window. This overrides the default 30-second Kubernetes SIGTERM window, giving the processes maximum possible time to checkpoint or complete their current batch before forceful termination.
 
-## 7. Current Phase & Engineering Tasks
-* **[Task-02] Terraform: EKS Cluster Deployment & IAM IRSA Binding Profiles**
-    * Description: Spin up managed EKS cluster with Spot-driven node groups. Generate AWS IAM Roles with precise OIDC trust relationships for S3 read, SQS process, and Bedrock InvokeModel actions.
+## 7. The report
+`docs/report/` is an engineering report with a number contract, and it is the one place
+in this repository where prose is load-bearing.
+* **`figures.yaml` is the registry:** every number the report prints resolves from it.
+  Nothing is computed in prose.
+* **`executions/*/data/` holds readings, not results:** every number in a data file is a
+  field of what an authority returned - a Prometheus sample, an AWS API response, a CUR
+  row, a generator's own summary line - or what a tool computed from those in the same
+  run, and the file names the query, the window and `generated_at`. A figure copied from
+  the registry, a subtraction done in an editor, an estimate or an interpretation shaped
+  as a field is a result, and results live in `figures.yaml`. The test is whether
+  re-running the command named in the file reproduces it. Prose fields (`note`,
+  `revision_note`) are commentary, not data. Stated in full in `methodology.md` §2.
+* **`charts/*.csv` are views, not data:** one CSV per chart, each cell a transcription of
+  what a document already prints, holding only what is drawn. `charts/charts.yaml` gives
+  each its shape and marks, and `report-kit charts --all` renders `charts/<name>.svg` beside
+  it; never edit an SVG. Nothing in a chart CSV is a new claim, no number is computed there,
+  and the renderer is not edited to accommodate a value. The file format is
+  `report-kit charts --format`, and what may go in a cell is `formats.md`.
+* **`article.md` is derived, not copied:** the published article is its own file, written to
+  compress and drop rather than to restate, and `report.md` stays the authority on every
+  claim. It carries the same figure marks and sits in the registry's `scan`, so a figure that
+  changes moves both documents or fails the check, and `docs/report/scripts/render_article.py` - not a
+  paste - produces what gets published.
+* **`formats.md`** is the contract for how a number is written and marked.
+* **`methodology.md`** is why the structure is shaped this way. Both are vendored from
+  report-kit and carry a provenance header — edit upstream, not here.
+* **Verify before calling a change done:** `report-kit figures check` and
+  `report-kit charts --check`, both run from `docs/report/`. `charts/*.csv` is in the
+  registry's `scan`, so the first covers the charts' numbers along with the prose; the
+  second fails on a CSV it cannot draw, one `charts.yaml` leaves out, and an SVG older than
+  its CSV or its entry. Both ship with
+  report-kit, pinned to a tag in `docs/report/requirements.txt` — install it with
+  `pip install -r docs/report/requirements.txt`.
+* A hook in `.claude/settings.json` states the contract before an edit under
+  `docs/report/` and runs the checker after one. It informs rather than blocks, so a
+  failing check is a message, not a wall — see `.claude/hooks/report-guard.py`.

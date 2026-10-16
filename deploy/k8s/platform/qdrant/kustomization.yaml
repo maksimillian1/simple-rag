@@ -6,7 +6,6 @@ namespace: rag-platform
 resources:
   - qdrant-backup-cronjob.yaml
   - service-account.yaml
-  - collection-restore-job.yaml
 
 helmCharts:
   - name: qdrant

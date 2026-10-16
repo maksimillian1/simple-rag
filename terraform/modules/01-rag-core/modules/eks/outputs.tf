@@ -58,11 +58,6 @@ output "public_subnets" {
   value       = module.vpc.public_subnets
 }
 
-output "qdrant_ebs_volume_id" {
-  description = "ID of the 150GB gp3 EBS volume provisioned for Qdrant"
-  value       = aws_ebs_volume.qdrant.id
-}
-
 output "update_kubeconfig" {
   description = "Command to launch to use kubectl"
   value       = "aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig ~/.kube/config"

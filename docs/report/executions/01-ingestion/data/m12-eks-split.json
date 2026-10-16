@@ -1,0 +1,63 @@
+{
+  "points": {
+    "n125": {
+      "window": "2026-09-04T14:00:58Z -> 14:39:25Z (hour bucket 14:00-15:00Z)",
+      "by_app": {
+        "api": 0.010921925128854,
+        "chunker": 0.0018394061252679998,
+        "indexer": 0.39707629572253234,
+        "tei-embeddings": 0.44377619162735793,
+        "qdrant": 0.10104175144960001
+      },
+      "unused_ekslevel": 1.8122471353768763
+    },
+    "n75": {
+      "window": "2026-09-04T15:06:08Z -> 15:48:59Z (hour bucket 15:00-16:00Z)",
+      "by_app": {
+        "api": 0.011555786237569999,
+        "chunker": 0.001955709668075001,
+        "indexer": 0.30179764505971796,
+        "tei-embeddings": 0.35240706843242814,
+        "qdrant": 0.10104175144960001
+      },
+      "unused_ekslevel": 1.4556166165919338
+    },
+    "n50": {
+      "window": "2026-09-04T16:01:22Z -> 16:45:23Z (hour bucket 16:00-17:00Z)",
+      "by_app": {
+        "api": 0.01083424732478,
+        "chunker": 0.001650281166375,
+        "indexer": 0.2659743693197339,
+        "tei-embeddings": 0.2734050925065819,
+        "qdrant": 0.10104175144960001
+      },
+      "unused_ekslevel": 1.1984041736568158
+    },
+    "n25": {
+      "window": "2026-09-04T17:00:55Z -> 18:02:39Z (hour buckets 17:00-19:00Z)",
+      "by_app": {
+        "api": 0.021718643949527,
+        "chunker": 0.0020810022716760005,
+        "indexer": 0.257425149293111,
+        "tei-embeddings": 0.32564358336048105,
+        "qdrant": 0.20208350289920002
+      },
+      "unused_ekslevel": 1.4787112438509662
+    },
+    "n10": {
+      "window": "2026-09-05T10:27:09Z -> 12:39:36Z (hour buckets 10:00-13:00Z)",
+      "by_app": {
+        "api": 0.031744902771702,
+        "chunker": 0.0033638540472220005,
+        "indexer": 0.3404768281262349,
+        "tei-embeddings": 0.48409603620819897,
+        "qdrant": 0.30312525434880006
+      },
+      "unused_ekslevel": 1.8478134875473315
+    }
+  },
+  "source": "s3://simple-rag-cur-reports-883f615c/cur2/simple-rag/simple-rag-cur/data/BILLING_PERIOD=2026-09/",
+  "pulled": "2026-09-09",
+  "method": "pyarrow direct read of split_line_item_split_cost, grouped by resource_tags['aws_eks_workload_name'] (normalized to app prefix) where line_item_product_code=AmazonEKS and resource_id contains ':pod/'. unused_ekslevel is split_line_item_unused_cost summed across ALL namespaces on every EKS-managed node in the window (core-on-demand + apps-serving + database-on-demand), not just this project's own pods.",
+  "caveat": "this is the EKS split-cost-allocation slice only (per-pod share of AmazonEC2/AmazonEKS vCPU+GB instance-hours). It does not include NAT, EBS/gp3 volumes, load balancer, or other non-instance-hour lines -- not directly comparable to the full $/run figures in the Matrix."
+}

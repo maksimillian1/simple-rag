@@ -1,0 +1,7 @@
+run,n_set,throughput,usd_per_1k
+label,concurrency,docs/min,$/1k docs
+#10,10,0.76,44.71
+#08,25,1.62,24.88
+#07,50,2.27,44.33
+#06,75,2.33,61.57
+#05,125,2.60,88.16

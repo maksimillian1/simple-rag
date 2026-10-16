@@ -26,11 +26,6 @@ output "rag_sqs_stage_2_queue_arn" {
   value = module.rag_core.sqs_stage_2_queue_arn
 }
 
-output "qdrant_ebs_volume_id" {
-  description = "The AWS EBS Volume ID provisioned for Qdrant"
-  value       = module.rag_core.qdrant_ebs_volume_id
-}
-
 output "vpc_id" {
   value = module.rag_core.vpc_id
 }

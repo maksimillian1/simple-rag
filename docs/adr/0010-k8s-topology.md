@@ -26,7 +26,7 @@ We reject the paradigm of running a monolithic or non-segmented cluster node poo
 
 3. **Isolated Synchronous Query Plane (`apps-serving` NodePool):**
    * A dedicated, isolated Karpenter NodePool is provisioned exclusively for `apps/api`. This tier allows a mixed allocation configuration (`capacity-type: ["on-demand", "spot"]`).
-   * To ensure zero downtime and maintain predictable p95 latency targets (<200ms) during AWS Spot involuntary evictions, the Go API enforces a minimum of 2 replicas coupled with a strict `podAntiAffinity` policy forcing execution across distinct nodes.
+   * To ensure zero downtime and keep latency predictable during AWS Spot involuntary evictions, the Go API enforces a minimum of 2 replicas coupled with a strict `podAntiAffinity` policy forcing execution across distinct nodes.
 
 4. **Ephemeral Computational Cluster (`apps-compute` NodePool):**
    * Asynchronous, heavy processing elements (**`apps/chunker` and `apps/indexer`**) are bound via strict taints and node selectors to an isolated pool of AWS Spot instances.

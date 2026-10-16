@@ -5,6 +5,14 @@ Date: 2026-05-31
 ## Status
 Accepted (Supersedes previous generic serverless definition)
 
+Clause 2 of the Decision below, "Zero-Internet Network Egress", is superseded by
+[ADR-0018](0018-bedrock-egress-transport.md), 2026-09-28, which removes the Bedrock VPC endpoints.
+Its cost claim is measured false: the endpoint breaks even at 54,854,311 queries a month against a
+design volume of 1,000,000. Its privacy claim was sound in principle but never in effect, both
+endpoints sitting in `eu-central-1` while the client calls `us-east-1`. The text below is left as
+written on 2026-05-31. The model, the IRSA authentication and the prompt format stand. The
+transport does not.
+
 ## Context
 After retrieving and reranking the top-$K$ document chunks via dual-stage hybrid retrieval and Reciprocal Rank Fusion ($k=60$), the system must synthesize a final response. This requires an LLM capable of long-context comprehension, high system prompt adherence to block hallucinations, and minimal operational cost.
 

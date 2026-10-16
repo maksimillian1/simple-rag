@@ -66,13 +66,19 @@ spec:
           values: ["spot", "on-demand"]
         - key: karpenter.k8s.aws/instance-category
           operator: In
-          values: ["c", "m", "r", "t"]
+          # Narrowed to "c" only: this pool is shared by tei-embeddings
+          # (sustained near-limit CPU, no burst headroom needed) and api
+          # load-test traffic — both CPU-bound, neither benefits from "m"
+          # (extra memory) or "r" (much more memory) variety. "t" stays
+          # excluded: unlimited-credit bursting on a t-family instance is
+          # billed above baseline continuously under sustained load.
+          values: ["c"]
         - key: kubernetes.io/arch
           operator: In
-          values: ["amd64", "arm64"]
+          values: ["amd64"]
         - key: karpenter.k8s.aws/instance-size
-          operator: NotIn
-          values: ["nano", "micro"]
+          operator: In
+          values: ["xlarge", "2xlarge", "4xlarge"]
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass
@@ -85,7 +91,11 @@ spec:
     cpu: 100
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
-    consolidateAfter: 1m
+    # 1m was shorter than EC2 launch + kubelet + Cilium boot time (~1-2m),
+    # so Karpenter's own disruption controller was deleting a freshly
+    # provisioned node as "Empty" before the pod Karpenter had just
+    # nominated to it could actually bind — endless nodeclaim replace loop.
+    consolidateAfter: 5m
 ---
 # Tier 4: apps-compute Pool (Strict Spot Scale-to-Zero)
 apiVersion: karpenter.sh/v1
@@ -129,4 +139,10 @@ spec:
     cpu: 200
   disruption:
     consolidationPolicy: WhenEmpty
-    consolidateAfter: 30s
+    # 30s (the value 00-baseline §2 froze for the teardown-tail cost model)
+    # was shorter than node boot + pod bind time, so Karpenter's own
+    # disruption controller was deleting every freshly provisioned node as
+    # "Empty" before a single chunker/indexer pod could bind — a total
+    # scheduling deadlock, not just an inefficiency. Revisit this value
+    # (and re-measure D26) once the pipeline is actually running cleanly.
+    consolidateAfter: 5m

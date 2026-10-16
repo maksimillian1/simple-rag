@@ -11,7 +11,7 @@ To achieve Enterprise-grade RAG precision, the query layer (`apps/api/` in Go) m
 We need a multi-stage retrieval and reranking pipeline optimized for execution latency, low memory footprint in the Go API, and zero external runtime dependencies.
 
 ### Constraints & Requirements
-1. **Low Latency:** The synchronous query path must return results in <200ms.
+1. **Low Latency:** The synchronous query path must complete retrieval and reranking inside the database round trip, with no cross-encoder stage on the critical path.
 2. **Resource Efficiency:** Avoid deploying heavy, resource-intensive cross-encoder reranking models (e.g., `bge-reranker-large`) on persistent GPU/CPU nodes to keep AWS infrastructure costs at zero for the query layer.
 
 ## Decision

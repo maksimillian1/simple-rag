@@ -8,7 +8,7 @@ Mechanisms only. Values are in `index.md` and `metrics.md`. Cited from outside a
 Boot, image pull and the consolidation tail are billed and produce zero units. Closing the window
 at queue drain excludes them, and the unit cost then falls monotonically because the thing that
 turns it back up was measured out of existence. The Kubernetes node series starts at kubelet
-registration and ends at object deletion, so it misses both edges — the bill does not.
+registration and ends at object deletion, so it misses both edges. The bill includes them.
 
 **Consequence** — every `$/run`, and whether the U-curve exists in the report at all.
 
@@ -48,7 +48,7 @@ pool bill with no worker node on that pool. Subtracting the pool's idle rate rem
 always-on floor; the split between pods inside a node is an AWS allocation rule over requests
 with a fixed CPU-to-memory weighting, not a measurement.
 
-*Unused cost is the exception — capacity billed with no pod on it needs no convention.*
+*Unused cost is the exception: capacity billed with no pod on it needs no convention.*
 
 **Consequence** — whether a run is priced completely, and why a point must open with the shared
 tier at its minimum.

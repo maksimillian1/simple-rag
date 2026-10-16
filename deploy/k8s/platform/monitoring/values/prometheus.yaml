@@ -72,6 +72,23 @@ prometheus:
           - source_labels: [ __meta_kubernetes_namespace ]
             target_label: namespace
 
+      - job_name: 'cilium-envoy'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['kube-system']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_k8s_app]
+            action: keep
+            regex: cilium-envoy
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: '9964'
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
       - job_name: 'qdrant'
         kubernetes_sd_configs:
           - role: pod
@@ -124,9 +141,13 @@ alertmanager:
         cpu: "100m"
         memory: "128Mi"
 
-kubeStateMetrics:
+kube-state-metrics:
   metricLabelsAllowlist:
-    - "nodes=[karpenter.sh/nodepool,karpenter.sh/capacity-type]"
+    # instance-type + zone added for karpenter-cost-estimate.py: node-lifecycle
+    # cost reconstruction needs them to price a node after it's already gone
+    # (Prometheus label history is the only place they still exist by then —
+    # `kubectl get nodes` only shows what's currently up).
+    - "nodes=[karpenter.sh/nodepool,karpenter.sh/capacity-type,node.kubernetes.io/instance-type,topology.kubernetes.io/zone]"
   nodeSelector:
     tier: core-on-demand
   resources:

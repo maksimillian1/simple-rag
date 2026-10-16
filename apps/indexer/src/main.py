@@ -8,6 +8,19 @@ from . import config
 from .vector import generate_point_id
 from .haystack_pipeline import SpladeDocumentProcessor, build_haystack_pipeline
 
+# huggingface_hub.get_session() returns one httpx.Client per process, reused for
+# every call this pod ever makes. Combined with this pod living for the length of
+# the whole SQS-poll loop, its entire TEI traffic rides one TCP connection —
+# pinned by Cilium's L4 hash to whichever tei-embeddings backend answered first,
+# never rebalancing as TEI scales out mid-run (01-ingestion Notes, #04). Disabling
+# keep-alive forces a fresh connection — and fresh L4 pick — per request.
+import httpx
+from huggingface_hub import set_client_factory
+set_client_factory(lambda: httpx.Client(
+    follow_redirects=True, timeout=None,
+    limits=httpx.Limits(max_keepalive_connections=0),
+))
+
 logging.basicConfig(
     level=logging.INFO,
     format='{"time": "%(asctime)s", "level": "%(levelname)s", "msg": "%(message)s"}',

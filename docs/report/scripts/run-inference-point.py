@@ -38,7 +38,8 @@ import time
 from datetime import timedelta
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
 import labkit as lk                                            # noqa: E402
 
 # --------------------------------------------------------------------------- frozen
@@ -60,7 +61,7 @@ GATES = [
 ]
 
 # Retrieval latency is a function of what is indexed. Written back from
-# 01-ingestion into 00-baseline §2 Envelope.
+# 01-ingestion into 00-baseline §2 Scope.
 MIN_COLLECTION_POINTS = 0          # <-- set from 00-baseline §2 before freezing
 
 # The served rate must track the offered rate, or the generator queued its own
@@ -72,9 +73,8 @@ BUFFER_SECONDS = 300
 # The generator produces load and nothing else. Served rate, errors and latency
 # are read from Prometheus, never from its stdout: one instrument per figure, and
 # it is the one named in the register.
-GENERATOR = ["k6", "run", "--duration", "{duration}", "--tag", "point={run}",
-             "./load.js"]
-GENERATOR_ENV = {"TARGET_RATE": "{rate}"}
+GENERATOR = ["k6", "run", "--tag", "point={run}", "./load.js"]
+GENERATOR_ENV = {"TARGET_RATE": "{rate}", "DURATION": "{duration}"}
 
 
 def print_constants() -> None:
@@ -104,7 +104,7 @@ def preflight(env: lk.Env, freeze_file: Path) -> dict:
     for gate in GATES:
         name, floor = gate["deployment"], gate["floor"]
         try:
-            replicas = lk.deployment_replicas(env.namespace, name)
+            replicas = lk.deployment_replicas(env.namespace_for(name), name)
         except RuntimeError as e:
             failures.append(f"{name} unreadable — {e}")
             continue
@@ -133,7 +133,7 @@ def preflight(env: lk.Env, freeze_file: Path) -> dict:
         failures.append(f"collection unreachable — {e}")
 
     try:
-        images = lk.frozen_images(env.namespace, FREEZE)
+        images = lk.frozen_images(env, FREEZE)
         facts["images"] = images
         failures += lk.check_freeze(freeze_file, images)
     except RuntimeError as e:
@@ -178,7 +178,7 @@ def run_generator(env: lk.Env, args, out_dir: Path) -> dict:
     t_start = lk.utcnow()
     with log_path.open("w") as handle:
         proc = subprocess.run(cmd, stdout=handle, stderr=subprocess.STDOUT,
-                              env={**os.environ, **extra})
+                              env={**os.environ, **extra}, cwd=SCRIPT_DIR)
     t_generator_end = lk.utcnow()
 
     print(f"[{lk.OK if proc.returncode == 0 else lk.WARN}] generator exit "
@@ -217,7 +217,7 @@ def wait_for_scale_in(env: lk.Env, run: dict) -> dict:
             sys.exit(lk.EXIT_TIMEOUT)
 
         try:
-            current = {name: lk.deployment_replicas(env.namespace, name)
+            current = {name: lk.deployment_replicas(env.namespace_for(name), name)
                        for name in floors}
         except RuntimeError as e:
             print(f"{lk.WARN} poll failed ({e}) — retrying")
@@ -320,7 +320,7 @@ def main() -> int:
                 lk.forward_spec(env, "api")]
     with lk.PortForwards(forwards, enabled=not args.no_port_forward):
         if args.set_freeze:
-            images = lk.frozen_images(env.namespace, FREEZE)
+            images = lk.frozen_images(env, FREEZE)
             freeze_file.parent.mkdir(parents=True, exist_ok=True)
             freeze_file.write_text(json.dumps(images, indent=2, sort_keys=True) + "\n")
             print(json.dumps(images, indent=2, sort_keys=True))
@@ -362,11 +362,12 @@ def main() -> int:
         if rc != 0:
             print()
             print(f"{lk.BAD} export returned {rc} — WINDOW PRESERVED.")
-            lk.reexport_hint(series_file, args.run, run["t_start"], settle["t_end"])
+            lk.reexport_hint(series_file, args.run, run["t_start"], settle["t_end"],
+                             out_dir)
             return lk.EXIT_EXPORT_GAP
 
         print()
-        guard_failures = lk.check_guards(env.prom_url, guards)
+        guard_failures = lk.check_guards(env.prom_url, guards, at=run["t_generator_end"])
         if settle["ceiling_hits"]:
             guard_failures.append("configured replica ceiling reached")
 

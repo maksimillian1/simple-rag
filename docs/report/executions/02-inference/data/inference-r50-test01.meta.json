@@ -1,0 +1,29 @@
+{
+  "run": "inference-r50-test01",
+  "start": "2026-09-01T14:17:16Z",
+  "end": "2026-09-01T14:23:18Z",
+  "step": "15s",
+  "prometheus": "http://localhost:9090",
+  "query_file": "/Users/maksimsnitcuk/Applications/personal/simple-rag/docs/report/executions/02-inference/data/series.txt",
+  "refs": [
+    "Q1",
+    "Q2",
+    "Q3",
+    "Q4",
+    "Q5",
+    "Q6",
+    "Q7",
+    "Q8",
+    "Q9",
+    "Q10"
+  ],
+  "exported_at": "2026-09-01T14:23:35Z",
+  "queries_total": 10,
+  "queries_with_data": 6,
+  "gaps": [
+    "Q1",
+    "Q2",
+    "Q3",
+    "Q4"
+  ]
+}

@@ -1,0 +1,7 @@
+offered,"p95, whole run","p95, once scaled out",api,tei
+req/s,ms,ms,replicas,replicas
+50,2418,,2,3
+200,2425,,2,7
+300,2425,,3,11
+500,7934,2425,3,16
+1000,6378,2425,6,11

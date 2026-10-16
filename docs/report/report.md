@@ -1,404 +1,387 @@
 # Executive Engineering Report — simple-rag
 
-What asynchronous document ingestion costs, how many queries per second the deployment sustains,
-and at what monthly volume the design pays for itself.
+This report measures cost and performance on both flows of a RAG system: asynchronous
+document ingestion and synchronous queries. It also shows what the system costs at rest and
+how that cost spreads over volume.
 
-- **Report** — `simple-rag` · v1.0 · ⟨date⟩
-- **System under test** — chunker `⟨sha256:…⟩` · indexer `⟨sha256:…⟩` · api `⟨sha256:…⟩` · tei `⟨sha256:…⟩` · commit `⟨sha⟩` · ⟨date⟩
-- **Envelope** — text-layer PDF corpus, bulk drop · N ≤ ⟨max swept⟩ · R ≤ ⟨max swept⟩ req/s · EKS + Karpenter Spot, KEDA autoscaling from 2 replicas, self-hosted Qdrant, TEI `bge-small-en-v1.5` · ⟨region⟩
-- **Executions** — `00-baseline` · `01-ingestion` · `02-inference`
-- **Cost source** — AWS Cost and Usage Report 2.0, hourly, resource IDs and split cost allocation on · `⟨cost column⟩` · ⟨region⟩ · USD
-- **Raw data** — `executions/⟨…⟩/data/` · charts in `assets/`
+- **Report** — `simple-rag` · v1.0 · 2026-10-14
+- **System under test** — chunker `sha-404a267` · indexer `sha-32365dc` · api `sha-bafdc1f` · tei
+  `cpu-1.6` · commit `1ef1f0a8`, 2026-09-05. TEI ran at `cpu 6 / 8` for r1000 only, `3 / 4`
+  everywhere else (§3.2)
+- **Scope** — text-layer PDF corpus, bulk drop · N ≤ 125 concurrent ingestion pods · R ≤ 1000 req/s · EKS + Karpenter,
+  KEDA (serving from 2 replicas, ingestion from zero), self-hosted Qdrant, TEI `bge-small-en-v1.5` · `eu-central-1`
+- **Executions** — `00-baseline` · `01-ingestion` · `02-inference`, raw data in
+  `executions/*/data/`
+- **Cost source** — AWS Cost and Usage Report 2.0 · USD · method in `methodology.md` §8
 - **Figures** — measured unless marked: ᴰ derived · ᴿ recorded · ᴱ estimated
 - **Supersedes** — —
 - **Changes** — first revision
-
-Two paths, two denominators. Ingestion is priced per document, retrieval per query. No table,
-chart or headline row below mixes them, and no conversion between the two is published.
 
 ---
 
 ## Coverage
 
-| Area | Status | Evidence | Cost of absence | Since |
-| :--- | :--- | :--- | :--- | :--- |
-| Ingestion throughput against concurrency | measured | §3.1 · `01-ingestion` | — | v1.0 |
-| Ingestion cost per run | measured | §3.1 · `01-ingestion/M10` | — | v1.0 |
-| Ingestion unit cost per 1M documents | derived ᴰ | §3.1 · `01-ingestion/D25` | — | v1.0 |
-| Per-component share of ingestion cost | derived ᴰ | §4.2 · `01-ingestion/M12` | — | v1.0 |
-| Embedding tier cost caused by ingestion | derived ᴰ | §4.2 · `01-ingestion/D23` | — | v1.0 |
-| Warm-up and unused-capacity share | measured | §3.4 · `01-ingestion/D26` | — | v1.0 |
-| Ingestion constraint ladder — Tier 1 | measured | §3.5 · `01-ingestion/M6` | — | v1.0 |
-| Ingestion constraint ladder — Tier 2 | ⟨measured · declared, not measured⟩ | §3.5, conditional on `01-ingestion` M15–M17 | which component becomes the ceiling once the chunker is relieved, and the price of the next step | v1.0 |
-| Sustained query rate at the latency target | measured | §3.7 · `02-inference/D15` | — | v1.0 |
-| Replica count required at that rate | measured | §3.6 · `02-inference/M7` | — | v1.0 |
-| Query path constraint | measured | §3.7 · `02-inference/R14` | — | v1.0 |
-| Retrieval cost per 1k queries — marginal | derived ᴰ | §4.2 · `02-inference/D16` | — | v1.0 |
-| Generation cost per 1k queries — Bedrock | estimated ᴱ | §4.2 · `02-inference/E18` | — | v1.0 |
-| Behaviour above the sustained rate | out of scope | — | whether the deployment degrades or collapses under overload. Latency past capacity measures the generator's backlog, so it needs served-rate and status-code instruments and its own runs | v1.1 |
-| Scaler tuning — thresholds and cooldowns | declared, not measured | — | how much of the convergence time is configuration rather than node provisioning, and what a faster trigger would cost in replica churn | v1.1 |
-| Idle floor, split A / B / C | measured over ⟨24 h⟩, extrapolated ᴰ | §4.1 · `00-baseline` §2 Floor | — | v1.0 |
-| Allocation of untaggable billing lines | recorded ᴿ | §4.1 · `00-baseline/R5` | — | v1.0 |
-| Amortization across volumes | derived ᴰ | §4.3 | — | v1.0 |
-| Break-even against Fargate, ingestion | derived ᴰ | §4.4 · `01-ingestion/D29` | — | v1.0 |
-| Ingest and query contention on shared Qdrant and TEI | ⟨measured · declared, not measured⟩ | §3.8 · `02-inference` contention pass | whether the latency target survives a bulk ingest running underneath it, which is the state the system is actually in during a backfill | v1.0 |
-| End-to-end latency including Bedrock generation | out of scope | — | the number a user experiences. It is bounded by an external quota, so it measures the provider rather than this configuration | — |
-| Retrieval quality against quantization | declared, not measured | — | what INT8 compression costs in recall, and which retrieval configuration to run. INT8 SQ is a frozen given here, chosen for memory footprint | v1.1 |
-| Reliability economics — Spot interruption injected under load | out of scope | — | the price of the resilience mechanism: work lost, duplicates, recovery time. Idempotency is designed in and verifiable by count comparison; pricing it needs its own run | — |
-| Lambda as the build alternative | out of scope | — | a more dramatic §4.4. The cluster exists regardless, so the honest alternative is a different compute mode on the same platform | — |
-| Reliability, levers and quality/cost sections | out of scope | — | template §6–§8 have no material at v1.0 and are absent rather than blank | — |
-| Regression against a previous revision | out of scope | no predecessor | — | v1.1 |
-
+| Area | Status | Evidence |
+| :--- | :--- | :--- |
+| Ingestion throughput, cost per run and cost per 1k documents | measured · cost per run derived ᴰ · per 1k documents estimated ᴱ | §3.1 · `01-ingestion` Notes, CUR table · `D25` |
+| Per-component share of ingestion cost | derived ᴰ | §4.2 · `01-ingestion` Notes, CUR table |
+| TEI cost caused by ingestion | measured | §3.1 `TEI $ (cash)` · §4.2 · `01-ingestion/D23` |
+| Ingestion constraint | measured | §3.1 · `01-ingestion/M6` |
+| Sustained query rate, the replicas it required and the query flow constraint | measured | §3.2 · `02-inference/D15` · `Q7` · `R14` · CloudTrail in `02-inference/data` |
+| Retrieval cost per 1k queries at 1000 req/s | estimated ᴱ | §4.2 · `02-inference` r1000 steady phase · campaign CUR |
+| Generation cost per 1k queries — Bedrock | estimated ᴱ | §4.2 · `02-inference/E18` |
+| Idle floor, split A / B / C | derived ᴰ as built · estimated ᴱ right-sized | §4.1 · `00-baseline` §2 Floor |
+| Errors found at rest, excluded from the floor | derived ᴰ | §4.1 · `00-baseline` §2 Floor errors table |
+| Amortization across volumes — documents | estimated ᴱ | §4.3 |
+| Amortization across volumes — queries, generation included | estimated ᴱ | §4.3 · `02-inference/E18` |
+| Fargate against EC2 Spot nodes, ingestion | estimated ᴱ against the nodes that ran | §4.4 · `01-ingestion/D29` |
+| Warm-up and consolidation-tail share | partly measured | NAT, SQS and S3, almost all of it image pulls while nodes start, are 55.8<!--FD171-->% of the N=25 run (§4.2). Node boot and teardown time itself was not measured |
+| Next ingestion bottleneck after the indexer fix | declared, not measured | what limits throughput once the indexer processes documents in parallel: TEI or Qdrant writes. Their metrics were not collected (`01-ingestion` M15–M17). TEI's serving pool already touched its 100 vCPU limit at N=125 (§5.2) |
+| Ingest and query contention on shared Qdrant and TEI | declared, not measured | how query latency and errors change while ingestion runs in parallel |
+| Scaler tuning — thresholds and cooldowns | declared, not measured | how much of convergence time is configuration rather than node provisioning |
+| Query tail latency, p99 | declared, not measured | how slow the slowest 1% of queries get |
+| Retrieval quality against quantization | declared, not measured | what INT8 compression costs in recall. INT8 SQ is a frozen given here |
+| Behaviour above the sustained rate | out of scope | whether overload degrades or collapses the deployment |
+| End-to-end latency including Bedrock generation | out of scope | what a user waits for once Bedrock answers |
+| Reliability economics — Spot interruption under load | out of scope | the price of the resilience mechanism: work lost, duplicates, recovery time |
 ---
 
 ## 1. BLUF
 
-* **Ingestion cost at optimum** — ⟨$X / 1M docs⟩ ᴰ (vs ⟨$A on Fargate, §4.4⟩) — what a million documents cost to ingest, and whether Spot beat the serverless mode
-* **Sustained query rate** — ⟨R req/s at p95 = W ms⟩ on ⟨n⟩ API and ⟨n⟩ TEI replicas (design target ⟨200⟩ ms) — how much traffic this deployment serves inside its latency budget, and what the autoscaler needs to get there
-* **Retrieval cost** — ⟨$ / 1k queries⟩ ᴰ marginal, plus ⟨$⟩ ᴰ floor share and ⟨$⟩ ᴱ generation — three terms, kept apart because one scales with traffic, one does not, and one is a vendor's
-* **Idle floor, Block B** — ⟨$Y / month⟩ ᴰ (vs ⟨$Z total, Block C⟩ ᴰ) — what the feature burns with zero traffic on a platform that exists anyway
-* **Primary constraints** — ingestion ⟨component⟩ ᴿ · query ⟨component⟩ ᴿ — which component decides each path, and the price of the next scaling step ⟨$C⟩ ᴰ
+* **Ingestion flow** — $24.88<!--FD37--> ᴱ per 1k docs at N=25, the cheapest point. The highest
+  tested concurrency, N=125, reached 2.60 docs/min at $88.16<!--FD72--> ᴱ per 1k docs. Throughput is
+  limited by code: each indexer pod sends one TEI call at a time, so rewriting that loop
+  would give much more that adding extra pods (§3.1)
+* **Query flow** — ~$0.51<!--FD179--> ᴱ per 1k queries, 99.8<!--FD160-->% of it Bedrock generation. The
+  highest tested rate, 1000 req/s, filled the serving pool to its 100<!--FR38--> vCPU limit, and
+  Qdrant, at 78<!--FD137-->% of its CPU, is the next ceiling. Without generation a query returns in
+  ~40-60 ms at p95 (§3.2, §4.2)
+* **Idle floor, Block B** — $534.12<!--FD26--> ᴰ / month (Block C $877.54<!--FD29--> ᴰ), what the
+  feature costs while idle
 
-**Verdict** — ⟨ship · ship with guardrails · do not ship⟩. ⟨One sentence, one action.⟩
+**Verdict** — **ship with guardrails.** Nothing blocks release. Both flows held the
+volumes tested, but the query flow has no headroom above 1000 req/s until the serving pool's CPU
+limit rises (§5.2). Every guardrail in §5 is implemented or declared in `docs/tech-debt.md`.
 
 ---
 
-## 2. Workload Contract & Envelope
+## 2. Test Setup & Scope
 
-### 2.1 Ingestion — per document
+### 2.1 Configuration freeze and metric sources
+
+Every run used one configuration, frozen in `00-baseline` §2 before the first run.
+
+- **Always-on replicas** — API 2 and TEI 2. They are the serving part of the floor (§4.1)
+- **Autoscaling triggers** — KEDA on CPU per replica: API at 0.2 cores, TEI at 1.5
+- **TEI pod size** — `cpu 3 / 4`, and `6 / 8` at r1000 only, so r1000's numbers hold for `6 / 8`
+- **Serving pool** — `apps-serving` NodePool, Spot and On-Demand, with a `cpu: 100` limit. The query flow reached that limit at 1000 req/s (§3.2)
+- **Ingestion pool** — `c7g` Spot in `xlarge`–`4xlarge`
+- **Shared TEI** — one deployment serves both flows. Ingestion is charged only for TEI above the always-on minimum (§4.2)
+- **Qdrant** — 2 × `r7g.large`, one shard held by both, INT8 SQ
+- **Generation** — Chosen llm is `llama3-1-8b`
+
+Metric definitions: `00-baseline` §1 · `01-ingestion/metrics.md` · `02-inference` §1.
+
+### 2.2 Ingestion flow — per document
 
 - **Unit of work** — one source document, complete when its last chunk is upserted and counted in Qdrant `points_count`
-- **Workload fixture** — `⟨corpus⟩`, bulk drop · median ⟨n⟩ pages, p95 ⟨n⟩ · frozen ⟨date⟩ `⟨sha⟩` (`00-baseline` §2)
-- **Denominator** — ⟨N⟩ documents, frozen with the fixture
-- **Window** — opens at the first `s3:ObjectCreated`, closes when the ingestion pool reaches zero nodes and the embedding tier returns to its minimum, plus five minutes. Upload is outside the system under test
+- **Workload fixture** — 100 files, 1.38GB, bulk drop · median 8.77MB, p95 49.23MB · frozen at commit `bafdc1f` (2026-08-31, `00-baseline` §2)
+- **Denominator** — 100 documents (files), frozen with the fixture. The same corpus is freshly ingested at every point, confirmed by an identical 84,018-chunk `points_count` (R21) at every point
+- **Window** — opens at the first `s3:ObjectCreated`, closes when the ingestion pool reaches zero nodes and TEI returns to its always-on minimum, plus five minutes. Upload starts by script, that uploads local files to S3
 
-### 2.2 Query path — per query
+### 2.3 Query flow — per query
 
 - **Unit of work** — one search request, complete when the retrieved context is written to the response. Generation in Bedrock is outside the unit
-- **Workload fixture** — ⟨query set⟩, ⟨n⟩ distinct queries replayed at a constant arrival rate against the collection produced by `01-ingestion`
-- **Denominator** — queries served inside the steady-state window, produced by each run rather than frozen
-- **Window** — opens once replicas and nodes have been stable for ⟨60⟩ s and a further ⟨60⟩ s of warm-up has elapsed; closes when the generator stops
-
-### 2.3 Conditions shared by both
-
-- **Envelope** — `00-baseline` §2 Envelope
-- **Metric sources** — `00-baseline` §1 · `01-ingestion/metrics.md` · `02-inference` §1
-- **Autoscaling** — the Go API and the embedding tier scale from two replicas each under the triggers frozen in `00-baseline` §2. Every figure in this report is conditional on those triggers rather than on a replica count, and the ceilings were set out of reach so that no run measured them
-- **Shared embedding tier** — one TEI deployment serves both paths. Ingestion runs raise its replica count, and that cost is charged to ingestion in §4.2 after the always-on minimum is subtracted
-- **Worker packing density** — the ingestion pool is pinned to one instance type, giving ≈ ⟨n⟩ workers per node. Denser packing amortises warm-up across more work and shifts the sweet spot in §3.3 to the right. Every ingestion figure is conditional on this ratio
-- **Scalar quantization** — INT8 SQ is a fixed parameter, chosen for memory footprint. Its effect on retrieval quality is not measured and is not claimed either way
+- **Workload fixture** — 5 query options (`docs/report/scripts/load.js:57-63`), one picked at random per request and sent at a constant rate
+- **Collection** — Qdrant loaded from the `01-ingestion` snapshot: 84,018 chunks, unchanged across runs
+- **Denominator** — queries served inside each run
+- **Window** — the whole generator run. It opens with both deployments at their always-on minimum, so it includes the scale-out. Preflight checks are described in `02-inference` §1
+- **Run names** — `rN` is the run offered N req/s, as in r1000
 
 ---
 
 ## 3. Efficiency Frontier
 
-### 3.1 Ingestion — run matrix
+### 3.1 Ingestion flow — throughput, cost and constraint
 
-| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ ᴰ | Other $ | $/run ᴰ | $/1M docs ᴰ | Saturation signal |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 4 | | | | | | | | | ᴿ |
-| 12 | | | | | | | | | ᴿ |
-| 24 | | | | | | | | | ᴿ |
-| ⟨refine⟩ | | | | | | | | | ᴿ |
-| ⟨refine⟩ | | | | | | | | | ᴿ |
+Tested at N = 10, 25, 50, 75 and 125. N=25 was the nearest to sweet spot, the cheapest operating point
+at $24.88<!--FD75--> ᴱ per 1k docs. Throughput is limited by the indexer's code, not by any resource. 
 
-Excluded points and the rule applied: ⟨⟩. Config commits and per-point validity decisions are
-audit trail and stay in `01-ingestion` §2.
+N is the max replicas setting (`maxReplicaCount`) on both ScaledJobs, a limit on concurrent pods,
+not observed concurrency. The indexer ran at max replicas at every point (125 of 125 at N=125, `M5`).
+The `chunker` peaked at ~20 whatever the N, technically because 100-file corpus was same.
 
-Docs/min is measured twice from independent sources. Wall clock against the known corpus size
-gives the point value; the derivative of queue depth gives the shape over time and catches a run
-that stalled and recovered rather than draining steadily.
+Cost per document has V-shape, the cheapest at N=25 and both sides neighbors points are higher. N=10 costs
+$44.71<!--FD76--> ᴱ per 1k docs against $24.88<!--FD75--> ᴱ at N=25, because it runs twice as
+long (132.5 min against 61.7 min) while fixed per-hour costs keep billing.
 
-`$/run` is billed rather than computed. The cost and usage report carries hourly line items with
-sub-hour usage amounts and resource identifiers, so a twenty-minute run inside one clock hour
-resolves exactly — including the minutes a node was billed before its first pod started and
-after its last one exited, which no cluster-side metric covers. Spot rows carry the price
-actually charged in that hour, so no historical average is assumed anywhere in this report. Two
-consequences shaped the campaign: runs are spaced one per clock hour, because two runs inside
-one hour arrive as one summed row; and cost figures were read days after the runs, because the
-report is delivered daily and revised until the month closes.
+Throughput rises at every step and never levels off. Per step, it gains +113%, +40%, +2.6%, then
++11.6%. If speed matters, stop at N=50: it buys +40% docs/min over N=25 for $19.46<!--FD77--> ᴱ
+more per 1k docs.
 
-### 3.2 Ingestion — chart
+Ingestion is limited only how the indexer calls TEI, not by any resource. No worker reached
+its CPU or memory limit at any N (`01-ingestion/M6`). Each indexer pod sends one TEI request at a time and
+waits for the answer before sending the next (`apps/indexer/src/main.py`). Its throughput depends mostly on how
+long that call takes, so the only way to go faster today is more pods.
 
-`assets/frontier-ingestion.svg`, from `executions/01-ingestion/data/frontier.csv`. Dual Y axis,
-X = N. Left: docs/min, rising then flat. Right: `$/1M docs`, falling to a minimum and rising
-again.
+![Cost per 1k docs against throughput, one point per N](charts/tradeoff-jobs-navy.svg)
 
-### 3.3 Ingestion — knee · sweet spot · waste boundary
+| N | Docs/min | Wall time | TEI peak | Compute $ | TEI $ (cash) | Other $ | $/run | $/1k docs |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 10 | 0.76 | 132.5 min | 3 | $1.55<!--FM85--> | $0.31<!--FM25--> | $2.61<!--FD162--> | $4.47<!--FD71--> ᴰ | $44.71<!--FD76--> ᴱ |
+| 25 | 1.62 | 61.7 min | 4 | $1.09<!--FM81--> | $0.01<!--FM24--> | $1.39<!--FD163--> | $2.49<!--FD70--> ᴰ | **$24.88<!--FD75-->** ᴱ |
+| 50 | 2.27 | 44.0 min | 10 | $1.26<!--FM86--> | $0.29<!--FM23--> | $2.88<!--FD164--> | $4.43<!--FD69--> ᴰ | $44.33<!--FD74--> ᴱ |
+| 75 | 2.33 | 42.9 min | 16 | $1.54<!--FM87--> | $0.52<!--FM22--> | $4.10<!--FD165--> | $6.16<!--FD68--> ᴰ | $61.57<!--FD73--> ᴱ |
+| 125 | 2.60 | 38.5 min | 26 | $2.01<!--FM88--> | $0.82<!--FM21--> | $5.99<!--FD166--> | $8.82<!--FD67--> ᴰ | $88.16<!--FD72--> ᴱ |
 
-| Point | How it is identified | N | Evidence |
-| :--- | :--- | :--- | :--- |
-| Knee | last N where docs/min still rose meaningfully — threshold ⟨⟩ | | §3.1 |
-| Sweet spot | lowest `$/1M docs` | | §3.1 |
-| Waste boundary | first N where `$/run` rises substantially for under 10 % throughput | | §3.1 |
+### 3.2 Query flow — sustained rate, latency and bottleneck
 
-⟨One sentence: the extra per document paid at the knee rather than at the sweet spot, and the
-throughput given up going the other way.⟩ The guardrail in §5 is set at the sweet spot; the knee
-is the documented ceiling for a hurry.
+Tested at 50, 200, 300, 500 and 1000 req/s. The query flow held 1000 req/s for 1m45s at r1000
+(14:57:16–14:59:01Z, bold in the table). No component saturated, but the serving pool hit its 100<!--FM92--> vCPU limit,
+so TEI ran on 11<!--FM90--> pods of 6 cores (CloudTrail, `02-inference/data`). That was enough: errors were high
+while TEI was still scaling out, and dropped to 0.02<!--FM62-->% once the 11 pods were up.
 
-A minimum landing on the lowest or highest N swept sits on the edge of the range and is not
-proven — there is no descending branch on one side of it. ⟨State whether the refinement pass
-placed points on both sides.⟩
+r500 and r1000 has on average 0.78% and 4.97% errors over the whole run. Most of them
+during scale-out, while TEI was still adding replicas. After replicas caught up, errors
+settled at 0.49<!--FM70-->% and 0.28<!--FM64-->%, close to r200 and r300 (0.24% and 0.20%). That
+residual is not explained by scale-out, and its cause is not confirmed. Part of the requests weren't
+sent, as k6 skipped 10.7<!--FD145-->% and 5.2<!--FD144-->% of them during scale-out
+([dropped iterations](https://grafana.com/docs/k6/v2.2.x/using-k6/scenarios/concepts/dropped-iterations/)),
+and at r1000 it stopped sending for three minutes. Skipped requests lower the served rate but do
+not count as errors.
 
-### 3.4 Shape of the ingestion cost curve
+Without generation, a query returns in ~40-60ms at p95. Every request has a fixed 2000ms stub
+instead of the Bedrock call, and k6 measured 2.04s at r050 and 2.06s at r300 from outside the VPC.
+The table carries two p95 readings. Envoy's is interpolated between its 1000 and 2500ms buckets,
+so it reads 2425ms at every converged point, 300-400ms above k6. k6 is exact per request but reports
+one figure per run, so at r500 and r1000 it includes the scale-out minutes.
 
-Every node is billed from provisioning but produces work only after boot, image pull and runtime
-init. It is billed again for a tail after the last document, until consolidation removes it.
-Both windows produce zero units at full price, and split cost allocation reports them directly:
-capacity the bill charged for and no pod occupied.
+Qdrant was the closest to the saturation point, it peaked at 1.568<!--FM59--> of 2<!--FR27--> cores.
+TEI touched 97.5% of its CPU limit in r1000 while it was still scaling out, and the added replicas relieved it.
+`api` peaked at 0.268 of 0.5 cores. r1000 is the only row where TEI ran with more CPU, `6 / 8` cores
+instead of `3 / 4`, so its cost is not part of the same trend as the other rows.
 
-At low N that overhead spreads across a long run and barely registers. At high N the corpus
-drains fast, but many nodes each pay the same fixed warm-up and each do only a few minutes of
-real work. The overhead share of every billed node-hour grows and cost per document turns back
-up, even as wall-clock time keeps improving. For scale-to-zero ephemeral workers this is the
-dominant cost effect.
+**Run $/1k (gross)** — derived from node lifetimes in each run. It contains 2 baseline nodes but
+  doesn't count NAT.
 
-| N | Unused capacity $ | Share of compute $ ᴰ | Warm-up interval ⟨created → first pod⟩ | Consolidation tail |
-| :--- | :--- | :--- | :--- | :--- |
-| ⟨low⟩ | | | | |
-| ⟨high⟩ | | | | |
-
-### 3.5 Ingestion constraint ladder
-
-* **Tier 1** — ⟨component⟩. Proof: ⟨metric and reading⟩ ᴿ. Cost to relieve: ⟨$X⟩ ᴰ.
-* **Tier 2** — ⟨claimed only if a new ceiling was observed after Tier 1 was actually relieved⟩. Proof: ⟨⟩ ᴿ. Cost to relieve: ⟨$⟩ ᴰ.
-
-Sweeping concurrency relieves tiers on its own: if chunker CPU is the ceiling at N=4, at N=24
-there are six times as many chunkers and that ceiling is gone. Whatever saturates instead is a
-proven second tier. This is why the sweep runs to 24 rather than stopping at 12.
-
-If the embedding tier appears as Tier 2, its replica count decides what the finding means. A
-tier still adding replicas when the queue grew was scaling too slowly; a converged tier at its
-CPU limit was out of capacity. The two take different remedies and the report names which was
-observed.
-
-The hypothesis recorded before the first run: the ceiling was expected to be the Stage-1 chunker
-rather than the embedding tier, because PyMuPDF extraction on a 300-page PDF is single-threaded
-CPU work and may dominate embedding time by an order of magnitude, while the original design
-assumed inference would saturate first. Outcome: ⟨held · inverted, stated here verbatim⟩.
-
-### 3.6 Query path — run matrix
-
-Arrival rate swept. Replicas are what the autoscaler produced, not a setting.
-
-| Offered req/s | Served req/s | api / tei replicas | Converge s | p50 ms | p95 ms | p99 ms | Error % | $/1k queries ᴰ | Saturation signal |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 5 | | | | | | | | | ᴿ |
-| 50 | | | | | | | | | ᴿ |
-| 200 | | | | | | | | | ᴿ |
-| ⟨refine⟩ | | | | | | | | | ᴿ |
-| ⟨refine⟩ | | | | | | | | | ᴿ |
-
-Offered rate and served rate are reported separately. Where they diverge the generator, not the
-system, was the limit, and the row is excluded from the capacity claim.
-
-The sweep climbs from below and stops at the target rather than pushing to a throughput ceiling.
-Past capacity an open-loop generator queues its own excess, and the measured p95 then grows with
-the length of the run instead of describing the system. What the system does above the sustained
-rate is a coverage row, not a number here.
-
-`assets/frontier-inference.svg`, from `executions/02-inference/data/frontier.csv`. X = offered
-rate, left Y = p95 latency, right Y = replicas.
-
-### 3.7 Query capacity and constraint
-
-- **Sustained rate** — ⟨R⟩ req/s, the highest swept rate holding p95 under ⟨200⟩ ms with errors under ⟨0.1⟩ % and served rate matching offered
-- **Capacity that rate required** — ⟨n⟩ API replicas and ⟨n⟩ embedding replicas, converged in ⟨s⟩ from the minimum of two each
-- **Reference value** — the `p95 < 200 ms` line in `architecture.md`, which was a design target and is now ⟨met · missed by ⟨n⟩ ms⟩
-- **Constraint** — ⟨component⟩ ᴿ. Proof: ⟨metric and reading⟩. Relieved by ⟨⟩ at ⟨$⟩ ᴰ per month
-
-Retrieval is one gRPC round trip per query: dense, sparse and payload-text prefetch fused by
-Qdrant with RRF, plus one embedding call. There is no cross-encoder and no GPU on the path, so
-the ceiling is CPU on either the embedding tier or Qdrant rather than inference hardware.
-
-The two are not equally relievable. The embedding tier scales horizontally, so a ceiling there
-is priced in replicas. Qdrant runs on one dedicated node and does not, so a ceiling there is a
-node-class decision and a larger change.
-
-### 3.8 Contention — both paths on shared Qdrant and TEI
-
-Qdrant serves ingestion writes and query reads from one node, and one embedding deployment
-serves both paths, so a query-load run against an idle ingestion path measures a system nobody
-runs during a backfill.
-
-| Condition | Sustained req/s | p95 ms | api / tei replicas | Δ against §3.7 |
-| :--- | :--- | :--- | :--- | :--- |
-| query load only | | | | — |
-| query load with ingestion at the §5 guardrail | | | | |
-
-⟨One sentence: what a concurrent backfill costs the latency target, whether the embedding tier
-absorbed it by adding replicas or the two paths competed for the same ones, and whether the
-guardrail in §5 needs a second value for backfill windows.⟩
+| Offered req/s | Served req/s | api / tei replicas | p95 ms ᴿ (Envoy) | p95 ms (k6) | Error % | Run $/1k (gross) ᴰ |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 50 | 45.5 (91%) | 2 / 3 | 2418 | **2040** | 0% | $0.00250<!--FD78--> |
+| 200 | 192.5 (96%) | 2 / 7 | 2425 | **2150** | 0.24% avg / 4.0% peak | $0.00141<!--FD79--> |
+| 300 | 296.4 (99%) | 3 / 11 | 2425 | **2060** | 0.20% avg / 2.75% peak | $0.00098<!--FD80--> |
+| 500 | 398.7 (80%, window avg) · **499<!--FM66-->–501<!--FM67--> held 1 min** | 3 / 16 | 7934 (window avg) / **2425 once scaled out** | 10,630 (whole run) | 0.78% avg (window) / 0.49<!--FM70-->% steady phase | $0.00121<!--FD81--> |
+| 1000 | 828.3 (83%, window avg) · **998<!--FM60-->–1,001<!--FM61--> held 1m45s** | 6 / 11 | 6378 (window avg) / **2425 once scaled out** | 4,730 (whole run) | 4.97% avg (window) / 0.28<!--FM64-->% steady phase, 0.02<!--FM62-->% in the hold | $0.00088<!--FD82--> |
 
 ---
 
 ## 4. Cost Structure
 
-```
-Monthly cost = Floor + ( Marginal_per_doc × Docs ) + ( Marginal_per_query × Queries )
-                 ↑                  ↑                            ↑
-               §4.1              §4.2                          §4.2
-```
+Monthly cost has three blocks. Block B is what RAG costs as a feature: everything that leaves the
+bill if the feature is deleted. Block A is the shared platform, which stays either way. Block C is
+A + B.
 
-Every marginal figure below excludes floor lines by construction. The two serving deployments
-never scale below two replicas each, so that permanently-on capacity is subtracted from every
-run window before any per-unit number is computed.
+Each block has a floor: what it costs with zero traffic. Block B also has a marginal: what each
+document or query adds on top of the floor.
+
+**Block C** = Block A (floor) + Block B (floor + marginal)
 
 ### 4.1 Floor
 
-Captured over a ⟨24 h⟩ idle window on a running, unloaded system, split rather than totalled.
-Line-by-line audit: `00-baseline` §2 Floor. Every figure is a 24-hour measurement extrapolated
-to a month ᴰ.
+The floor is measured as one hour of the running system with no load, projected to a month at AWS
+list rates (`docs/report/methodology.md` §8 · line-by-line audit in `00-baseline` §2 Floor). Described in two
+versions As built and Right-sized, as after the analysis we can choose the correct node sizes and exclude errors
 
-| Block | Line | $/month | Fixed / variable |
-| :--- | :--- | :--- | :--- |
-| **B · Dedicated** | Qdrant node + gp3 + snapshots · serving pool at 2+2 replicas · Bedrock and SQS endpoints · ECR · S3 at rest · SQS polling | ⟨⟩ ᴰ | ⟨⟩ |
-| A · Shared | EKS control plane · core node group · Karpenter on Fargate · NAT · monitoring stack · shared endpoints | ⟨⟩ ᴰ | ⟨⟩ |
-| **C · Total** | `A + B` | ⟨⟩ ᴰ | — |
+**As built** ᴰ
 
-Block B is the headline: it is what leaves the bill if the feature is deleted. It is not divided
-by an assumed number of co-tenant features — that divisor would be arbitrary, and blocks B and C
-already answer both questions a reader can ask. Lines that carry no resource-level tag were
-assigned to a block by hand and are listed as such ᴿ; they are ⟨n⟩ % of the total.
+| Block | Line | Fixed | Variable at rest | Total |
+| :--- | :--- | ---: | ---: | ---: |
+| **B · Dedicated** | Qdrant node + gp3 (current-gen PVC) · serving pool at 2+2 replicas · Bedrock interface endpoints (removed in the right-sized column, `ADR-0018`) · S3 at rest · SQS polling | $533.20<!--FD23--> | $0.93<!--FD24--> | **$534.12<!--FD26-->** |
+| A · Shared | EKS control plane · core node group · Karpenter on Fargate · NAT hourly · monitoring stack · the Gateway's load balancer | $333.59<!--FD21--> | $9.83<!--FD22--> | $343.42<!--FD25--> |
+| **C · Total** | `A + B` | $866.79<!--FD27--> | $10.76<!--FD28--> | **$877.54<!--FD29-->** |
 
-*The NAT gateway* is the hidden line of this architecture class and is missing from almost every
-published version of it. It is billed hourly regardless of traffic, and again per gigabyte
-processed, including image pulls and model weight downloads. The hourly charge is floor; the
-per-gigabyte charge appears again in §4.2 as a marginal line.
+**Right-sized** ᴱ — each line sized to its observed use. The variable
+column is unchanged, as sizing doesn't influence NAT or cross-AZ traffic at rest.
 
-*Interface VPC endpoints are the second hidden line.* Each is billed per hour per availability
-zone, before a byte moves. Two of them exist only for this feature.
+| Block | Fixed | Variable at rest | Total |
+| :--- | ---: | ---: | ---: |
+| **B · Dedicated** | $410.39<!--FE8--> | $0.93<!--FD24--> ᴰ | **$411.31<!--FE9-->** |
+| A · Shared | $316.60<!--FE7--> | $9.83<!--FD22--> ᴰ | $326.43<!--FE16--> |
+| **C · Total** | $726.98<!--FE10--> | $10.76<!--FD28--> ᴰ | **$737.74<!--FE11-->** |
 
-*Quantization sets the database instance class.* At 1M points × 384 dimensions, an INT8-quantized
-resident copy needs 0.384 GB against 1.536 GB for float32 ᴰ, which is why the dedicated database
-line is as small as it is. The measured Qdrant working set at teardown was ⟨⟩ ᴿ, and it is an
-upper bound rather than a matching figure: it includes page cache on memory-mapped segments. The
-retrieval cost of that compression is not measured here.
-
-*The query path is why the serving line exists.* Both deployments hold two replicas at zero
-traffic, because a request arriving at zero replicas pays a cold start. §3.7 states what that
-permanently-on capacity buys in requests per second before the autoscaler has to act.
-
-*Article 1 advertised "$0.00 on idle."* This table states for exactly how many lines that is
-true: ⟨n⟩ of ⟨m⟩. The claim was about the elastic ingestion tier and reads as being about the
-whole system; both numbers are stated rather than one quietly replacing the other.
+Errors found at rest weren't added to any table. They were $175.85<!--FD35-->/month: EKS control-plane
+logs that nobody chose, $100.95<!--FD34-->, and an ArgoCD self-heal loop, $65.85<!--FD32--> in
+cross-AZ traffic plus $9.05<!--FD33--> in T3 CPU credits. They all fixed or added to `tech-debt.md`. 
 
 ### 4.2 Marginal
 
-Floor lines are excluded by definition. Components sum to the total within each table, and the
-two tables are never added together.
+The always-on minimum of the API and TEI (§2.1) belongs to the floor, so it is subtracted from
+every run before any per-unit figure is computed.
 
-**Per 1M documents ingested**
+#### Per 1k documents
 
-| Component | $/1M docs | Share |
+For the calculation used single point – N=25, the sweet spot. One run processes the 100-document fixture for
+$2.49<!--FD70-->, so if we multiply it 10 times, we got $24.88<!--FD37--> per 1k documents.
+Every run started its worker nodes from zero, so the figure assumes documents arrive in batches
+of 100. A continuous load would pay node start-up and image pulls once and cost less.
+
+Every row is cash, what the account paid in the run's CUR hour (`01-ingestion` Notes, CUR table).
+The chunker and indexer run alone on the `apps-compute` nodes, so their row is those whole nodes,
+capacity no pod requested included. TEI grew from 2 to 4 replicas on nodes that were already
+running.
+
+| Component | $/1k docs | Share |
 | :--- | :--- | :--- |
-| Stage-1 chunker pods | ⟨⟩ ᴰ | ⟨%⟩ |
-| Stage-2 indexer pods | ⟨⟩ ᴰ | ⟨%⟩ |
-| Embedding tier above its always-on minimum | ⟨⟩ ᴰ | ⟨%⟩ |
-| Node capacity billed and occupied by no pod (§3.4) | ⟨⟩ ᴰ | ⟨%⟩ |
-| SQS requests | ⟨⟩ ᴰ | ⟨%⟩ |
-| S3 requests | ⟨⟩ ᴰ | ⟨%⟩ |
-| NAT data processing | ⟨⟩ ᴰ | ⟨%⟩ |
-| **Total** | ⟨⟩ ᴰ | 100 % |
+| Chunker and indexer, whole `apps-compute` nodes | $10.92<!--FD167--> ᴱ | 43.9<!--FD170-->% |
+| NAT, SQS and S3 | $13.88<!--FD168--> ᴱ, NAT 99.6<!--FD173-->% of it | 55.8<!--FD171-->% |
+| TEI above its always-on minimum | $0.07<!--FD169--> ᴱ | 0.3<!--FD172-->% |
+| **Total** | $24.88<!--FD37--> ᴱ | 100% |
 
-The boundary between the pod rows is drawn by the cloud provider, not measured at either pod.
-Only the instance is billed; splitting that one charge across the pods on it uses their requests
-and usage against a fixed CPU-to-memory weighting. The total is exact and the internal split is
-a convention — which is why the unoccupied-capacity row, which needs no convention, is the one
-§3.4 argues from.
+#### Per 1k queries at 1000 req/s, 24/7
 
-**Per 1k queries served, at the sustained rate**
-
-| Component | $/1k queries | Share |
-| :--- | :--- | :--- |
-| Serving capacity above the always-on minimum | ⟨⟩ ᴰ | ⟨%⟩ |
-| **Marginal total** | ⟨⟩ ᴰ | 100 % |
-| Floor share at the sustained rate | ⟨⟩ ᴰ | — |
-| Bedrock generation, at ⟨n⟩ input and ⟨n⟩ output tokens | ⟨⟩ ᴱ | — |
-
-The three lines answer different questions and are not summed into a headline. The marginal
-total is what an additional query costs once the tier is already scaled. The floor share assumes
-the tier runs at the sustained rate continuously and is therefore a best case: at half that
-utilisation it doubles. The generation line is a vendor rate applied to a token count nobody
-swept, and no run called the provider. Context pruning removes non-essential payload metadata
-before the prompt, which is what makes the token count small enough to estimate at all.
+Retrieval costs about $0.0008<!--FE18--> ᴱ per 1k queries, ~$2,077<!--FE19--> ᴱ a month: the nine
+serving nodes that held 1000 req/s in r1000, $1.47<!--FM89-->/hour less the always-on pair the
+floor already pays for, plus cross-AZ transfer at the campaign's rate per query, with image pulls
+paid once instead of on every scale-out. Generation adds ~$0.51<!--FD39--> ᴱ per 1k,
+~644<!--FD174-->× retrieval, so it is almost the whole marginal.
 
 ### 4.3 Amortization
 
-`Effective $/unit = ( Block B + Marginal × V ) ÷ V`. Arithmetic on §4.1 and §4.2, no run. Block
-B is the right floor: for a feature on a cluster that exists anyway, the question is what this
-feature costs to keep alive, not what the platform costs.
+The Block B floor is paid every month at any load. Each document or query has a share of it, and the
+share shrinks as volume grows. The tables below show the cost of one unit and the floor's share of
+it, both reducing with volume.
 
-**Each table below charges the whole of Block B.** They are two readings of the same floor under
-two different denominators, and they are not addends: adding a `$/doc` row to a `$/query` row
-counts the same monthly floor twice. The conversion that would make them additive needs an
-arrival ratio nobody measured.
+`Effective $/unit = ( Block B Floor + Marginal × V ) ÷ V`
 
-| Monthly documents | Effective $/doc ᴰ | Floor share |
+V is the monthly volume. **Floor share** is the part of the effective cost that comes from the
+Block B floor, $534.12<!--FD26-->/month as built. Each table carries all of it, so adding a `$/doc`
+row to a `$/query` row counts the floor twice. This is arithmetic on §4.1 and §4.2, and no run
+measured it.
+
+#### Documents
+
+Documents use the N=25 marginal, $24.88<!--FD37-->/1k docs = $0.02488<!--FD38-->/doc.
+
+| Monthly documents | Effective $/doc ᴱ | Floor share |
 | :--- | :--- | :--- |
-| 1 000 | | |
-| 10 000 | | |
-| 100 000 | | |
-| 1 000 000 | | |
+| 1 000 | $0.5590<!--FD92--> | 95.6<!--FD96-->% |
+| 10 000 | $0.0783<!--FD93--> | 68.2<!--FD97-->% |
+| 100 000 | $0.0302<!--FD94--> | 17.7<!--FD98-->% |
+| 1 000 000 | $0.0254<!--FD95--> | 2.1<!--FD99-->% |
 
-| Monthly queries | Effective $/query ᴰ | Floor share |
+Floor share falls below half at ~21,472<!--FD41--> documents a month.
+
+#### Per-query marginal
+
+Retrieval is priced from the nodes that held 1000 req/s, without the always-on minimum (§4.2), and
+changes with the infrastructure. Generation is Bedrock's price per token.
+
+| Marginal line | $/query | Share of the marginal |
 | :--- | :--- | :--- |
-| 10 000 | | |
-| 100 000 | | |
-| 1 000 000 | | |
-| 10 000 000 | | |
+| Retrieval — serving capacity above the always-on minimum | $0.00000079<!--FD100--> ᴱ | 0.2<!--FD159-->% |
+| Generation — Bedrock | $0.000509<!--FD118--> ᴱ | 99.8<!--FD160-->% |
+| **Per-query marginal** | **$0.000509<!--FD158--> ᴱ** | 100% |
 
-Below ⟨V⟩ documents and ⟨V⟩ queries per month — where floor share drops under half — you are
-paying mostly for the feature to exist rather than for work done. Those two volumes are the
-lower bound of where this design makes economic sense.
+#### Queries
 
-### 4.4 Break-even against Fargate, ingestion only
+According to the fact that generation is 99.8% of the marginal, decided to build additional table, that shows
+difference of floor share for amount of total queries per month, it's mostly Bedrock's token price plus the floor.
 
-The relevant alternative is not a different platform — the cluster exists regardless. It is the
-compute mode for the same ingestion Jobs. Fargate removes node provisioning, per-node image pull
-and Spot interruption handling, and charges per vCPU-second and GB-second at a premium over EC2
-Spot. The comparison is direct because §3.1 already measured what a run consumes. The embedding
-tier is outside it: a shared serving deployment either way.
+![Effective cost per query and floor share against monthly query volume, log scale](charts/amortization-queries.svg)
 
-| | Karpenter Spot (measured) | Fargate ᴰ |
+| Monthly queries | Effective $/query ᴱ | Floor share |
 | :--- | :--- | :--- |
-| vCPU-hours per 1M docs | | same workload, same figure |
-| GB-hours per 1M docs | | same workload, same figure |
-| Unoccupied capacity paid (§3.4) | | per-task cold start, no per-node image pull |
-| Effective $/1M docs | | ᴰ |
-| Interruption handling required | yes — the SIGTERM path in the workers | no |
-| Feature floor impact | 0 at idle | 0 at idle |
+| 10 000 | $0.0539<!--FD101--> | 99.1<!--FD105-->% |
+| 100 000 | $0.00585<!--FD102--> | 91.3<!--FD106-->% |
+| 1 000 000 | $0.00104<!--FD103--> | 51.2<!--FD107-->% |
+| 10 000 000 | $0.000563<!--FD104--> | 9.5<!--FD108-->% |
+| 500 000 000 | $0.000510<!--FD139--> | 0.2<!--FD141-->% |
+| 1 000 000 000 | $0.000510<!--FD140--> | 0.1<!--FD142-->% |
 
-The Fargate column is a lower bound on what Fargate would cost. No Spot capacity type exists for
-it on EKS, so the comparison runs against On-Demand rates; requests are billed at the next step
-of a fixed vCPU and memory grid; and each task gets its own microVM, so image pull is paid per
-worker rather than amortised across a node. All three move the column up.
+Floor share falls below half at ~1.05<!--FD180--> million queries a month, ~0.4<!--FD143--> req/s
+sustained. Above that, most of the effective cost is the token price.
 
-**Crossover** — ⟨volume, as a number⟩. ⟨One sentence: Spot is cheaper per million documents by
-X %, that discount is paid for with the interruption-handling code in the workers, and below Y
-documents per month the difference is smaller than the cost of maintaining it.⟩
+Retrieval is 0.2<!--FD159-->% of the marginal. It contains the API and TEI replicas above the
+always-on minimum, which could require more nodes for them. Price and share used at 1000 req/s, which are about
+2,628,000,000<!--FD116--> queries a month. Every row in the table, that below volume – needs
+fewer replicas, so its retrieval figure is less accurate.
 
-The query path has no Fargate variant to compare against: two replicas of each deployment are
-persistent by design, and per-second billing buys nothing when the pod never stops.
+### 4.4 Declined trade-offs
 
----
+#### Fargate instead of EC2 Spot nodes for ingestion
+
+Comparing Fargate at N=25, the ingestion pool's EC2 Spot nodes billed $0.8594<!--FM93--> for this
+run, instances alone. The worker pods requested $0.2595<!--FD122--> of it, which was 30<!--FD176-->%,
+and $0.5784<!--FM94-->, 67<!--FD177-->%, was capacity no pod requested. Fargate bills per pod,
+so the same pod-hours cost $0.7562<!--FD121--> at its on-demand rates, which is 0.88<!--FD161-->× the Spot nodes.
+It also removes node provisioning and Spot interruptions, but in exchange, it downloads the image once per task,
+and each Job is a task, while node downloads each image once per node and caches it.
+
+The n25 run created 58<!--FM83--> jobs, so technically fargate would pull images 3-6 times more times, but Fargate
+skips node bootstrap. But with instances that match the pods, sized the way §4.1 sizes the floor, Fargate loses: the
+same run on `m7g.xlarge` would cost about $0.55<!--FE20--> ᴱ, so Fargate would cost
+1.4<!--FE21--> ᴱ times more, though it stays a reasonable option.
+
+#### VPC endpoint instead of the NAT gateway, query flow
+
+Every Bedrock call leaves the VPC through the NAT gateway, which charges $0.052<!--FR4--> per GB
+it processes. An interface VPC endpoint charges $0.01<!--FR15-->/GB, but it also costs
+$26.28<!--FD48-->/month for its three ENIs, one per AZ, whether or not any traffic passes.
+
+The endpoint pays back once the per-GB saving covers that fixed fee, at 625.71<!--FD49--> GB a
+month. One query moves ~11.4 KB ᴱ through the NAT (`02-inference/K4`), so the crossover is
+~55<!--FD181--> ᴱ million queries a month, about 21 req/s ᴱ sustained. At the reference volume of
+1,000,000<!--FE14--> queries the NAT costs $0.59<!--FD53--> ᴱ a month, 0.12<!--FD55-->% of
+generation, and the crossover sits 55× above it.
+
+However, besides the cost, the endpoint reaches Bedrock in `eu-central-1` only, and the current
+model is served only in US regions. So such change would also require to change a model to one,
+that in `eu-central-1` first.
 
 ## 5. Guardrails
 
-| Guardrail | Value | Derived from | Enforced in |
-| :--- | :--- | :--- | :--- |
-| Ingestion concurrency ceiling | `maxReplicaCount: ⟨⟩` | §3.3 sweet spot | `deploy/k8s/apps/⟨…⟩/scaledjob.yaml` |
-| Chunker memory limit | `limits.memory: ⟨peak + 30 %⟩` | `01-ingestion/M7`, valid only where `M8` is zero | `deploy/k8s/apps/chunker` |
-| Indexer memory limit | `limits.memory: ⟨peak + 30 %⟩` | `01-ingestion/M7`, valid only where `M8` is zero | `deploy/k8s/apps/indexer` |
-| Node consolidation delay | `consolidateAfter: ⟨⟩` | §3.4 unoccupied-capacity share | `apps-compute` NodePool |
-| Max input file size | `MAX_ALLOWED_SIZE_BYTES: ⟨⟩` | §3.5 · ADR-0001 | `apps/chunker` env |
-| Chunks per SQS message | `⟨⟩` | §4.2 SQS line · ADR-0004 | `apps/chunker` env |
-| Go API replica ceiling | `maxReplicaCount: ⟨⟩` | §3.7 replicas at the sustained rate, plus margin | `api-scaler` |
-| Embedding tier replica ceiling | `maxReplicaCount: ⟨⟩` | §3.7 replicas at the sustained rate, plus margin | `tei-embeddings-scaler` |
-| Go API memory limit | `limits.memory: ⟨peak + 30 %⟩` | `02-inference/M6` | `deploy/k8s/apps/api` |
-| Embedding tier memory limit | `limits.memory: ⟨peak + 30 %⟩` | `02-inference/M6` | `deploy/k8s/apps/tei` |
-| Query rate alert | `⟨§3.7 sustained rate × 0.8⟩ req/s` | §3.7 | `prometheus/rules.yaml` |
-| Latency SLO alert | `p95 > ⟨⟩ ms for ⟨⟩ min` | §3.7 | `prometheus/rules.yaml` |
-| Backfill concurrency during query hours | `maxReplicaCount: ⟨⟩` | §3.8 | `deploy/k8s/apps/⟨…⟩/scaledjob.yaml` |
-| Ingestion backlog alert | `⟨§3.1 drain rate × alert window⟩` | §3.1 | `prometheus/rules.yaml` |
-| Budget alarm | `$⟨Block B × 1.4⟩` | §4.1 | `terraform/budgets.tf` |
+### 5.1 Memory limits
+
+Peak is each pod's highest `container_memory_working_set_bytes` in the window, the value the kubelet compares
+with the limit before an OOM kill (`01-ingestion/M7` · `02-inference/Q8`).
+
+| Component | Keep | Peak working set | Limit ÷ peak | Enforced in | Comment |
+| :--- | :--- | ---: | ---: | :--- | :--- |
+| Chunker | `1Gi` | 445<!--FM79--> MiB (N=25) | 2.30<!--FD156-->× | `deploy/k8s/apps/chunker` | real documents can be larger than the fixture |
+| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | `requests.memory` raised to `2560Mi` |
+| Go API | `512Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | replica reached 439<!--FM77--> MiB, 86% of the limit |
+| TEI | `1Gi` | 670<!--FM78--> MiB (r050) | 1.53<!--FD155-->× | `deploy/k8s/apps/tei` | at `requests.cpu: 3000m` packing is CPU-bound, so the 768<!--FR34--> MiB request does not affect density |
+
+### 5.2 Max replicas
+
+All three settings are max replicas. In the ingestion flow
+the ScaledJob setting is the axis itself, and TEI peaked at 26 of its 30 replicas. In the query flow
+the pool's CPU limit was reached before TEI's max: at r1000 TEI ran on 11 pods (§3.2).
+
+| Setting | Keep | Observed | Enforced in | Comment |
+| :--- | :--- | :--- | :--- | :--- |
+| Ingestion concurrency, both ScaledJobs | `maxReplicaCount: 20` ᴱ | chunker never above ~20 at any N. The N=25 sweet spot held a time-weighted mean of 19.5 | `deploy/k8s/apps/{chunker,indexer}/scaledjob.yaml`, committed 2026-09-19, applies at the next cluster bootstrap | No point separates 20 from 25, it based on estimate |
+| Go API replicas | `maxReplicaCount: 10` | 6 at r1000 | `api-scaler` | Sufficiency above 1000 req/s is untested |
+| TEI replicas | `maxReplicaCount: 30` | 11 at r1000, 6 cores each | `tei-embeddings-scaler` | The serving pool's CPU limit stops TEI first. 11 pods held 1000 req/s (§3.2) |
+
+The `apps-serving` NodePool keeps `limits: cpu: 100`, during testing reached it at r1000 and at N=125, and it
+was enough for both.
+
+### 5.3 Alerts, topology and spend
+
+- **Karpenter node consolidation delay — keep `consolidateAfter: 5m` under `WhenEmpty`, and do not lower it for cost**
+
+By default, Karpenter is configured with `0s` under `WhenEmptyOrUnderutilized` and for this setup a node would be empty
+for a moment between Job started. Karpenter reads it as idle and removes a node the next pod was about to use. A
+`5m` delay would fix that consolidation issue, so better to not reduce.
+
+- **Serving pool full — alert when `tei-embeddings` pods stay Pending, or `apps-serving` reaches its `cpu: 100` limit**
+  §3.2 → `docs/tech-debt.md` #16
+
+At r1000 the pool set at its limit and TEI could not grow past 11 pods(applicable for tei `cpu 6 / 8`).
+The response is a higher NodePool limit and, past 256 vCPU, more Spot vCPU quota.
+
+- **Budget alarm — $1,032.84<!--FD56--> ᴱ/month**
+  §4.1 → `docs/tech-debt.md` #11
+
+Right-sized Block C, $737.74<!--FE11--> ᴱ, × 1.4 for headroom. However, Block B is the better base, but scoping
+a budget to it needs a block tag or cost category(`docs/tech-debt.md` #13).

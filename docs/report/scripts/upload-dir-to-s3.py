@@ -44,6 +44,11 @@ try:
 except ImportError:
     sys.exit("tqdm is required: pip install tqdm")
 
+# Launched as a detached background subprocess by run-ingestion-point.py, with
+# stdout redirected to a log file — block-buffered there by default, so the
+# summary line below (and any FAILED lines) can sit unseen until exit.
+sys.stdout.reconfigure(line_buffering=True)
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 

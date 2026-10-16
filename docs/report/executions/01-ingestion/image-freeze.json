@@ -1,0 +1,11 @@
+{
+  "deployment/tei-embeddings": [
+    "ghcr.io/huggingface/text-embeddings-inference:cpu-1.6"
+  ],
+  "scaledjob/chunker": [
+    "ghcr.io/maksimillian1/simple-rag/chunker:sha-404a2670ee9e722ebf8d4f9a1f480c60c2360ab0"
+  ],
+  "scaledjob/indexer": [
+    "ghcr.io/maksimillian1/simple-rag/indexer:sha-32365dc9106736e8ebe5b24b09b87f6f7f18aed0"
+  ]
+}

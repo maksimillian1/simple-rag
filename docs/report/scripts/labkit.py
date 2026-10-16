@@ -28,6 +28,7 @@ import re
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -52,12 +53,20 @@ EXIT_TIMEOUT = 4
 REPORT_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = Path(__file__).resolve().parent
 
-INTERRUPT_REASONS = [
+# InstanceTerminating fires on every node teardown Karpenter itself decides
+# on — WhenEmpty/WhenEmptyOrUnderutilized consolidation included, which only
+# ever disrupts a node already at pod-count 0 — so on its own it says nothing
+# about whether work was actually disrupted. Confirmed empirically
+# (01-ingestion/ingestion-n50-test, 2026-09-01): two InstanceTerminating
+# nodes had zero chunker/indexer containers ever scheduled to them (M4). The
+# other three reasons below are the account/EC2 side losing the instance
+# involuntarily — that's what actually invalidates a window (K1).
+FORCED_REASONS = [
     "SpotInterrupted",
     "TerminatingOnInterruption",
-    "InstanceTerminating",
     "InstanceStopping",
 ]
+INTERRUPT_REASONS = FORCED_REASONS + ["InstanceTerminating"]
 
 
 def die(msg: str) -> None:
@@ -95,6 +104,12 @@ class Env:
     @property
     def namespace(self) -> str:
         return str(self.need("namespace"))
+
+    def namespace_for(self, workload: str) -> str:
+        """Per-workload override, e.g. namespaces.tei-embeddings. Falls back to
+        the generic `namespace` key — correct only when every FREEZE/GATE
+        workload for this execution actually lives in one namespace."""
+        return str(self.get(f"namespaces.{workload}", None) or self.namespace)
 
     @property
     def prom_url(self) -> str:
@@ -211,6 +226,22 @@ def read_ref_file(path: Path, fields: int) -> list[list[str]]:
 BOUND_TOKEN = re.compile(r"(min|max)\s+(\S+)")
 
 
+SUBST_TOKEN = re.compile(r"\{(\w+)\}")
+
+
+def _substitute(text: str, subs: dict, path: Path, ref: str) -> str:
+    """Fill {name} placeholders, e.g. {rate}. Uses a narrow token pattern rather
+    than str.format(): a PromQL label matcher like {namespace="x",reason="y"}
+    is also wrapped in braces, and str.format() would try to parse it as a
+    substitution and fail on the first one that isn't a bare identifier."""
+    def repl(m: re.Match) -> str:
+        key = m.group(1)
+        if key not in subs:
+            die(f"{path}: guard {ref} references unknown substitution '{key}'")
+        return str(subs[key])
+    return SUBST_TOKEN.sub(repl, text)
+
+
 def load_guards(path: Path, substitutions: dict | None = None) -> list[dict]:
     """ref|bound|promql. Bound is one or both of 'min <v>' and 'max <v>'.
     Substitutions fill {name} placeholders in bounds and queries — the only
@@ -218,11 +249,8 @@ def load_guards(path: Path, substitutions: dict | None = None) -> list[dict]:
     subs = substitutions or {}
     guards = []
     for ref, bound, query in read_ref_file(path, 3):
-        try:
-            bound = bound.format(**subs)
-            query = query.format(**subs)
-        except KeyError as e:
-            die(f"{path}: guard {ref} references unknown substitution {e}")
+        bound = _substitute(bound, subs, path, ref)
+        query = _substitute(query, subs, path, ref)
         found = BOUND_TOKEN.findall(bound)
         if not found:
             die(f"{path}: guard {ref} has no bound — expected 'min <v>' or "
@@ -239,19 +267,25 @@ def load_guards(path: Path, substitutions: dict | None = None) -> list[dict]:
 
 # --------------------------------------------------------------------------- prometheus
 
-def prom_query(prom_url: str, query: str) -> list[dict]:
-    url = f"{prom_url}/api/v1/query?" + urllib.parse.urlencode({"query": query})
+def prom_query(prom_url: str, query: str, at: "datetime | None" = None) -> list[dict]:
+    """`at`, when given, evaluates the query as of that instant rather than
+    Prometheus's own "now" — needed for anything checked well after the moment
+    it actually describes (see check_guards)."""
+    params = {"query": query}
+    if at is not None:
+        params["time"] = at.timestamp()
+    url = f"{prom_url}/api/v1/query?" + urllib.parse.urlencode(params)
     data = http_json("GET", url)
     if data.get("status") != "success":
         raise RuntimeError(data.get("error", "prometheus query failed"))
     return data.get("data", {}).get("result", [])
 
 
-def prom_scalar(prom_url: str, query: str) -> float | None:
+def prom_scalar(prom_url: str, query: str, at: "datetime | None" = None) -> float | None:
     """Max over the returned series. None when the query returns nothing, which
     is an instrumentation gap and never a zero."""
     values = []
-    for series in prom_query(prom_url, query):
+    for series in prom_query(prom_url, query, at=at):
         raw = series.get("value", [None, None])[1]
         if raw is not None:
             try:
@@ -268,14 +302,19 @@ def prom_targets_down(prom_url: str) -> list[str]:
     ]
 
 
-def check_guards(prom_url: str, guards: list[dict]) -> list[str]:
-    """Evaluated once, at window close. A guard returning nothing fails: an empty
-    result is a gap, not a pass. Use `or vector(0)` where a zero is honest."""
+def check_guards(prom_url: str, guards: list[dict], at: "datetime | None" = None) -> list[str]:
+    """Evaluated once, as of `at` (defaults to Prometheus's own "now" if not
+    given). Pass the generator's own end time, not the point's close time — the
+    two are minutes apart (scale-in wait plus the buffer), and a rate-based
+    guard checked after the generator already stopped sees whatever's left of
+    its own [5m] (or similar) lookback window landing on dead air, not the load
+    it's meant to validate. A guard returning nothing fails: an empty result is
+    a gap, not a pass. Use `or vector(0)` where a zero is honest."""
     failures = []
     for guard in guards:
         ref = guard["ref"]
         try:
-            value = prom_scalar(prom_url, guard["query"])
+            value = prom_scalar(prom_url, guard["query"], at=at)
         except RuntimeError as e:
             print(f"[{BAD}] guard {ref} — query failed: {e}")
             failures.append(ref)
@@ -308,6 +347,22 @@ def nodes_by_selector(selector: str) -> dict[str, str]:
     }
 
 
+def pods_by_node(namespace: str, label_selector: str) -> dict[str, list[str]]:
+    """node -> running pod names. Whether a node that just vanished actually
+    had anything on it — the real signal for whether its loss disrupted
+    work — rather than whether the system had backlog somewhere else at the
+    time (queue depth alone conflates the two, see FORCED_REASONS)."""
+    data = sh_json(["kubectl", "-n", namespace, "get", "pods", "-l", label_selector,
+                    "--field-selector=status.phase=Running", "-o", "json"])
+    out: dict[str, list[str]] = {}
+    for item in data.get("items", []):
+        node = item.get("spec", {}).get("nodeName")
+        if not node:
+            continue
+        out.setdefault(node, []).append(item["metadata"]["name"])
+    return out
+
+
 def deployment_replicas(namespace: str, name: str) -> int:
     data = sh_json(["kubectl", "-n", namespace, "get", "deployment", name,
                     "-o", "json"])
@@ -329,7 +384,11 @@ def sqs_depth(queue_url: str) -> int:
 
 
 def interrupt_events(since: datetime) -> list[str]:
-    """Best effort. Event TTL is short, so absence here proves nothing."""
+    """Best effort. Event TTL is short, so absence here proves nothing.
+
+    Returns every matching event, InstanceTerminating included — the caller
+    decides what counts against validity. Use `entry.split(' · ')[0] in
+    FORCED_REASONS` to tell an involuntary loss from ordinary consolidation."""
     found = []
     try:
         data = sh_json(["kubectl", "get", "events", "-A", "-o", "json"], timeout=45)
@@ -354,12 +413,35 @@ def interrupt_events(since: datetime) -> list[str]:
 # --------------------------------------------------------------------------- port-forward
 
 class PortForwards:
-    """Opens what the runner asks for. Torn down on exit, including on a raise."""
+    """Opens what the runner asks for. Torn down on exit, including on a raise.
+
+    `kubectl port-forward` has no reconnect logic of its own and is known to
+    drop silently on a long-lived tunnel (idle timeout to the API server, a
+    network blip, the target pod rescheduling) — a real risk over a run that
+    can watch for the better part of an hour. `ensure_alive()` is the fix:
+    call it periodically (the watch loop) and right before anything that
+    depends on the tunnel (the R21 read, the Prometheus export) so a dead
+    forward gets relaunched before it causes a gap instead of after."""
 
     def __init__(self, targets: list[dict], enabled: bool = True):
         self.enabled = enabled
         self.targets = [t for t in targets if t]
         self.procs: list[subprocess.Popen] = []
+        self.logs: list[Path] = []
+
+    def _launch(self, spec: dict) -> tuple[subprocess.Popen, Path]:
+        log_path = Path(tempfile.gettempdir()) / (
+            f"port-forward-{spec['namespace']}-"
+            f"{spec['target'].replace('/', '_')}.log")
+        log_file = log_path.open("w")
+        proc = subprocess.Popen(
+            ["kubectl", "-n", spec["namespace"], "port-forward",
+             spec["target"], spec["mapping"]],
+            stdout=subprocess.DEVNULL, stderr=log_file,
+            start_new_session=True,
+        )
+        log_file.close()  # child inherited the fd; this process doesn't need it open
+        return proc, log_path
 
     def __enter__(self):
         if not self.enabled or not self.targets:
@@ -367,19 +449,46 @@ class PortForwards:
         for spec in self.targets:
             print(f"{ARROW} port-forward : {spec['namespace']}/{spec['target']} "
                   f"{spec['mapping']}")
-            proc = subprocess.Popen(
-                ["kubectl", "-n", spec["namespace"], "port-forward",
-                 spec["target"], spec["mapping"]],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+            proc, log_path = self._launch(spec)
             self.procs.append(proc)
+            self.logs.append(log_path)
         time.sleep(4)
-        for proc in self.procs:
+        for proc, spec in zip(self.procs, self.targets):
             if proc.poll() is not None:
-                die("a port-forward died immediately — check the service names in "
-                    "env.yaml, or pass --no-port-forward and open them yourself")
+                die(f"a port-forward died immediately ({spec['namespace']}/"
+                    f"{spec['target']}) — check the service names in env.yaml, "
+                    f"its log, or pass --no-port-forward and open them yourself")
         return self
+
+    def ensure_alive(self) -> list[str]:
+        """Relaunch any forward that died. Returns one message per restart,
+        empty when everything is still up — call and print the result rather
+        than assuming silence means nothing happened."""
+        if not self.enabled:
+            return []
+        notices = []
+        for i, proc in enumerate(self.procs):
+            if proc.poll() is None:
+                continue
+            spec = self.targets[i]
+            tail = ""
+            try:
+                tail = self.logs[i].read_text().strip().splitlines()[-1:]
+                tail = f" — {tail[0]}" if tail else ""
+            except OSError:
+                pass
+            notices.append(
+                f"port-forward {spec['namespace']}/{spec['target']} died "
+                f"(exit {proc.returncode}){tail} — relaunching")
+            new_proc, new_log = self._launch(spec)
+            time.sleep(2)
+            if new_proc.poll() is not None:
+                notices.append(
+                    f"port-forward {spec['namespace']}/{spec['target']} "
+                    f"failed to relaunch — see {new_log}")
+            self.procs[i] = new_proc
+            self.logs[i] = new_log
+        return notices
 
     def __exit__(self, *_):
         for proc in self.procs:
@@ -417,9 +526,11 @@ def _dig(node: dict, path) -> list:
     return node if isinstance(node, list) else []
 
 
-def frozen_images(namespace: str, refs: list[str]) -> dict[str, list[str]]:
+def frozen_images(env: "Env", refs: list[str]) -> dict[str, list[str]]:
     """refs are 'kind/name'. The sweep compares one artifact across the grid, and
-    this is what proves it did."""
+    this is what proves it did. Namespace is resolved per name — the FREEZE
+    list is not guaranteed to sit in one namespace (chunker/indexer in
+    rag-jobs, tei-embeddings in rag-platform, api in rag-api)."""
     out: dict[str, list[str]] = {}
     for ref in refs:
         if "/" not in ref:
@@ -429,6 +540,7 @@ def frozen_images(namespace: str, refs: list[str]) -> dict[str, list[str]]:
         if path is None:
             die(f"cannot read containers from kind {kind!r} — a ScaledObject "
                 f"scales an existing workload, so freeze that workload instead")
+        namespace = env.namespace_for(name)
         try:
             data = sh_json(["kubectl", "-n", namespace, "get", kind, name,
                             "-o", "json"])
@@ -496,10 +608,14 @@ def run_export(series_file: Path, run_id: str, t_start: datetime,
 
 
 def reexport_hint(series_file: Path, run_id: str, t_start: datetime,
-                  t_end: datetime) -> None:
+                  t_end: datetime, out_dir: Path) -> None:
+    """out_dir is required, not defaulted: run_export() passes it via the
+    OUT_DIR env var rather than a flag, so a hint without --out-dir looks
+    identical but silently lands in export-metrics.py's own default
+    (docs/report/data) instead of next to this run's other files."""
     print(f"         {SCRIPTS_DIR / 'export-metrics.py'} --run {run_id} "
           f"--queries {series_file} --start {rfc3339(t_start)} "
-          f"--end {rfc3339(t_end)} --force")
+          f"--end {rfc3339(t_end)} --out-dir {out_dir} --force")
 
 
 # --------------------------------------------------------------------------- point block

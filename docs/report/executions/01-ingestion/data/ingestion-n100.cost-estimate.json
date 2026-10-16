@@ -1,0 +1,530 @@
+{
+  "run": "ingestion-n100",
+  "window": {
+    "start": "2026-09-03T16:24:23Z",
+    "end": "2026-09-03T17:05:31Z"
+  },
+  "generated_at": "2026-09-03T19:10:00Z",
+  "status": "provisional \u2014 karpenter/EC2/CloudWatch reconstruction (docs/report/scripts/karpenter-cost-estimate.py), cross-check against the real CUR read once available (00-baseline \u00a72: CUR is source of record).",
+  "M10_compute_usd": {
+    "value": 1.2877,
+    "nodes": [
+      {
+        "node": "ip-10-0-10-136.eu-central-1.compute.internal",
+        "instance_id": "i-0c713d22e264c5bd5",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:26:08Z",
+        "last_seen": "2026-09-03T16:56:53Z",
+        "instance_type": "c7g.2xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.5125,
+        "rate": 0.1834,
+        "cost": 0.09399249999999999
+      },
+      {
+        "node": "ip-10-0-11-157.eu-central-1.compute.internal",
+        "instance_id": "i-05491383f40ca6194",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:26:08Z",
+        "last_seen": "2026-09-03T16:55:23Z",
+        "instance_type": "c7g.2xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.4875,
+        "rate": 0.1813,
+        "cost": 0.08838375
+      },
+      {
+        "node": "ip-10-0-11-52.eu-central-1.compute.internal",
+        "instance_id": "i-0f2fac980f56ec004",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:26:38Z",
+        "last_seen": "2026-09-03T17:00:53Z",
+        "instance_type": "c7g.2xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.5708333333333333,
+        "rate": 0.1813,
+        "cost": 0.10349208333333332
+      },
+      {
+        "node": "ip-10-0-12-156.eu-central-1.compute.internal",
+        "instance_id": "i-0464e9d0274bb6548",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:38Z",
+        "last_seen": "2026-09-03T16:35:53Z",
+        "instance_type": "c7g.2xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.12083333333333333,
+        "rate": 0.1737,
+        "cost": 0.02098875
+      },
+      {
+        "node": "ip-10-0-12-177.eu-central-1.compute.internal",
+        "instance_id": "i-0cea006fdb452a469",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:08Z",
+        "last_seen": "2026-09-03T16:55:53Z",
+        "instance_type": "c7g.2xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.4625,
+        "rate": 0.1737,
+        "cost": 0.08033625
+      },
+      {
+        "node": "ip-10-0-10-164.eu-central-1.compute.internal",
+        "instance_id": "i-011c8093030d72c76",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:08Z",
+        "last_seen": "2026-09-03T16:53:53Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.42916666666666664,
+        "rate": 0.2874,
+        "cost": 0.1233425
+      },
+      {
+        "node": "ip-10-0-10-246.eu-central-1.compute.internal",
+        "instance_id": "i-04e39039b3713732d",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:08Z",
+        "last_seen": "2026-09-03T16:55:23Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.45416666666666666,
+        "rate": 0.2874,
+        "cost": 0.1305275
+      },
+      {
+        "node": "ip-10-0-11-121.eu-central-1.compute.internal",
+        "instance_id": "i-0ab161f46b5bb3aea",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:08Z",
+        "last_seen": "2026-09-03T16:54:53Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.44583333333333336,
+        "rate": 0.2726,
+        "cost": 0.12153416666666668
+      },
+      {
+        "node": "ip-10-0-11-134.eu-central-1.compute.internal",
+        "instance_id": "i-09f328b1227b6337d",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:08Z",
+        "last_seen": "2026-09-03T16:56:23Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.4708333333333333,
+        "rate": 0.2726,
+        "cost": 0.12834916666666668
+      },
+      {
+        "node": "ip-10-0-11-67.eu-central-1.compute.internal",
+        "instance_id": "i-0d84eb1b43b5efb3e",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:38Z",
+        "last_seen": "2026-09-03T16:35:53Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.12083333333333333,
+        "rate": 0.2726,
+        "cost": 0.032939166666666665
+      },
+      {
+        "node": "ip-10-0-12-115.eu-central-1.compute.internal",
+        "instance_id": "i-0f822009153b9af9a",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:08Z",
+        "last_seen": "2026-09-03T16:53:53Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.42916666666666664,
+        "rate": 0.2772,
+        "cost": 0.11896499999999999
+      },
+      {
+        "node": "ip-10-0-12-128.eu-central-1.compute.internal",
+        "instance_id": "i-0b97e9d90e965c65c",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:38Z",
+        "last_seen": "2026-09-03T16:35:23Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.1125,
+        "rate": 0.2772,
+        "cost": 0.031185
+      },
+      {
+        "node": "ip-10-0-12-194.eu-central-1.compute.internal",
+        "instance_id": "i-00ff280a3f26e8a69",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:38Z",
+        "last_seen": "2026-09-03T16:36:23Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.12916666666666668,
+        "rate": 0.2772,
+        "cost": 0.035805000000000003
+      },
+      {
+        "node": "ip-10-0-12-39.eu-central-1.compute.internal",
+        "instance_id": "i-0e5529938c3f3c9d5",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:38Z",
+        "last_seen": "2026-09-03T16:34:53Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.10416666666666667,
+        "rate": 0.2772,
+        "cost": 0.028875
+      },
+      {
+        "node": "ip-10-0-12-85.eu-central-1.compute.internal",
+        "instance_id": "i-0f3f51e126a079cde",
+        "nodepool": "apps-compute",
+        "first_seen": "2026-09-03T16:28:08Z",
+        "last_seen": "2026-09-03T17:00:23Z",
+        "instance_type": "c7g.4xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.5375,
+        "rate": 0.2772,
+        "cost": 0.148995
+      }
+    ]
+  },
+  "M11_serving_gross_usd": {
+    "value": 0.8698,
+    "nodes": [
+      {
+        "node": "ip-10-0-11-231.eu-central-1.compute.internal",
+        "instance_id": "i-09a5edd144ee57bb1",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:35:08Z",
+        "last_seen": "2026-09-03T16:43:23Z",
+        "instance_type": "c5a.2xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "on-demand",
+        "hours": 0.1375,
+        "rate": 0.348,
+        "cost": 0.047850000000000004
+      },
+      {
+        "node": "ip-10-0-10-64.eu-central-1.compute.internal",
+        "instance_id": "i-0c1ddea1a522f621a",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:35:08Z",
+        "last_seen": "2026-09-03T16:44:53Z",
+        "instance_type": "c5a.4xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "on-demand",
+        "hours": 0.1625,
+        "rate": 0.696,
+        "cost": 0.11309999999999999
+      },
+      {
+        "node": "ip-10-0-10-181.eu-central-1.compute.internal",
+        "instance_id": "i-026276d861ee08a28",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:30:08Z",
+        "last_seen": "2026-09-03T16:39:53Z",
+        "instance_type": "c5.xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.1625,
+        "rate": 0.0936,
+        "cost": 0.015210000000000001
+      },
+      {
+        "node": "ip-10-0-12-217.eu-central-1.compute.internal",
+        "instance_id": "i-06b3533650d9a4aa9",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:44:08Z",
+        "last_seen": "2026-09-03T16:51:53Z",
+        "instance_type": "c5.xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.12916666666666668,
+        "rate": 0.0922,
+        "cost": 0.011909166666666669
+      },
+      {
+        "node": "ip-10-0-10-233.eu-central-1.compute.internal",
+        "instance_id": "i-0caa5c982536ba0c6",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:33:08Z",
+        "last_seen": "2026-09-03T16:47:23Z",
+        "instance_type": "c5a.2xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.2375,
+        "rate": 0.1772,
+        "cost": 0.042085
+      },
+      {
+        "node": "ip-10-0-11-244.eu-central-1.compute.internal",
+        "instance_id": "i-04fa2e76bfe4025bc",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:30:38Z",
+        "last_seen": "2026-09-03T16:40:23Z",
+        "instance_type": "c5a.xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.1625,
+        "rate": 0.0976,
+        "cost": 0.015860000000000003
+      },
+      {
+        "node": "ip-10-0-11-50.eu-central-1.compute.internal",
+        "instance_id": "i-021312fdae60ce525",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:30:38Z",
+        "last_seen": "2026-09-03T16:41:53Z",
+        "instance_type": "c5a.xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.1875,
+        "rate": 0.0976,
+        "cost": 0.0183
+      },
+      {
+        "node": "ip-10-0-11-147.eu-central-1.compute.internal",
+        "instance_id": "i-0babf91ba24283e41",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:44:08Z",
+        "last_seen": "2026-09-03T16:53:53Z",
+        "instance_type": "c6a.2xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.1625,
+        "rate": 0.1811,
+        "cost": 0.029428750000000004
+      },
+      {
+        "node": "ip-10-0-11-117.eu-central-1.compute.internal",
+        "instance_id": "i-0a303870b3a82ce62",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:38:38Z",
+        "last_seen": "2026-09-03T16:52:53Z",
+        "instance_type": "c6a.4xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.2375,
+        "rate": 0.3738,
+        "cost": 0.0887775
+      },
+      {
+        "node": "ip-10-0-11-224.eu-central-1.compute.internal",
+        "instance_id": "i-0d8f361aadae8d38d",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:38:08Z",
+        "last_seen": "2026-09-03T16:45:53Z",
+        "instance_type": "c6a.4xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.12916666666666668,
+        "rate": 0.3738,
+        "cost": 0.048282500000000006
+      },
+      {
+        "node": "ip-10-0-12-147.eu-central-1.compute.internal",
+        "instance_id": "i-0121a87716313540e",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:43:38Z",
+        "last_seen": "2026-09-03T17:05:23Z",
+        "instance_type": "c6a.4xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.3625,
+        "rate": 0.3688,
+        "cost": 0.13369
+      },
+      {
+        "node": "ip-10-0-10-100.eu-central-1.compute.internal",
+        "instance_id": "i-08718815a3c1850db",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:24:23Z",
+        "last_seen": "2026-09-03T16:33:23Z",
+        "instance_type": "c6a.xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.15,
+        "rate": 0.0942,
+        "cost": 0.01413
+      },
+      {
+        "node": "ip-10-0-10-116.eu-central-1.compute.internal",
+        "instance_id": "i-0bc0c2f03df612cc0",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:29:38Z",
+        "last_seen": "2026-09-03T16:37:23Z",
+        "instance_type": "c6a.xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.12916666666666668,
+        "rate": 0.0942,
+        "cost": 0.012167500000000001
+      },
+      {
+        "node": "ip-10-0-10-211.eu-central-1.compute.internal",
+        "instance_id": "i-07da54b8b802ab7d7",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:24:23Z",
+        "last_seen": "2026-09-03T16:41:23Z",
+        "instance_type": "c6a.xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.2833333333333333,
+        "rate": 0.0942,
+        "cost": 0.026690000000000002
+      },
+      {
+        "node": "ip-10-0-10-244.eu-central-1.compute.internal",
+        "instance_id": "i-0855dd38b81706ffb",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:30:08Z",
+        "last_seen": "2026-09-03T16:37:23Z",
+        "instance_type": "c6a.xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.12083333333333333,
+        "rate": 0.0942,
+        "cost": 0.0113825
+      },
+      {
+        "node": "ip-10-0-11-83.eu-central-1.compute.internal",
+        "instance_id": "i-08b494a962e322e23",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:30:38Z",
+        "last_seen": "2026-09-03T16:40:23Z",
+        "instance_type": "c6a.xlarge",
+        "az": "eu-central-1b",
+        "capacity_type": "spot",
+        "hours": 0.1625,
+        "rate": 0.0912,
+        "cost": 0.014820000000000002
+      },
+      {
+        "node": "ip-10-0-12-171.eu-central-1.compute.internal",
+        "instance_id": "i-0c1e0444ee286e58d",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:41:38Z",
+        "last_seen": "2026-09-03T16:53:23Z",
+        "instance_type": "c6i.2xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.19583333333333333,
+        "rate": 0.1943,
+        "cost": 0.03805041666666666
+      },
+      {
+        "node": "ip-10-0-12-55.eu-central-1.compute.internal",
+        "instance_id": "i-0e67bc6caf8ce5093",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:42:08Z",
+        "last_seen": "2026-09-03T16:54:23Z",
+        "instance_type": "c6i.2xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.20416666666666666,
+        "rate": 0.1943,
+        "cost": 0.039669583333333334
+      },
+      {
+        "node": "ip-10-0-10-67.eu-central-1.compute.internal",
+        "instance_id": "i-0df823298e795e144",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:42:38Z",
+        "last_seen": "2026-09-03T17:05:23Z",
+        "instance_type": "c7i-flex.2xlarge",
+        "az": "eu-central-1a",
+        "capacity_type": "spot",
+        "hours": 0.37916666666666665,
+        "rate": 0.1898,
+        "cost": 0.07196583333333333
+      },
+      {
+        "node": "ip-10-0-12-241.eu-central-1.compute.internal",
+        "instance_id": "i-0f45653ffdd8dffaa",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:33:08Z",
+        "last_seen": "2026-09-03T16:46:53Z",
+        "instance_type": "c7i-flex.2xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.22916666666666666,
+        "rate": 0.1912,
+        "cost": 0.043816666666666663
+      },
+      {
+        "node": "ip-10-0-12-48.eu-central-1.compute.internal",
+        "instance_id": "i-034ff55f33d6b34ec",
+        "nodepool": "apps-serving",
+        "first_seen": "2026-09-03T16:33:38Z",
+        "last_seen": "2026-09-03T16:43:53Z",
+        "instance_type": "c7i-flex.2xlarge",
+        "az": "eu-central-1c",
+        "capacity_type": "spot",
+        "hours": 0.17083333333333334,
+        "rate": 0.1912,
+        "cost": 0.032663333333333336
+      }
+    ]
+  },
+  "M13_sqs_s3_usd": {
+    "value": 0.0,
+    "sqs_requests": {
+      "stage_1": {
+        "sent": 100,
+        "received": 100,
+        "deleted": 100
+      },
+      "stage_2": {
+        "sent": 2843,
+        "received": 3582,
+        "deleted": 3026
+      }
+    },
+    "s3_requests": {
+      "put": 100,
+      "get": 100
+    }
+  },
+  "M14_nat_usd": {
+    "value": 0.0236,
+    "bytes_out_to_destination": 454203307,
+    "gb_out_to_destination": 0.4542
+  },
+  "comparison_to_ingestion_n100_sticky": {
+    "window_seconds": {
+      "sticky": 2298,
+      "fixed": 2468,
+      "delta_pct": 7.4
+    },
+    "M10_compute_usd": {
+      "sticky": 1.3808,
+      "fixed": 1.2877,
+      "delta_pct": -6.7
+    },
+    "M11_serving_gross_usd": {
+      "sticky": 0.5684,
+      "fixed": 0.8698,
+      "delta_pct": 53.0
+    },
+    "note": "Compute cost dropped ~7% (nodes needed slightly less wall-clock time for the same 84,018-point corpus), consistent with indexer pods computing rather than waiting. But total window duration and serving-pool gross cost both went UP, not down, versus the sticky run \u2014 TEI scaled to more replicas (peaked ~23 vs ~19) under the fixed run, most likely because indexer could now drive genuine concurrent demand across TEI backends instead of a few being saturated while others sat idle, so aggregate demand on TEI (and its scale-out) went up, not down. Net effect on this run's total $/run is NOT a clean win \u2014 the fix solved the fairness/attribution problem (confirmed live via per-pod te_queue_size and CPU), not necessarily the aggregate cost or wall-clock time. Flagged for Retro, not resolved here."
+  },
+  "revision_note": "Revised 2026-09-26 under the data-file rule (methodology.md \u00a72): a data file holds readings, not results. Kept exactly as karpenter-cost-estimate.py and the CloudWatch/SQS reads wrote them: M10_compute_usd and M11_serving_gross_usd with their per-node rows, M13_sqs_s3_usd with its request counts, M14_nat_usd with its byte counts. Those are tool output with their own provenance in `status`, and the totals in them are the tool's arithmetic over its own readings in the same run. Removed, because they are results and belong in figures.yaml: D23_tei_above_floor_usd, D24_dollar_per_run_usd, D25_dollar_per_1M_docs_usd. The CUR figures for this point live there (cur_marginal_n100, d23_*, per_1m_*) and are printed in 01-ingestion \u00a73, per-service columns included. M14 here is also superseded on its own terms: it was re-pulled with both NAT byte-direction legs and then replaced entirely by CUR actuals (\u00a73, Notes under #08), so read it as what CloudWatch showed that day, not as this point's NAT cost."
+}

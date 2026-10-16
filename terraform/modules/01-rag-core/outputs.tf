@@ -83,11 +83,6 @@ output "eks_cluster_certificate_authority_data" {
   value       = try(one(module.eks[*].cluster_certificate_authority_data), null)
 }
 
-output "qdrant_ebs_volume_id" {
-  description = "ID of the 150GB gp3 EBS volume provisioned for Qdrant"
-  value       = try(one(module.eks[*].qdrant_ebs_volume_id), null)
-}
-
 output "cluster_name" {
   description = "Name of the EKS cluster"
   value       = var.cluster_name

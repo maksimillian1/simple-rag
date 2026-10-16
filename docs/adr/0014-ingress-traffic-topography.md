@@ -56,7 +56,7 @@ We explicitly enforce `externalTrafficPolicy: Cluster` for the Ingress Gateway s
 
 ## Consequences
 
-* **Symmetric Ingress Performance:** The Go API replicas receive a uniform distribution of user queries, optimizing CPU utilization and securing predictable p95 processing metrics (<200ms).
+* **Symmetric Ingress Performance:** The Go API replicas receive a uniform distribution of user queries, optimizing CPU utilization and keeping p95 processing predictable.
 * **Absolute Tier Isolation:** Core cluster systems and transient data-ingestion jobs are completely insulated from public network traversal. Cilium `CiliumNetworkPolicy` matrices reinforce this at Layer 4, dropping any unauthorized intra-cluster hops attempting to bridge into non-serving namespaces.
 * **Micro-Overhead Acceptability:** We accept the minor latency premium introduced by occasional eBPF-driven inter-node hops within the internal private network mesh, as Cilium eliminates iptables lookup tables, making the execution speed acceptable under our strict SLA targets.
 * **Streamlined Load Balancer Config:** Terraform configuration profiles for the AWS NLB target groups are simplified, eliminating complex, low-threshold health check configurations required to handle rapid `Local` policy node state mutations.

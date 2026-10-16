@@ -122,7 +122,7 @@ graph TB
 
 ### Synchronous Query Path
 
-* **Go API (`apps/api`):** Serves static frontend assets and handles synchronous search queries (Target latency: p95 < 200ms).
+* **Go API (`apps/api`):** Serves static frontend assets and handles synchronous search queries.
 * **Stage 1: Single-Roundtrip Native Retrieval:** Executes a single gRPC `PrefetchQuery` combining Dense Vector Index (semantic), Sparse Vector Index (SPLADE), and Payload Text Index (exact keyword matches).
 * **Stage 2: Database-Native RRF Reranking:** Delegated hybrid retrieval and rank merging natively to Qdrant using gRPC `NewQueryRRF` with constant $k=60$. Eliminates client-side CPU normalization and excessive network payload serialization overhead.
 * **Stage 3: Context Pruning & LLM (ADR-0007):** Strips all non-essential metadata before passing it to the LLM to slash token costs. Invokes AWS Bedrock via native Go SDK v2. The request is bound within the private VPC boundary via an AWS Bedrock VPC Endpoint, passing the pruned context to Meta Llama 3.1 (8B Instruct).

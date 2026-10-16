@@ -1,0 +1,8 @@
+{
+  "deployment/api": [
+    "ghcr.io/maksimillian1/simple-rag/api:sha-bafdc1f5ac9ee762699a56cdc9a4f71c0637de3e"
+  ],
+  "deployment/tei-embeddings": [
+    "ghcr.io/huggingface/text-embeddings-inference:cpu-1.6"
+  ]
+}

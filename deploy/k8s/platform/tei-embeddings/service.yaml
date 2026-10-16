@@ -3,7 +3,6 @@ kind: Service
 metadata:
   name: tei-embeddings
 spec:
-  clusterIP: None
   selector:
     app: tei-embeddings
   ports:

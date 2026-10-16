@@ -1,0 +1,167 @@
+# Prometheus TSDB from orphaned volume vol-08044db097d9917e2 (09-04 cluster), queried at 2026-09-04T18:30:00Z
+# method: volume mounted read-only on a temporary t3.medium (i-08c951c87d0b77ad6, self-terminated), Prometheus 3.5.0 on a copy, 2026-09-10
+# format: PROBE|query|labels|value ; network in bytes/s over rate[10m], cpu in cores, apiserver in req/s
+# hostNetwork pods (node-exporter, cilium*, eks-pod-identity-agent) report their node's interfaces, not their own traffic
+PROBE|tx_by_pod|namespace=monitoring pod=monitoring-prometheus-node-exporter-49xft|1306523.1
+PROBE|tx_by_pod|namespace=kube-system pod=cilium-operator-8dc98466f-c54vl|1305979.9
+PROBE|tx_by_pod|namespace=kube-system pod=cilium-tfblt|1294864.2
+PROBE|tx_by_pod|namespace=kube-system pod=eks-pod-identity-agent-jgzn8|1265538.1
+PROBE|tx_by_pod|namespace=kube-system pod=cilium-envoy-5kwrp|1253642.2
+PROBE|tx_by_pod|namespace=argocd pod=argocd-repo-server-5547dc4896-vpzqg|1186163.2
+PROBE|tx_by_pod|namespace=argocd pod=argocd-redis-5fbbd9dbd4-54fqt|158351.1
+PROBE|tx_by_pod|namespace=kube-system pod=cilium-nb785|100240.4
+PROBE|tx_by_pod|namespace=kube-system pod=cilium-envoy-5kcwg|100089.5
+PROBE|tx_by_pod|namespace=monitoring pod=monitoring-prometheus-node-exporter-s2t4w|100079.5
+PROBE|tx_by_pod|namespace=kube-system pod=eks-pod-identity-agent-4w9bp|99885.4
+PROBE|tx_by_pod|namespace=kube-system pod=cilium-operator-8dc98466f-qlznw|99730.7
+PROBE|tx_by_pod|namespace=argocd pod=argocd-application-controller-0|78659.6
+PROBE|tx_by_pod|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt|33501.8
+PROBE|tx_by_pod|namespace=kube-system pod=eks-pod-identity-agent-9fs9d|15616.3
+PROBE|rx_by_pod|namespace=kube-system pod=cilium-operator-8dc98466f-c54vl|1673722.1
+PROBE|rx_by_pod|namespace=monitoring pod=monitoring-prometheus-node-exporter-49xft|1672802.3
+PROBE|rx_by_pod|namespace=kube-system pod=cilium-tfblt|1659351.6
+PROBE|rx_by_pod|namespace=kube-system pod=cilium-envoy-5kcwg|1653234.7
+PROBE|rx_by_pod|namespace=kube-system pod=cilium-nb785|1651368.2
+PROBE|rx_by_pod|namespace=monitoring pod=monitoring-prometheus-node-exporter-s2t4w|1644992.9
+PROBE|rx_by_pod|namespace=kube-system pod=eks-pod-identity-agent-4w9bp|1644969.1
+PROBE|rx_by_pod|namespace=kube-system pod=cilium-operator-8dc98466f-qlznw|1638903.5
+PROBE|rx_by_pod|namespace=kube-system pod=eks-pod-identity-agent-jgzn8|1620503.6
+PROBE|rx_by_pod|namespace=kube-system pod=cilium-envoy-5kwrp|1604762.2
+PROBE|rx_by_pod|namespace=argocd pod=argocd-application-controller-0|1465155.8
+PROBE|rx_by_pod|namespace=argocd pod=argocd-repo-server-5547dc4896-vpzqg|187151.9
+PROBE|rx_by_pod|namespace=monitoring pod=prometheus-monitoring-kube-prometheus-prometheus-0|135537.3
+PROBE|rx_by_pod|namespace=argocd pod=argocd-server-54d67dc9c-hftnz|33894.9
+PROBE|rx_by_pod|namespace=argocd pod=argocd-applicationset-controller-68c7dc74cd-mtmg8|33320.1
+PROBE|node_net|instance=10.0.10.217:9100|21631.7
+PROBE|node_net|instance=10.0.12.86:9100|21611.7
+PROBE|node_net|instance=10.0.10.222:9100|2959766.6
+PROBE|node_net|instance=10.0.11.37:9100|1745700.4
+PROBE|node_net|instance=10.0.11.154:9100|16561.5
+PROBE|node_net|instance=10.0.10.215:9100|16756.0
+PROBE|cpu_by_pod|namespace=argocd pod=argocd-application-controller-0|0.6
+PROBE|cpu_by_pod|namespace=monitoring pod=prometheus-monitoring-kube-prometheus-prometheus-0|0.1
+PROBE|cpu_by_pod|namespace=argocd pod=argocd-repo-server-5547dc4896-vpzqg|0.1
+PROBE|cpu_by_pod|namespace=kube-system pod=cilium-tfblt|0.0
+PROBE|cpu_by_pod|namespace=kube-system pod=cilium-nb785|0.0
+PROBE|cpu_by_pod|namespace=karpenter pod=karpenter-7894f49b5c-d76hx|0.0
+PROBE|cpu_by_pod|namespace=kube-system pod=cilium-ffm74|0.0
+PROBE|cpu_by_pod|namespace=kube-system pod=cilium-vhs4s|0.0
+PROBE|cpu_by_pod|namespace=monitoring pod=monitoring-promtail-gr9sj|0.0
+PROBE|cpu_by_pod|namespace=monitoring pod=monitoring-promtail-vt2tf|0.0
+PROBE|cpu_by_pod|namespace=kube-system pod=cilium-bxd28|0.0
+PROBE|cpu_by_pod|namespace=kube-system pod=cilium-jwwq9|0.0
+PROBE|apiserver|resource=applications verb=PATCH|7.0
+PROBE|apiserver|resource=leases verb=PUT|6.4
+PROBE|apiserver|resource=leases verb=GET|4.1
+PROBE|apiserver|verb=GET|2.0
+PROBE|apiserver|resource=events verb=POST|1.1
+PROBE|apiserver|resource=applications verb=GET|1.1
+PROBE|apiserver|resource=nodes verb=GET|0.8
+PROBE|apiserver|resource=csinodes verb=GET|0.6
+PROBE|apiserver|resource=namespaces verb=GET|0.5
+PROBE|apiserver|resource=applications verb=PUT|0.5
+PROBE|apiserver|resource=customresourcedefinitions verb=GET|0.5
+PROBE|apiserver|resource=statefulsets verb=GET|0.4
+PROBE|apiserver|resource=statefulsets verb=APPLY|0.4
+PROBE|apiserver|resource=deployments verb=GET|0.3
+PROBE|apiserver|resource=endpoints verb=GET|0.3
+PROBE|scrape|job=apiserver|87450.0
+PROBE|scrape|job=kubelet|38024.0
+PROBE|scrape|job=cilium-envoy|16139.0
+PROBE|scrape|job=cilium-ebpf-metrics|9811.0
+PROBE|scrape|job=node-exporter|6642.0
+PROBE|scrape|job=kube-state-metrics|5828.0
+PROBE|scrape|job=monitoring-kube-prometheus-prometheus|1394.0
+PROBE|scrape|job=tei-embeddings|724.0
+PROBE|scrape|job=keda-operator|505.0
+PROBE|scrape|job=monitoring-kube-prometheus-alertmanager|470.0
+PROBE|scrape|job=coredns|438.0
+PROBE|scrape|job=monitoring-kube-prometheus-operator|376.0
+PROBE|pod_node|namespace=kube-system pod=cilium-nb785 node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=kube-system pod=eks-pod-identity-agent-4w9bp node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-promtail-vt2tf node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-envoy-5kwrp node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=rag-platform pod=qdrant-0 node=ip-10-0-10-217.eu-central-1.compute.internal host_ip=10.0.10.217|1.0
+PROBE|pod_node|namespace=argocd pod=argocd-redis-5fbbd9dbd4-54fqt node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-envoy-b8rzv node=ip-10-0-10-217.eu-central-1.compute.internal host_ip=10.0.10.217|1.0
+PROBE|pod_node|namespace=argocd pod=argocd-redis-secret-init-pxgxs node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=karpenter pod=karpenter-7894f49b5c-d76hx node=fargate-ip-10-0-11-11.eu-central-1.compute.internal host_ip=10.0.11.11|1.0
+PROBE|pod_node|namespace=kube-system pod=aws-load-balancer-controller-7f888988b9-w26fj node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=coredns-768d6544c7-7s8vv node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=kube-system pod=coredns-768d6544c7-fcnhp node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=kube-system pod=ebs-csi-node-7vr9t node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=kube-system pod=eks-pod-identity-agent-9fs9d node=ip-10-0-12-86.eu-central-1.compute.internal host_ip=10.0.12.86|1.0
+PROBE|pod_node|namespace=karpenter pod=karpenter-7894f49b5c-t7z4k node=fargate-ip-10-0-11-4.eu-central-1.compute.internal host_ip=10.0.11.4|1.0
+PROBE|pod_node|namespace=keda pod=keda-operator-574d776c5f-s6bgk node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=argocd pod=argocd-repo-server-5547dc4896-vpzqg node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=aws-load-balancer-controller-7f888988b9-hmgzb node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-envoy-gwgqq|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-promtail-pntkb node=ip-10-0-10-217.eu-central-1.compute.internal host_ip=10.0.10.217|1.0
+PROBE|pod_node|namespace=argocd pod=argocd-dex-server-59486ff57c-v42jg node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=keda pod=keda-admission-webhooks-5477d67459-jfcmb node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-envoy-5kcwg node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-bxd28 node=ip-10-0-10-217.eu-central-1.compute.internal host_ip=10.0.10.217|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-envoy-ltzf8|1.0
+PROBE|pod_node|namespace=kube-system pod=eks-pod-identity-agent-gkr8n node=ip-10-0-10-217.eu-central-1.compute.internal host_ip=10.0.10.217|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-jwwq9 node=ip-10-0-12-86.eu-central-1.compute.internal host_ip=10.0.12.86|1.0
+PROBE|pod_node|namespace=kube-system pod=ebs-csi-node-9gl5k node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-kube-prometheus-operator-7d89d8b68-rxv67 node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=monitoring pod=prometheus-monitoring-kube-prometheus-prometheus-0 node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=argocd pod=argocd-server-54d67dc9c-hftnz node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-operator-8dc98466f-qlznw node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=monitoring pod=alertmanager-monitoring-kube-prometheus-alertmanager-0 node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=argocd pod=argocd-image-updater-5fbd7dbf4d-qbgc9 node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=eks-pod-identity-agent-jgzn8 node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-prometheus-node-exporter-72f2z node=ip-10-0-10-217.eu-central-1.compute.internal host_ip=10.0.10.217|1.0
+PROBE|pod_node|namespace=argocd pod=argocd-applicationset-controller-68c7dc74cd-mtmg8 node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=rag-platform pod=qdrant-1 node=ip-10-0-12-86.eu-central-1.compute.internal host_ip=10.0.12.86|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-envoy-plxts node=ip-10-0-12-86.eu-central-1.compute.internal host_ip=10.0.12.86|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-promtail-gr9sj node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=kube-system pod=ebs-csi-node-qqgp4 node=ip-10-0-10-217.eu-central-1.compute.internal host_ip=10.0.10.217|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-promtail-cl42k node=ip-10-0-12-86.eu-central-1.compute.internal host_ip=10.0.12.86|1.0
+PROBE|pod_node|namespace=kube-system pod=ebs-csi-controller-7588875979-pjfls node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-grafana-57b98c9b67-gdxvg node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-prometheus-node-exporter-49xft node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=keda pod=keda-operator-metrics-apiserver-785f9d6764-jrk6w node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=eks-pod-identity-agent-s5l6b node=ip-10-0-10-215.eu-central-1.compute.internal host_ip=10.0.10.215|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-prometheus-node-exporter-4dv77 node=ip-10-0-11-154.eu-central-1.compute.internal host_ip=10.0.11.154|1.0
+PROBE|pod_node|namespace=kube-system pod=eks-pod-identity-agent-nl4cj node=ip-10-0-11-154.eu-central-1.compute.internal host_ip=10.0.11.154|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-ffm74 node=ip-10-0-11-154.eu-central-1.compute.internal host_ip=10.0.11.154|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-envoy-8nhn4 node=ip-10-0-10-215.eu-central-1.compute.internal host_ip=10.0.10.215|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-envoy-qx8km node=ip-10-0-11-154.eu[   36.463887] cloud-init[2038]: PROBE|tx_by_pod|namespace=monitoring pod=monitoring-prometheus-node-exporter-49xft|1306523.1
+PROBE|rx_by_pod|namespace=kube2038]: PROBE|apiserver|resource=leases verb=PUT|6.4
+PROBE|pod_node|namespace=monitoring pod=monitoring-prometheus-node-exporter-tkhnc node=ip-10-0-10-215.eu-central-1.compute.internal host_ip=10.0.10.215|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-vhs4s node=ip-10-0-10-215.eu-central-1.compute.internal host_ip=10.0.10.215|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-promtail-wzg5m node=ip-10-0-11-154.eu-central-1.compute.internal host_ip=10.0.11.154|1.0
+PROBE|pod_node|namespace=kube-system pod=ebs-csi-node-2kpwr node=ip-10-0-11-154.eu-central-1.compute.internal host_ip=10.0.11.154|1.0
+PROBE|pod_node|namespace=kube-system pod=ebs-csi-node-m82lv node=ip-10-0-10-215.eu-central-1.compute.internal host_ip=10.0.10.215|1.0
+PROBE|pod_node|namespace=rag-platform pod=tei-embeddings-74986d5f9c-4rfp6 node=ip-10-0-11-154.eu-central-1.compute.internal host_ip=10.0.11.154|1.0
+PROBE|pod_node|namespace=rag-platform pod=tei-embeddings-74986d5f9c-8tqvr node=ip-10-0-10-215.eu-central-1.compute.internal host_ip=10.0.10.215|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-promtail-bcmd2 node=ip-10-0-10-215.eu-central-1.compute.internal host_ip=10.0.10.215|1.0
+PROBE|pod_node|namespace=rag-api pod=api-558767889d-sdqd8 node=ip-10-0-11-154.eu-central-1.compute.internal host_ip=10.0.11.154|1.0
+PROBE|pod_node|namespace=rag-api pod=api-558767889d-676nv node=ip-10-0-10-215.eu-central-1.compute.internal host_ip=10.0.10.215|1.0
+PROBE|node_ip|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt node=fargate-ip-10-0-11-4.eu-central-1.compute.internal instance=10.0.10.55:8080 internal_ip=10.0.11.4 job=kube-state-metrics|1.0
+PROBE|node_ip|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt node=fargate-ip-10-0-11-11.eu-central-1.compute.internal instance=10.0.10.55:8080 internal_ip=10.0.11.11 job=kube-state-metrics|1.0
+PROBE|node_ip|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt node=ip-10-0-10-222.eu-central-1.compute.internal instance=10.0.10.55:8080 internal_ip=10.0.10.222 job=kube-state-metrics|1.0
+PROBE|node_ip|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt node=ip-10-0-10-217.eu-central-1.compute.internal instance=10.0.10.55:8080 internal_ip=10.0.10.217 job=kube-state-metrics|1.0
+PROBE|node_ip|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt node=ip-10-0-12-86.eu-central-1.compute.internal instance=10.0.10.55:8080 internal_ip=10.0.12.86 job=kube-state-metrics|1.0
+PROBE|node_ip|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt node=ip-10-0-11-37.eu-central-1.compute.internal instance=10.0.10.55:8080 internal_ip=10.0.11.37 job=kube-state-metrics|1.0
+PROBE|node_ip|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt node=ip-10-0-11-154.eu-central-1.compute.internal instance=10.0.10.55:8080 internal_ip=10.0.11.154 job=kube-state-metrics|1.0
+PROBE|node_ip|namespace=monitoring pod=monitoring-kube-state-metrics-57bf8c5797-tn7gt node=ip-10-0-10-215.eu-central-1.compute.internal instance=10.0.10.55:8080 internal_ip=10.0.10.215 job=kube-state-metrics|1.0
+PROBE|pod_node|namespace=kube-system pod=ebs-csi-node-fn965 node=ip-10-0-12-86.eu-central-1.compute.internal host_ip=10.0.12.86|1.0
+PROBE|pod_node|namespace=argocd pod=argocd-application-controller-0 node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-prometheus-node-exporter-s2t4w node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-loki-0 node=ip-10-0-11-37.eu-central-1.compute.internal host_ip=10.0.11.37|1.0
+PROBE|pod_node|namespace=monitoring pod=monitoring-prometheus-node-exporter-79vlr node=ip-10-0-12-86.eu-central-1.compute.internal host_ip=10.0.12.86|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-tfblt node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=argocd pod=argocd-notifications-controller-687c8c4b9f-sx6fz node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-operator-8dc98466f-c54vl node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=ebs-csi-controller-7588875979-crqnm node=ip-10-0-10-222.eu-central-1.compute.internal host_ip=10.0.10.222|1.0
+PROBE|pod_node|namespace=kube-system pod=cilium-envoy-qx8km node=ip-10-0-11-154.eu-central-1.compute.internal host_ip=10.0.11.154|1.0
+# --- manifest sizes as ArgoCD's repo-server renders them (helm template, 2026-09-10), for sizing the repo-server -> controller stream
+MANIFEST|qdrant|chart qdrant 1.18.2 + backup CronJob + ServiceAccount|12382 bytes, 9 objects
+MANIFEST|loki-stack|chart loki-stack 2.10.2|17517 bytes, 16 objects
+MANIFEST|prometheus-stack|chart kube-prometheus-stack 61.3.0, --include-crds|3975771 bytes, 119 objects
+MANIFEST|prometheus-stack|same, without CRDs|583285 bytes, 109 objects
+# 1186163 B/s from argocd-repo-server = one 3.98 MB manifest set every ~3.35 s; qdrant's 12 KB would need ~96 fetches/s

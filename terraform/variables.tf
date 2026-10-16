@@ -35,7 +35,7 @@ variable "private_subnet_cidrs" {
 }
 
 variable "single_nat_gateway" {
-  description = "If true, provision a single shared NAT Gateway for cost-efficiency"
+  description = "Development environments only. A NAT Gateway is zonal and does not fail over, so a single one makes its zone a point of failure for node join, image pulls and every AWS API the runtime uses. Production sets this to false (ADR-0017)"
   type        = bool
   default     = true
 }
