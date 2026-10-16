@@ -347,7 +347,7 @@ with the limit before an OOM kill (`01-ingestion/M7` · `02-inference/Q8`).
 | Component | Keep | Peak working set | Limit ÷ peak | Enforced in | Comment |
 | :--- | :--- | ---: | ---: | :--- | :--- |
 | Chunker | `1Gi` | 445<!--FM79--> MiB (N=25) | 2.30<!--FD156-->× | `deploy/k8s/apps/chunker` | real documents can be larger than the fixture |
-| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | `requests.memory` raised to `2560Mi`, above the peak. The runs used 2,048<!--FR37--> MiB |
+| Indexer | `4Gi` | 2,219<!--FM80--> MiB (N=75) | 1.85<!--FD157-->× | `deploy/k8s/apps/indexer` | `requests.memory` raised to `2560Mi` |
 | Go API | `512Mi` | 165<!--FM76--> MiB (r500) | 3.10<!--FD154-->× | `deploy/k8s/apps/api` | replica reached 439<!--FM77--> MiB, 86% of the limit |
 | TEI | `1Gi` | 670<!--FM78--> MiB (r050) | 1.53<!--FD155-->× | `deploy/k8s/apps/tei` | at `requests.cpu: 3000m` packing is CPU-bound, so the 768<!--FR34--> MiB request does not affect density |
 

@@ -354,7 +354,7 @@ compares with the limit before an OOM kill.
 - **Chunker** — 1Gi limit, 445<!--FM79--> MiB peak, 2.30<!--FD156-->× headroom,
   real documents can be larger than the fixture
 - **Indexer** — 4Gi limit, 2,219<!--FM80--> MiB peak, 1.85<!--FD157-->×. The memory request is raised
-  from 2,048<!--FR37--> MiB to 2560Mi, above the peak.
+  from 2,048<!--FR37--> MiB to 2560Mi.
 - **Go API** — 512Mi limit, 165<!--FM76--> MiB peak, 3.10<!--FD154-->×. replica reached 439<!--FM77--> MiB.
 - **TEI** — 1Gi limit, 670<!--FM78--> MiB peak, 1.53<!--FD155-->×. CPU decides packing, so memory
   does not affect density.

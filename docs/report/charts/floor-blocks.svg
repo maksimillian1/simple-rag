@@ -217,6 +217,12 @@ z
    <g id="text_12">
     <text style="font-size: 34px; font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Computer Modern Typewriter', 'Andale Mono', 'Nimbus Mono L', 'Courier New', 'Courier', 'Fixed', 'Terminal', monospace; text-anchor: middle; fill: #ffffff" x="469.508386" y="363.516374" transform="rotate(-0 469.508386 363.516374)">343.42</text>
    </g>
+   <g id="text_13">
+    <text style="font-size: 34px; font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Computer Modern Typewriter', 'Andale Mono', 'Nimbus Mono L', 'Courier New', 'Courier', 'Fixed', 'Terminal', monospace; text-anchor: middle; fill: #ffffff" x="1310.370833" y="732.218788" transform="rotate(-0 1310.370833 732.218788)">411.31</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 34px; font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Computer Modern Typewriter', 'Andale Mono', 'Nimbus Mono L', 'Courier New', 'Courier', 'Fixed', 'Terminal', monospace; text-anchor: middle; fill: #ffffff" x="1310.370833" y="460.307438" transform="rotate(-0 1310.370833 460.307438)">326.43</text>
+   </g>
    <g id="legend_1">
     <g id="patch_9">
      <path d="M 545.745391 82.815313 
@@ -226,7 +232,7 @@ L 545.745391 59.015313
 z
 " style="fill: #17364f"/>
     </g>
-    <g id="text_13">
+    <g id="text_15">
      <text style="font-size: 34px; font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Computer Modern Typewriter', 'Andale Mono', 'Nimbus Mono L', 'Courier New', 'Courier', 'Fixed', 'Terminal', monospace; text-anchor: start; fill: #0b1320" x="627.345391" y="82.815313" transform="rotate(-0 627.345391 82.815313)">B · dedicated</text>
     </g>
     <g id="patch_10">
@@ -237,7 +243,7 @@ L 947.843203 59.015313
 z
 " style="fill: #3d85c6"/>
     </g>
-    <g id="text_14">
+    <g id="text_16">
      <text style="font-size: 34px; font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Computer Modern Typewriter', 'Andale Mono', 'Nimbus Mono L', 'Courier New', 'Courier', 'Fixed', 'Terminal', monospace; text-anchor: start; fill: #0b1320" x="1029.443203" y="82.815313" transform="rotate(-0 1029.443203 82.815313)">A · shared</text>
     </g>
    </g>
